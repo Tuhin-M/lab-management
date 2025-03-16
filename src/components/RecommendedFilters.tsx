@@ -4,10 +4,14 @@ import { Badge } from "@/components/ui/badge";
 
 interface RecommendedFiltersProps {
   onFilterSelect: (filter: string) => void;
+  recommendedFilters?: string[];
+  className?: string;
+  title?: string;
 }
 
-const RecommendedFilters = ({ onFilterSelect }: RecommendedFiltersProps) => {
-  const recommendedFilters = [
+const RecommendedFilters = ({ 
+  onFilterSelect, 
+  recommendedFilters = [
     "Complete Blood Count",
     "Thyroid Profile",
     "Diabetes",
@@ -15,11 +19,13 @@ const RecommendedFilters = ({ onFilterSelect }: RecommendedFiltersProps) => {
     "Liver Function",
     "Vitamin Tests",
     "Hormone Tests"
-  ];
-
+  ],
+  className = "mb-6",
+  title = "Recommended Searches:"
+}: RecommendedFiltersProps) => {
   return (
-    <div className="w-full mb-6">
-      <h3 className="text-sm font-medium mb-2 text-muted-foreground">Recommended Searches:</h3>
+    <div className={`w-full ${className}`}>
+      <h3 className="text-sm font-medium mb-2 text-muted-foreground">{title}</h3>
       <div className="flex flex-wrap gap-2">
         {recommendedFilters.map((filter) => (
           <Badge 

@@ -15,6 +15,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import RecommendedFilters from "@/components/RecommendedFilters";
+import DoctorAppointmentHeader from "@/components/doctor/DoctorAppointmentHeader";
 
 // Sample data for tests with Indian context
 const mockTests: Test[] = [
@@ -309,17 +310,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto py-4 px-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">Ekitsa</h1>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost">Sign In</Button>
-              <Button className="bg-primary hover:bg-primary/90">Sign Up</Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DoctorAppointmentHeader />
 
       <main className="flex-grow container mx-auto py-8 px-4">
         {/* Hero Section */}
@@ -388,6 +379,21 @@ const Index = () => {
                 <span className="text-primary">{selectedTest.name}</span>
               </h2>
             </div>
+
+            {/* Add Recommended Filters for labs comparison */}
+            <RecommendedFilters 
+              onFilterSelect={handleFilterSelect}
+              recommendedFilters={[
+                "NABL Accredited",
+                "Home Collection",
+                "Digital Reports",
+                "Open 24x7",
+                "Insurance Accepted",
+                "Free Home Delivery"
+              ]}
+              title="Quick Filters:"
+              className="mb-4"
+            />
 
             {/* Mobile Filter Button */}
             <div className="md:hidden">
