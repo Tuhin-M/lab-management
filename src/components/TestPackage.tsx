@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Check, Shield, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import PackageTests from "./PackageTests";
 
 export interface TestPackage {
   id: string;
@@ -65,9 +66,9 @@ const TestPackage = ({ testPackage, onSelect }: TestPackageProps) => {
               ))}
             </ul>
             {testPackage.includedTestCount > 3 && (
-              <p className="text-xs text-primary mt-1 font-medium">
-                +{testPackage.includedTestCount - 3} more tests
-              </p>
+              <div className="text-xs text-primary mt-1 font-medium">
+                <PackageTests tests={testPackage.tests} packageName={testPackage.name} />
+              </div>
             )}
           </div>
         </div>

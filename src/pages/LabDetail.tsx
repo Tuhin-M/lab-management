@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,7 @@ import { Lab } from "@/components/LabCard";
 import { TestPackage } from "@/components/TestPackage";
 import TestPackageComponent from "@/components/TestPackage";
 import { useToast } from "@/components/ui/use-toast";
+import LabTestSearch from "@/components/LabTestSearch";
 
 // Mock data for Test Packages
 const mockTestPackages: TestPackage[] = [
@@ -153,7 +153,6 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
   const params = useParams<{ labId: string }>();
   const [selectedTab, setSelectedTab] = useState("overview");
   
-  // For demo purposes, let's assume either passed in props or use mockup data
   const lab = selectedLab || {
     id: "1",
     name: "LifeCare Diagnostics",
@@ -273,9 +272,10 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
               value={selectedTab}
               onValueChange={setSelectedTab}
             >
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className="w-full grid grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="tests">Tests & Packages</TabsTrigger>
+                <TabsTrigger value="testSearch">Test Search</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
               
@@ -430,6 +430,10 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
                     ))}
                   </div>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="testSearch" className="mt-6">
+                <LabTestSearch />
               </TabsContent>
               
               <TabsContent value="reviews" className="mt-6">
@@ -604,3 +608,4 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
 };
 
 export default LabDetail;
+
