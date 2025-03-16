@@ -19,19 +19,18 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
+    <form onSubmit={handleSubmit} className="relative w-full mx-auto">
       <div className="relative flex items-center">
         <Input
           type="text"
-          placeholder="Search for blood tests (e.g., CBC, Glucose, Lipid Panel)"
+          placeholder="Search for blood tests (e.g., CBC, Sugar, Thyroid Profile)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pr-20 h-12 rounded-lg text-base"
+          className="pr-24 h-12 rounded-lg text-base border-primary/20 focus-visible:ring-primary"
         />
         <Button 
           type="submit" 
-          className="absolute right-0 h-12 rounded-l-none"
-          variant="default"
+          className="absolute right-0 h-12 rounded-l-none bg-primary hover:bg-primary/90"
         >
           <Search className="mr-2" />
           Search

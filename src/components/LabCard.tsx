@@ -2,7 +2,8 @@
 import React from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Star, Check } from "lucide-react";
+import { MapPin, Clock, Star, Check, BadgePercent, Award } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export interface Lab {
   id: string;
@@ -12,10 +13,13 @@ export interface Lab {
   rating: number;
   reviewCount: number;
   price: number;
+  discount?: number;
   waitTime: string;
   openNow: boolean;
   facilities: string[];
   imageUrl: string;
+  accreditation?: string;
+  yearEstablished?: number;
 }
 
 interface LabCardProps {
@@ -24,17 +28,29 @@ interface LabCardProps {
 }
 
 const LabCard = ({ lab, onSelect }: LabCardProps) => {
+  const discountedPrice = lab.discount 
+    ? Math.round(lab.price - (lab.price * lab.discount / 100)) 
+    : lab.price;
+
   return (
-    <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg border border-border">
       <div 
-        className="h-48 bg-cover bg-center w-full" 
+        className="h-40 bg-cover bg-center w-full" 
         style={{ backgroundImage: `url(${lab.imageUrl || '/placeholder.svg'})` }}
       />
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-xl font-semibold">{lab.name}</CardTitle>
+          <div>
+            <CardTitle className="text-xl font-semibold">{lab.name}</CardTitle>
+            {lab.accreditation && (
+              <div className="flex items-center mt-1">
+                <Award className="h-3 w-3 text-primary mr-1" />
+                <span className="text-xs text-muted-foreground">{lab.accreditation}</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center bg-primary/10 px-2 py-1 rounded-full">
-            <Star className="h-4 w-4 text-yellow-500 mr-1" fill="currentColor" />
+            <Star className="h-4 w-4 text-primary mr-1" fill="currentColor" />
             <span className="text-sm font-medium">{lab.rating.toFixed(1)}</span>
             <span className="text-xs text-muted-foreground ml-1">({lab.reviewCount})</span>
           </div>
@@ -72,10 +88,20 @@ const LabCard = ({ lab, onSelect }: LabCardProps) => {
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
         <div>
-          <p className="font-semibold text-lg">${lab.price}</p>
+          {lab.discount ? (
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-lg text-primary">₹{discountedPrice}</p>
+              <div className="flex flex-col">
+                <p className="text-xs line-through text-muted-foreground">₹{lab.price}</p>
+                <p className="text-xs text-primary font-medium">{lab.discount}% off</p>
+              </div>
+            </div>
+          ) : (
+            <p className="font-semibold text-lg">₹{lab.price}</p>
+          )}
           <p className="text-xs text-muted-foreground">Test Fee</p>
         </div>
-        <Button onClick={() => onSelect(lab)}>
+        <Button onClick={() => onSelect(lab)} className="bg-primary hover:bg-primary/90">
           <Check className="mr-2 h-4 w-4" />
           Select Lab
         </Button>

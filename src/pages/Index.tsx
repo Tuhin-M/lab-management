@@ -1,101 +1,129 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 import SearchBar from "@/components/SearchBar";
 import TestResult, { Test } from "@/components/TestResult";
 import LabCard, { Lab } from "@/components/LabCard";
 import LabFilters, { LabFiltersState } from "@/components/LabFilters";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { 
+  ArrowLeft,
+  Filter,
+  BadgeIndianRupee,
+  X
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-// Sample data for tests
+// Sample data for tests with Indian context
 const mockTests: Test[] = [
   {
     id: "1",
     name: "Complete Blood Count (CBC)",
-    description: "Measures red and white blood cells, platelets, and hemoglobin",
+    description: "Measures red and white blood cells, platelets, and hemoglobin levels",
     category: "Hematology",
+    price: 499,
+    discount: 10,
+    isPopular: true,
   },
   {
     id: "2",
-    name: "Comprehensive Metabolic Panel",
-    description: "Provides information about your body's fluid balance, levels of electrolytes, and metabolism",
-    category: "Chemistry",
+    name: "Thyroid Profile",
+    description: "Checks thyroid function with T3, T4, and TSH tests",
+    category: "Endocrinology",
+    price: 899,
+    discount: 15,
+    isPopular: true,
   },
   {
     id: "3",
-    name: "Lipid Panel",
-    description: "Measures cholesterol levels and fats in your blood",
+    name: "Lipid Profile",
+    description: "Measures cholesterol and triglyceride levels in your blood",
     category: "Chemistry",
+    price: 699,
+    discount: 5,
   },
   {
     id: "4",
-    name: "Thyroid Function Tests",
-    description: "Assesses how well your thyroid gland is working",
-    category: "Endocrinology",
-  },
-  {
-    id: "5",
-    name: "Hemoglobin A1C",
-    description: "Monitors blood sugar levels over time for diabetes management",
-    category: "Endocrinology",
-  },
-  {
-    id: "6",
     name: "Vitamin D Test",
     description: "Measures the level of vitamin D in your blood",
     category: "Nutrition",
+    price: 1299,
+    discount: 20,
+  },
+  {
+    id: "5",
+    name: "HbA1c",
+    description: "Monitors blood sugar levels over time for diabetes management",
+    category: "Endocrinology",
+    price: 599,
+  },
+  {
+    id: "6",
+    name: "Liver Function Test",
+    description: "Assesses how well your liver is functioning",
+    category: "Chemistry",
+    price: 799,
+    discount: 10,
   },
 ];
 
-// Sample data for labs
+// Sample data for labs with Indian context
 const mockLabs: Lab[] = [
   {
     id: "1",
-    name: "LifeCare Diagnostics",
-    address: "123 Medical Plaza, Suite 101, New York, NY",
+    name: "Apollo Diagnostics",
+    address: "Koramangala, Bengaluru, Karnataka 560034",
     distance: 1.2,
     rating: 4.7,
     reviewCount: 142,
-    price: 45,
+    price: 449,
+    discount: 10,
     waitTime: "10-15 min",
     openNow: true,
-    facilities: ["Home Collection", "Digital Reports", "Insurance Accepted"],
+    facilities: ["Home Collection", "Digital Reports", "NABL Accredited", "Insurance Accepted"],
     imageUrl: "https://images.unsplash.com/photo-1587370560942-ad2a04eabb6d?q=80&w=2070&auto=format&fit=crop",
+    accreditation: "NABL Accredited Lab",
+    yearEstablished: 2005,
   },
   {
     id: "2",
-    name: "MedExpress Labs",
-    address: "456 Health Avenue, Brooklyn, NY",
+    name: "Thyrocare Technologies",
+    address: "Indiranagar, Bengaluru, Karnataka 560038",
     distance: 3.5,
     rating: 4.2,
     reviewCount: 98,
-    price: 35,
+    price: 399,
+    discount: 15,
     waitTime: "5-10 min",
     openNow: true,
-    facilities: ["Digital Reports", "24/7 Service"],
+    facilities: ["Digital Reports", "Open 24x7", "Home Collection"],
     imageUrl: "https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=2070&auto=format&fit=crop",
   },
   {
     id: "3",
-    name: "Premier Diagnostics Center",
-    address: "789 Wellness Road, Queens, NY",
+    name: "Metropolis Healthcare",
+    address: "HSR Layout, Bengaluru, Karnataka 560102",
     distance: 5.8,
-    rating: 4.9,
+    rating: 4.8,
     reviewCount: 215,
-    price: 65,
+    price: 499,
+    discount: 5,
     waitTime: "20-30 min",
     openNow: false,
-    facilities: ["Home Collection", "Digital Reports", "Insurance Accepted", "Premium Facilities"],
+    facilities: ["Home Collection", "Digital Reports", "NABL Accredited", "Free Home Delivery"],
     imageUrl: "https://images.unsplash.com/photo-1581595219315-a187dd40c322?q=80&w=1974&auto=format&fit=crop",
+    accreditation: "NABL and CAP Accredited",
   },
   {
     id: "4",
-    name: "City Health Labs",
-    address: "101 Medical Drive, Bronx, NY",
+    name: "Dr. Lal PathLabs",
+    address: "Jayanagar, Bengaluru, Karnataka 560069",
     distance: 2.3,
-    rating: 3.8,
+    rating: 3.9,
     reviewCount: 67,
-    price: 30,
+    price: 375,
     waitTime: "15-20 min",
     openNow: true,
     facilities: ["Insurance Accepted", "Digital Reports"],
@@ -103,34 +131,38 @@ const mockLabs: Lab[] = [
   },
   {
     id: "5",
-    name: "Advanced Pathology Associates",
-    address: "202 Healthcare Blvd, Staten Island, NY",
+    name: "SRL Diagnostics",
+    address: "Whitefield, Bengaluru, Karnataka 560066",
     distance: 7.1,
     rating: 4.5,
     reviewCount: 183,
-    price: 55,
+    price: 459,
+    discount: 12,
     waitTime: "10-15 min",
     openNow: true,
-    facilities: ["Home Collection", "24/7 Service", "Premium Facilities"],
+    facilities: ["Home Collection", "Open 24x7", "NABL Accredited"],
     imageUrl: "https://images.unsplash.com/photo-1666214276372-24e621c10046?q=80&w=2070&auto=format&fit=crop",
+    accreditation: "NABL Accredited Lab",
   },
   {
     id: "6",
-    name: "Precision Diagnostics",
-    address: "303 Science Park, Manhattan, NY",
+    name: "Neuberg Diagnostics",
+    address: "BTM Layout, Bengaluru, Karnataka 560076",
     distance: 0.8,
     rating: 4.4,
     reviewCount: 112,
-    price: 50,
+    price: 425,
+    discount: 10,
     waitTime: "5-10 min",
     openNow: false,
-    facilities: ["Digital Reports", "Insurance Accepted", "Premium Facilities"],
+    facilities: ["Digital Reports", "Insurance Accepted", "Free Home Delivery"],
     imageUrl: "https://images.unsplash.com/photo-1581093196277-9f6070b4a8bb?q=80&w=2070&auto=format&fit=crop",
   },
 ];
 
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Test[]>([]);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
@@ -144,10 +176,13 @@ const Index = () => {
     facilities: {
       "Home Collection": false,
       "Digital Reports": false,
+      "NABL Accredited": false,
+      "Open 24x7": false,
+      "Free Home Delivery": false,
       "Insurance Accepted": false,
-      "24/7 Service": false,
     },
   });
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Handle search for blood tests
   const handleSearch = (query: string) => {
@@ -191,6 +226,9 @@ const Index = () => {
       title: "Lab Selected",
       description: `You selected ${lab.name} for your test`,
     });
+    
+    // Uncomment to navigate to the lab detail page instead of showing modal
+    // navigate(`/lab/${lab.id}`);
   };
 
   // Handle sort change
@@ -257,6 +295,11 @@ const Index = () => {
     setFilteredLabs(filtered);
   }, [selectedTest, filters, sortOption]);
 
+  // Function to view lab details
+  const handleViewLabDetails = (lab: Lab) => {
+    navigate(`/lab/${lab.id}`);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -266,7 +309,7 @@ const Index = () => {
             <h1 className="text-2xl font-bold text-primary">Ekitsa</h1>
             <div className="flex items-center space-x-4">
               <Button variant="ghost">Sign In</Button>
-              <Button>Sign Up</Button>
+              <Button className="bg-primary hover:bg-primary/90">Sign Up</Button>
             </div>
           </div>
         </div>
@@ -335,42 +378,110 @@ const Index = () => {
               </h2>
             </div>
 
-            {/* Filters */}
-            <LabFilters
-              onSortChange={handleSortChange}
-              onFilterChange={handleFilterChange}
-            />
+            {/* Mobile Filter Button */}
+            <div className="md:hidden">
+              <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filters & Sort
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-xs bg-primary text-white rounded-full px-2 py-0.5 mr-1">
+                        {Object.values(filters.facilities).filter(Boolean).length + 
+                          (filters.rating > 0 ? 1 : 0) + 
+                          (filters.maxDistance < 10 ? 1 : 0) + 
+                          (filters.openNow ? 1 : 0)}
+                      </span>
+                      <BadgeIndianRupee className="h-4 w-4" />
+                    </div>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-full sm:max-w-md p-0">
+                  <div className="overflow-y-auto h-full">
+                    <LabFilters
+                      onSortChange={handleSortChange}
+                      onFilterChange={handleFilterChange}
+                      isMobile={true}
+                      onClose={() => setIsMobileFilterOpen(false)}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-            {/* Labs Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredLabs.length > 0 ? (
-                filteredLabs.map((lab) => (
-                  <LabCard
-                    key={lab.id}
-                    lab={lab}
-                    onSelect={handleLabSelect}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-16">
-                  <h3 className="text-lg font-medium">No labs match your criteria</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your filters or search for a different test.
-                  </p>
-                </div>
-              )}
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Filters - Desktop */}
+              <div className="hidden md:block md:w-1/4 lg:w-1/5">
+                <LabFilters
+                  onSortChange={handleSortChange}
+                  onFilterChange={handleFilterChange}
+                />
+              </div>
+
+              {/* Labs Grid */}
+              <div className="flex-1">
+                {filteredLabs.length > 0 ? (
+                  <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+                    {filteredLabs.map((lab) => (
+                      <LabCard
+                        key={lab.id}
+                        lab={lab}
+                        onSelect={handleLabSelect}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-card border rounded-lg">
+                    <h3 className="text-lg font-medium">No labs match your criteria</h3>
+                    <p className="text-muted-foreground">
+                      Try adjusting your filters or search for a different test.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => {
+                        const resetFilters = {
+                          rating: 0,
+                          maxDistance: 10,
+                          openNow: false,
+                          facilities: Object.keys(filters.facilities).reduce(
+                            (acc, facility) => ({ ...acc, [facility]: false }),
+                            {} as Record<string, boolean>
+                          ),
+                        };
+                        setFilters(resetFilters);
+                        onFilterChange(resetFilters);
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Lab Selection Confirmation */}
+        {/* Lab Selection Modal */}
         {selectedLab && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-card max-w-md w-full rounded-lg shadow-lg overflow-hidden border">
-              <div 
-                className="h-32 bg-cover bg-center w-full" 
-                style={{ backgroundImage: `url(${selectedLab.imageUrl || '/placeholder.svg'})` }}
-              />
+              <div className="relative">
+                <div 
+                  className="h-32 bg-cover bg-center w-full" 
+                  style={{ backgroundImage: `url(${selectedLab.imageUrl || '/placeholder.svg'})` }}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute top-2 right-2 bg-background/50 backdrop-blur-sm hover:bg-background/70"
+                  onClick={() => setSelectedLab(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="p-6 space-y-4">
                 <h3 className="text-xl font-bold">{selectedLab.name}</h3>
                 <p className="text-muted-foreground">{selectedLab.address}</p>
@@ -381,7 +492,19 @@ const Index = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Price:</span>
-                    <span className="font-medium">${selectedLab.price}</span>
+                    <div className="text-right">
+                      {selectedLab.discount ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary">₹{Math.round(selectedLab.price - (selectedLab.price * selectedLab.discount / 100))}</span>
+                          <span className="text-xs line-through text-muted-foreground">₹{selectedLab.price}</span>
+                          <span className="text-xs bg-primary/10 text-primary px-1 rounded">
+                            {selectedLab.discount}% off
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-medium">₹{selectedLab.price}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Estimated wait:</span>
@@ -396,7 +519,12 @@ const Index = () => {
                   >
                     Cancel
                   </Button>
-                  <Button className="flex-1">Book Appointment</Button>
+                  <Button 
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                    onClick={() => handleViewLabDetails(selectedLab)}
+                  >
+                    View Details
+                  </Button>
                 </div>
               </div>
             </div>
