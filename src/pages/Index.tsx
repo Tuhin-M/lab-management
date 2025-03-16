@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import RecommendedFilters from "@/components/RecommendedFilters";
 
 // Sample data for tests with Indian context
 const mockTests: Test[] = [
@@ -300,6 +300,12 @@ const Index = () => {
     navigate(`/lab/${lab.id}`);
   };
 
+  // Handle filter selection from recommended filters
+  const handleFilterSelect = (filter: string) => {
+    setSearchQuery(filter);
+    handleSearch(filter);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -334,6 +340,11 @@ const Index = () => {
         <div className="mb-8">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {/* Recommended Filters */}
+        {!selectedTest && (
+          <RecommendedFilters onFilterSelect={handleFilterSelect} />
+        )}
 
         {/* Test Results */}
         {searchResults.length > 0 && !selectedTest && (
@@ -452,7 +463,7 @@ const Index = () => {
                           ),
                         };
                         setFilters(resetFilters);
-                        onFilterChange(resetFilters);
+                        handleFilterChange(resetFilters);
                       }}
                     >
                       Reset Filters

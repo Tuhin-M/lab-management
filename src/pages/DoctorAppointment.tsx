@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Calendar as CalendarIcon,
+  CalendarIcon,
   Search,
   Star,
   MapPin,
-  Calendar,
+  Calendar as CalendarLucide,
   Clock,
   Filter,
   ArrowLeft,
@@ -388,7 +387,7 @@ const DoctorAppointment = () => {
                             </span>
                           </div>
                           <div className="flex items-center">
-                            <Calendar className="h-4 w-4 text-muted-foreground mr-2" />
+                            <CalendarLucide className="h-4 w-4 text-muted-foreground mr-2" />
                             <p className="text-sm">Experience: {doctor.experience} years</p>
                           </div>
                         </div>
