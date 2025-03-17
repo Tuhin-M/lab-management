@@ -7,9 +7,14 @@ import { Search } from "lucide-react";
 interface SearchBarProps {
   onSearch: (query: string) => void;
   maxWidth?: string;
+  placeholder?: string;
 }
 
-const SearchBar = ({ onSearch, maxWidth = "max-w-3xl" }: SearchBarProps) => {
+const SearchBar = ({ 
+  onSearch, 
+  maxWidth = "max-w-xl", 
+  placeholder = "Search for blood tests (e.g., CBC, Sugar, Thyroid Profile)"
+}: SearchBarProps) => {
   const [query, setQuery] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,7 +29,7 @@ const SearchBar = ({ onSearch, maxWidth = "max-w-3xl" }: SearchBarProps) => {
       <div className="relative flex items-center">
         <Input
           type="text"
-          placeholder="Search for blood tests (e.g., CBC, Sugar, Thyroid Profile)"
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pr-24 h-12 rounded-lg text-base border-primary/20 focus-visible:ring-primary"
