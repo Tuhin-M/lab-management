@@ -1,11 +1,11 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft, Filter, MapPin } from "lucide-react";
+import { ArrowLeft, Filter, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
+import { motion } from "framer-motion";
 import RecommendedFilters from "@/components/RecommendedFilters";
 import DoctorAppointmentHeader from "@/components/doctor/DoctorAppointmentHeader";
 import DoctorAppointmentFooter from "@/components/doctor/DoctorAppointmentFooter";
@@ -84,9 +84,38 @@ const DoctorAppointment = () => {
     setSelectedDate(undefined);
     setSelectedTimeSlot(null);
   };
+
+  // Page transition variants
+  const pageVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.5 } },
+    exit: { opacity: 0, transition: { duration: 0.3 } }
+  };
+
+  // Staggered children animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+  };
   
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div 
+      className="min-h-screen bg-background"
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageVariants}
+    >
       {/* Header */}
       <DoctorAppointmentHeader />
 
@@ -101,36 +130,63 @@ const DoctorAppointment = () => {
           Back
         </Button>
         
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Find Doctors & Book Appointments</h1>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="flex items-center justify-between mb-6"
+        >
+          <h1 className="text-2xl md:text-3xl font-bold">Find Doctors & Book Appointments</h1>
+        </motion.div>
         
-        <div className="flex items-center gap-2 mb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex items-center gap-2 mb-4"
+        >
           <MapPin className="h-5 w-5 text-primary" />
           <Button variant="outline" className="text-sm">
             {location} <span className="text-primary ml-1">Change</span>
           </Button>
-        </div>
+        </motion.div>
         
         {/* Search Bar with reduced width */}
-        <div className="mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mb-8"
+        >
           <SearchBar 
             onSearch={(query) => setSearchQuery(query)} 
             maxWidth="max-w-2xl"
+            context="doctor"
+            animated={false}
           />
-        </div>
+        </motion.div>
         
         {/* Quick Filters */}
-        <div className="mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-6"
+        >
           <RecommendedFilters 
             onFilterSelect={handleFilterSelect} 
             title="Quick Filters:"
             recommendedFilters={specialties}
           />
-        </div>
+        </motion.div>
         
         {/* Combined Filters */}
-        <div className="mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mb-6"
+        >
           <RecommendedFilters 
             onFilterSelect={handleCombinedFilterSelect} 
             title="Combined Filters:"
@@ -144,11 +200,16 @@ const DoctorAppointment = () => {
             ]}
             combinedFilters={true}
           />
-        </div>
+        </motion.div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-8">
           {/* Left Column - Filters (Desktop) */}
-          <div className="hidden lg:block space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="hidden lg:block space-y-6"
+          >
             <DoctorFilters 
               selectedSpecialty={selectedSpecialty}
               setSelectedSpecialty={setSelectedSpecialty}
@@ -156,7 +217,7 @@ const DoctorAppointment = () => {
               setSelectedDate={setSelectedDate}
               specialties={specialties}
             />
-          </div>
+          </motion.div>
           
           {/* Doctors List */}
           <div className="lg:col-span-3 space-y-6">
@@ -186,38 +247,53 @@ const DoctorAppointment = () => {
               </Sheet>
             </div>
           
-            {filteredDoctors.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No doctors found matching your criteria.</p>
-                <Button variant="outline" className="mt-4" onClick={() => {
-                  setSearchQuery("");
-                  setSelectedSpecialty("all");
-                }}>
-                  Clear Filters
-                </Button>
-              </div>
-            ) : (
-              filteredDoctors.map(doctor => (
-                <DoctorCard
-                  key={doctor.id}
-                  doctor={doctor}
-                  selectedDoctor={selectedDoctor}
-                  selectedDate={selectedDate}
-                  selectedTimeSlot={selectedTimeSlot}
-                  setSelectedDoctor={setSelectedDoctor}
-                  setSelectedDate={setSelectedDate}
-                  setSelectedTimeSlot={setSelectedTimeSlot}
-                  onBookAppointment={handleBookAppointment}
-                />
-              ))
-            )}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="space-y-6"
+            >
+              {filteredDoctors.length === 0 ? (
+                <motion.div 
+                  variants={itemVariants}
+                  className="text-center py-12"
+                >
+                  <p className="text-muted-foreground">No doctors found matching your criteria.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => {
+                    setSearchQuery("");
+                    setSelectedSpecialty("all");
+                  }}>
+                    Clear Filters
+                  </Button>
+                </motion.div>
+              ) : (
+                filteredDoctors.map((doctor, index) => (
+                  <motion.div
+                    key={doctor.id}
+                    variants={itemVariants}
+                    custom={index}
+                  >
+                    <DoctorCard
+                      doctor={doctor}
+                      selectedDoctor={selectedDoctor}
+                      selectedDate={selectedDate}
+                      selectedTimeSlot={selectedTimeSlot}
+                      setSelectedDoctor={setSelectedDoctor}
+                      setSelectedDate={setSelectedDate}
+                      setSelectedTimeSlot={setSelectedTimeSlot}
+                      onBookAppointment={handleBookAppointment}
+                    />
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
           </div>
         </div>
       </main>
       
       {/* Footer */}
       <DoctorAppointmentFooter />
-    </div>
+    </motion.div>
   );
 };
 
