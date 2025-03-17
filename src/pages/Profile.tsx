@@ -55,7 +55,7 @@ const appointments = [
     location: "Apollo Hospital"
   },
   {
-    id: R3,
+    id: 3,
     type: "Lab Test",
     name: "Lipid Profile",
     date: "2023-08-10",
