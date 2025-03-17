@@ -6,9 +6,10 @@ import { Search } from "lucide-react";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  maxWidth?: string;
 }
 
-const SearchBar = ({ onSearch }: SearchBarProps) => {
+const SearchBar = ({ onSearch, maxWidth = "max-w-3xl" }: SearchBarProps) => {
   const [query, setQuery] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full mx-auto">
+    <form onSubmit={handleSubmit} className={`relative w-full ${maxWidth} mx-auto`}>
       <div className="relative flex items-center">
         <Input
           type="text"

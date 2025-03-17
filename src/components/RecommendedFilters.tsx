@@ -7,6 +7,7 @@ interface RecommendedFiltersProps {
   recommendedFilters?: string[];
   className?: string;
   title?: string;
+  combinedFilters?: boolean;
 }
 
 const RecommendedFilters = ({ 
@@ -21,7 +22,8 @@ const RecommendedFilters = ({
     "Hormone Tests"
   ],
   className = "mb-6",
-  title = "Recommended Searches:"
+  title = "Recommended Searches:",
+  combinedFilters = false
 }: RecommendedFiltersProps) => {
   return (
     <div className={`w-full ${className}`}>
@@ -31,10 +33,13 @@ const RecommendedFilters = ({
           <Badge 
             key={filter}
             variant="outline" 
-            className="px-3 py-1 bg-white cursor-pointer hover:bg-primary hover:text-white border-primary/30 text-primary"
+            className={`px-3 py-1 bg-white cursor-pointer hover:bg-primary hover:text-white border-primary/30 text-primary ${combinedFilters ? 'flex items-center' : ''}`}
             onClick={() => onFilterSelect(filter)}
           >
             {filter}
+            {combinedFilters && (
+              <span className="ml-1 bg-primary/10 text-xs rounded-full px-1.5 py-0.5">+</span>
+            )}
           </Badge>
         ))}
       </div>

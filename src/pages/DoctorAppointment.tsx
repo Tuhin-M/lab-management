@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Filter, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -12,6 +12,8 @@ import DoctorAppointmentFooter from "@/components/doctor/DoctorAppointmentFooter
 import DoctorFilters from "@/components/doctor/DoctorFilters";
 import DoctorCard from "@/components/doctor/DoctorCard";
 import { doctors } from "@/data/doctorsData";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import SearchBar from "@/components/SearchBar";
 
 const DoctorAppointment = () => {
   const navigate = useNavigate();
@@ -21,17 +23,31 @@ const DoctorAppointment = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>("all");
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
+  const [location, setLocation] = useState("Mumbai, Maharashtra");
   
   const specialties = Array.from(new Set(doctors.map(doctor => doctor.specialty)));
   
   const handleFilterSelect = (filter: string) => {
-    setSearchQuery(filter);
+    if (specialties.includes(filter)) {
+      setSelectedSpecialty(filter);
+    } else {
+      setSearchQuery(filter);
+    }
+  };
+  
+  const handleCombinedFilterSelect = (filter: string) => {
+    toast({
+      title: "Filter applied",
+      description: `Added "${filter}" to your search`,
+    });
   };
   
   const filteredDoctors = doctors.filter(doctor => {
     const matchesSearch = searchQuery.trim() === "" || 
       doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.hospital.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.location.toLowerCase().includes(searchQuery.toLowerCase());
       
     const matchesSpecialty = selectedSpecialty === "all" || doctor.specialty === selectedSpecialty;
     
@@ -89,30 +105,50 @@ const DoctorAppointment = () => {
           <h1 className="text-3xl font-bold">Find Doctors & Book Appointments</h1>
         </div>
         
-        <div className="w-full mx-auto mb-8">
-          <div className="relative flex items-center">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search by doctor name, specialty, or condition..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-24 h-12 rounded-lg text-base border-primary/20 focus-visible:ring-primary"
-            />
-            <Button 
-              className="absolute right-0 h-12 rounded-l-none bg-primary hover:bg-primary/90"
-            >
-              <Search className="mr-2" />
-              Search
-            </Button>
-          </div>
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin className="h-5 w-5 text-primary" />
+          <Button variant="outline" className="text-sm">
+            {location} <span className="text-primary ml-1">Change</span>
+          </Button>
         </div>
         
-        <RecommendedFilters onFilterSelect={handleFilterSelect} />
+        {/* Search Bar with reduced width */}
+        <div className="mb-8">
+          <SearchBar 
+            onSearch={(query) => setSearchQuery(query)} 
+            maxWidth="max-w-2xl"
+          />
+        </div>
+        
+        {/* Quick Filters */}
+        <div className="mb-6">
+          <RecommendedFilters 
+            onFilterSelect={handleFilterSelect} 
+            title="Quick Filters:"
+            recommendedFilters={specialties}
+          />
+        </div>
+        
+        {/* Combined Filters */}
+        <div className="mb-6">
+          <RecommendedFilters 
+            onFilterSelect={handleCombinedFilterSelect} 
+            title="Combined Filters:"
+            recommendedFilters={[
+              "Female Doctors",
+              "Available Today",
+              "Video Consult",
+              "Home Visit",
+              "Free Followup",
+              "Experience 10+ Years"
+            ]}
+            combinedFilters={true}
+          />
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column - Filters */}
-          <div className="space-y-6">
+          {/* Left Column - Filters (Desktop) */}
+          <div className="hidden lg:block space-y-6">
             <DoctorFilters 
               selectedSpecialty={selectedSpecialty}
               setSelectedSpecialty={setSelectedSpecialty}
@@ -122,8 +158,34 @@ const DoctorAppointment = () => {
             />
           </div>
           
-          {/* Right Column - Doctors List */}
+          {/* Doctors List */}
           <div className="lg:col-span-3 space-y-6">
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden flex justify-between items-center mb-4">
+              <div className="text-sm text-muted-foreground">
+                {filteredDoctors.length} doctors found
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0">
+                  <div className="h-full overflow-y-auto py-6 px-4">
+                    <DoctorFilters 
+                      selectedSpecialty={selectedSpecialty}
+                      setSelectedSpecialty={setSelectedSpecialty}
+                      selectedDate={selectedDate}
+                      setSelectedDate={setSelectedDate}
+                      specialties={specialties}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          
             {filteredDoctors.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No doctors found matching your criteria.</p>
