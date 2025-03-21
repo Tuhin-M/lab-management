@@ -128,6 +128,33 @@ export const userAPI = {
   
   cancelTestBooking: async (id: string) => {
     return apiClient.delete(`/test-bookings/${id}`);
+  },
+
+  getProfile: async () => {
+    return apiClient.get('/user/profile');
+  },
+
+  updateProfile: async (profileData: any) => {
+    return apiClient.put('/user/profile', profileData);
+  }
+};
+
+// Health records API calls
+export const healthRecordsAPI = {
+  getAllRecords: async () => {
+    return apiClient.get('/health-records');
+  },
+  
+  getRecordById: async (id: string) => {
+    return apiClient.get(`/health-records/${id}`);
+  },
+  
+  createRecord: async (recordData: any) => {
+    return apiClient.post('/health-records', recordData);
+  },
+  
+  deleteRecord: async (id: string) => {
+    return apiClient.delete(`/health-records/${id}`);
   }
 };
 

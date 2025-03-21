@@ -1,47 +1,54 @@
-
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
-import Home from "./pages/Home";
-import AboutUs from "./pages/AboutUs";
-import LabTests from "./pages/LabTests";
-import LabDetail from "./pages/LabDetail";
-import TestBooking from "./pages/TestBooking";
-import DoctorAppointment from "./pages/DoctorAppointment";
-import Blog from "./pages/Blog";
-import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
 
-const queryClient = new QueryClient();
+// Lazy-loaded pages
+const Home = lazy(() => import("./pages/Home"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const DoctorAppointment = lazy(() => import("./pages/DoctorAppointment"));
+const Login = lazy(() => import("./pages/Login"));
+const Profile = lazy(() => import("./pages/Profile"));
+const SignUp = lazy(() => import("./pages/SignUp"));
+const Blog = lazy(() => import("./pages/Blog"));
+const LabTests = lazy(() => import("./pages/LabTests"));
+const LabDetail = lazy(() => import("./pages/LabDetail"));
+const TestBooking = lazy(() => import("./pages/TestBooking"));
+const Index = lazy(() => import("./pages/Index"));
+import HealthRecords from "./pages/HealthRecords";
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/doctors/:id" element={<DoctorAppointment />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/lab-tests" element={<LabTests />} />
+        <Route path="/labs/:id" element={<LabDetail />} />
+        <Route path="/test-booking/:id" element={<TestBooking />} />
+        <Route path="/health-records" element={<HealthRecords />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/labs" element={<LabTests />} />
-          <Route path="/lab/:labId" element={<LabDetail />} />
-          <Route path="/test-booking" element={<TestBooking />} />
-          <Route path="/doctors" element={<DoctorAppointment />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/profile" element={<Profile />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
+      <p className="text-lg mb-8">The page you are looking for doesn't exist or has been moved.</p>
+      <a href="/" className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md">
+        Go Home
+      </a>
+    </div>
+  );
+}
 
 export default App;

@@ -14,6 +14,7 @@ const userRoutes = require('./routes/user.routes');
 const categoriesRoutes = require('./routes/categories.routes');
 const specialtiesRoutes = require('./routes/specialties.routes');
 const testsRoutes = require('./routes/tests.routes');
+const healthRecordsRoutes = require('./routes/health-records.routes');
 
 // Initialize express app
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/specialties', specialtiesRoutes);
 app.use('/api/tests', testsRoutes);
+app.use('/api/health-records', healthRecordsRoutes);
 
 // Root route
 app.get('/', (req, res) => {

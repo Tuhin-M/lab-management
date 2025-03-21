@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { User, Settings, Calendar, Lock, LogOut, Upload } from "lucide-react";
+import { User, Settings, Calendar, Lock, LogOut, Upload, FileText, Activity, Heart } from "lucide-react";
 import TopNavigation from "@/components/TopNavigation";
 
 const profileSchema = z.object({
@@ -34,7 +33,6 @@ const passwordSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
-// Sample appointment data
 const appointments = [
   {
     id: 1,
@@ -124,7 +122,6 @@ const Profile = () => {
       
       <main className="flex-grow container mx-auto py-6 px-4">
         <div className="grid md:grid-cols-[250px_1fr] gap-6">
-          {/* Profile sidebar */}
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
@@ -156,6 +153,9 @@ const Profile = () => {
                   <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/appointments")}>
                     <Calendar className="mr-2 h-4 w-4" /> My Appointments
                   </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/health-records")}>
+                    <FileText className="mr-2 h-4 w-4" /> Health Records
+                  </Button>
                   <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/settings")}>
                     <Settings className="mr-2 h-4 w-4" /> Settings
                   </Button>
@@ -171,12 +171,12 @@ const Profile = () => {
             </Card>
           </div>
 
-          {/* Main content */}
           <div className="space-y-6">
             <Tabs defaultValue="profile" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
                 <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                <TabsTrigger value="health">Health Overview</TabsTrigger>
                 <TabsTrigger value="security">Security</TabsTrigger>
               </TabsList>
 
@@ -293,6 +293,77 @@ const Profile = () => {
                           </div>
                         </Card>
                       ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="health">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Health Overview</CardTitle>
+                    <CardDescription>
+                      View your health records and metrics
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <Card className="bg-blue-50 dark:bg-blue-900/20">
+                        <CardContent className="p-4 flex flex-col items-center">
+                          <FileText className="h-8 w-8 text-blue-500 mb-2" />
+                          <h3 className="font-medium text-center">Health Records</h3>
+                          <p className="text-sm text-muted-foreground text-center mt-1">
+                            Manage your prescriptions and test results
+                          </p>
+                          <Button 
+                            className="mt-4 w-full" 
+                            onClick={() => navigate('/health-records')}
+                          >
+                            View Records
+                          </Button>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="bg-green-50 dark:bg-green-900/20">
+                        <CardContent className="p-4 flex flex-col items-center">
+                          <Activity className="h-8 w-8 text-green-500 mb-2" />
+                          <h3 className="font-medium text-center">Health Metrics</h3>
+                          <p className="text-sm text-muted-foreground text-center mt-1">
+                            Track your weight, blood pressure, and more
+                          </p>
+                          <Button 
+                            className="mt-4 w-full" 
+                            onClick={() => navigate('/health-records?tab=analytics')}
+                          >
+                            View Metrics
+                          </Button>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="bg-purple-50 dark:bg-purple-900/20">
+                        <CardContent className="p-4 flex flex-col items-center">
+                          <Heart className="h-8 w-8 text-purple-500 mb-2" />
+                          <h3 className="font-medium text-center">Appointment History</h3>
+                          <p className="text-sm text-muted-foreground text-center mt-1">
+                            View your past doctor visits and lab tests
+                          </p>
+                          <Button 
+                            className="mt-4 w-full" 
+                            onClick={() => navigate('/appointments')}
+                          >
+                            View History
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <Button 
+                        size="lg" 
+                        onClick={() => navigate('/health-records')}
+                      >
+                        Manage Health Records
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
