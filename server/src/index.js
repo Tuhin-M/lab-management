@@ -8,8 +8,12 @@ const authRoutes = require('./routes/auth.routes');
 const doctorsRoutes = require('./routes/doctors.routes');
 const labsRoutes = require('./routes/labs.routes');
 const appointmentsRoutes = require('./routes/appointments.routes');
+const testBookingsRoutes = require('./routes/test-bookings.routes');
 const blogRoutes = require('./routes/blog.routes');
 const userRoutes = require('./routes/user.routes');
+const categoriesRoutes = require('./routes/categories.routes');
+const specialtiesRoutes = require('./routes/specialties.routes');
+const testsRoutes = require('./routes/tests.routes');
 
 // Initialize express app
 const app = express();
@@ -27,8 +31,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorsRoutes);
 app.use('/api/labs', labsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/test-bookings', testBookingsRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/specialties', specialtiesRoutes);
+app.use('/api/tests', testsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
