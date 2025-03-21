@@ -7,10 +7,7 @@ const connectDB = async () => {
     // Fall back to local MongoDB if not provided
     const connectionString = process.env.MONGO_URI || 'mongodb://localhost:27017/healthcare-app';
     
-    const conn = await mongoose.connect(connectionString, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const conn = await mongoose.connect(connectionString);
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     
