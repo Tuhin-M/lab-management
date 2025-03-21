@@ -3,11 +3,14 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    // Use the MongoDB Atlas connection string from environment variables
+    // Use the MongoDB connection string from environment variables
     // Fall back to local MongoDB if not provided
     const connectionString = process.env.MONGO_URI || 'mongodb://localhost:27017/healthcare-app';
     
-    const conn = await mongoose.connect(connectionString);
+    const conn = await mongoose.connect(connectionString, {
+      // These options are no longer needed in Mongoose 7+, but kept for compatibility
+      // with older versions just in case
+    });
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     

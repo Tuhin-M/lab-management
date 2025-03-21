@@ -17,44 +17,43 @@ The application requires MongoDB. You can either:
 1. Use MongoDB Atlas (recommended for production)
 2. Use a local MongoDB installation (recommended for development)
 
-### MongoDB Atlas Setup
-1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a new cluster
-3. Create a database user with read/write permissions
-4. Whitelist your IP address in the Network Access settings
-5. Click "Connect" and select "Connect your application"
-6. Copy the connection string and replace `<password>` with your database user password
+### Local MongoDB Setup (Recommended for Development)
+1. Download and install MongoDB Community Edition from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
+2. Start the MongoDB service:
+   - **Windows**: MongoDB should run as a service automatically after installation
+   - **macOS**: Run `brew services start mongodb-community` (if installed with Homebrew)
+   - **Linux**: Run `sudo systemctl start mongod`
+3. Verify MongoDB is running:
+   - Run `mongo` or `mongosh` in your terminal/command prompt
+   - You should see the MongoDB shell prompt
 
-### Local MongoDB Setup
-1. Install MongoDB from [MongoDB Download Center](https://www.mongodb.com/try/download/community)
-2. Start the MongoDB service
-3. The default connection string will be: `mongodb://localhost:27017/healthcare-app`
+## Environment Setup
 
-## Required Collections
-The application will automatically create these collections when needed:
-- users
-- doctors
-- labs
-- appointments
-- testbookings
-- blogposts
-- specialties
-- tests
-- categories
+1. Create a `.env` file in the root of the server directory with the following variables:
 
-## Setup Instructions
+```
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Database Configuration
+MONGO_URI=mongodb://localhost:27017/healthcare-app
+
+# JWT Configuration
+JWT_SECRET=your_secret_key_here
+JWT_EXPIRE=30d
+```
+
+## Getting Started
 
 1. Install dependencies:
    ```
    npm install
    ```
 
-2. Create a `.env` file in the root directory with the following variables:
+2. Seed the database with sample data:
    ```
-   PORT=5000
-   MONGO_URI=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret_key
-   NODE_ENV=development
+   npm run seed
    ```
 
 3. Run the server:
@@ -65,6 +64,8 @@ The application will automatically create these collections when needed:
    # Production mode
    npm start
    ```
+
+4. The server will be running at `http://localhost:5000`
 
 ## API Endpoints
 
