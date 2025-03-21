@@ -6,10 +6,12 @@ const CategorySchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a name'],
     unique: true,
-    trim: true
+    trim: true,
+    maxlength: [50, 'Name cannot be more than 50 characters']
   },
   description: {
-    type: String
+    type: String,
+    maxlength: [500, 'Description cannot be more than 500 characters']
   },
   parentCategory: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,6 +22,8 @@ const CategorySchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Category', CategorySchema);
