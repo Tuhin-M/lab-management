@@ -16,7 +16,7 @@ const LabSchema = new mongoose.Schema({
     city: String,
     state: String,
     zipCode: String,
-    required: [true, 'Please add an address']
+    required: true
   },
   contactInfo: {
     phone: String,
