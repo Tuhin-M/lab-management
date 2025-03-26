@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Base API configuration
@@ -142,20 +141,65 @@ export const userAPI = {
 // Health records API calls
 export const healthRecordsAPI = {
   getAllRecords: async () => {
-    return apiClient.get('/health-records');
+    try {
+      // This is a mock implementation - replace with actual API call when backend is ready
+      return {
+        data: [],
+        status: 200,
+      };
+    } catch (error) {
+      console.error("Error fetching health records:", error);
+      throw error;
+    }
   },
-  
   getRecordById: async (id: string) => {
-    return apiClient.get(`/health-records/${id}`);
+    try {
+      // Mock implementation
+      return {
+        data: {},
+        status: 200,
+      };
+    } catch (error) {
+      console.error(`Error fetching health record with id ${id}:`, error);
+      throw error;
+    }
   },
-  
-  createRecord: async (recordData: any) => {
-    return apiClient.post('/health-records', recordData);
+  createRecord: async (data: any) => {
+    try {
+      // Mock implementation
+      return {
+        data: { ...data, _id: Date.now().toString() },
+        status: 201,
+      };
+    } catch (error) {
+      console.error("Error creating health record:", error);
+      throw error;
+    }
   },
-  
+  updateRecord: async (id: string, data: any) => {
+    try {
+      // Mock implementation
+      return {
+        data: { ...data, _id: id },
+        status: 200,
+      };
+    } catch (error) {
+      console.error(`Error updating health record with id ${id}:`, error);
+      throw error;
+    }
+  },
   deleteRecord: async (id: string) => {
-    return apiClient.delete(`/health-records/${id}`);
-  }
+    try {
+      // Mock implementation
+      return {
+        data: { message: "Record deleted successfully" },
+        status: 200,
+      };
+    } catch (error) {
+      console.error(`Error deleting health record with id ${id}:`, error);
+      throw error;
+    }
+  },
 };
 
 // Blog related API calls

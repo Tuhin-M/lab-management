@@ -1,6 +1,18 @@
+
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense } from "react";
+import { Spinner } from "@/components/ui/spinner";
+
+// Fallback component for lazy-loaded routes
+const LoadingFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
+      <p className="text-lg font-medium">Loading...</p>
+    </div>
+  </div>
+);
 
 // Lazy-loaded pages
 const Home = lazy(() => import("./pages/Home"));
@@ -19,21 +31,23 @@ import HealthRecords from "./pages/HealthRecords";
 function App() {
   return (
     <>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/doctors/:id" element={<DoctorAppointment />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/lab-tests" element={<LabTests />} />
-        <Route path="/labs/:id" element={<LabDetail />} />
-        <Route path="/test-booking/:id" element={<TestBooking />} />
-        <Route path="/health-records" element={<HealthRecords />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/doctors/:id" element={<DoctorAppointment />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/lab-tests" element={<LabTests />} />
+          <Route path="/labs/:id" element={<LabDetail />} />
+          <Route path="/test-booking/:id" element={<TestBooking />} />
+          <Route path="/health-records" element={<HealthRecords />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
       <Toaster />
     </>
   );
