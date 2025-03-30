@@ -27,7 +27,7 @@ const DoctorAppointmentHeader: React.FC = () => {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link to="/" className={navigationMenuTriggerStyle()}>
+                  <Link to="/lab-tests" className={navigationMenuTriggerStyle()}>
                     Labs
                   </Link>
                 </NavigationMenuItem>
@@ -40,8 +40,8 @@ const DoctorAppointmentHeader: React.FC = () => {
             </NavigationMenu>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost">Sign In</Button>
-            <Button>Sign Up</Button>
+            <Button variant="ghost" onClick={() => navigate('/login')}>Sign In</Button>
+            <Button onClick={() => navigate('/signup')}>Sign Up</Button>
           </div>
         </div>
       </div>

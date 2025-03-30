@@ -36,14 +36,16 @@ function App() {
           <Route path="/" element={<Index />} />
           <Route path="/home" element={<Home />} />
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/doctors" element={<Home />} />
           <Route path="/doctors/:id" element={<DoctorAppointment />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
-          {/* Add a redirect from /labs to /lab-tests */}
+          {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
+          <Route path="/lab/:id" element={<Navigate to="/labs/:id" replace />} />
           <Route path="/labs/:id" element={<LabDetail />} />
           <Route path="/test-booking/:id" element={<TestBooking />} />
           <Route path="/health-records" element={<HealthRecords />} />
