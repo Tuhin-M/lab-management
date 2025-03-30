@@ -33,7 +33,7 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link to="/labs">
+                <Link to="/lab-tests">
                   <NavigationMenuLink
                     className={navigationMenuTriggerStyle() + (activeModule === "labs" ? " bg-accent/50" : "")}
                   >
@@ -77,7 +77,7 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
                 <div className="py-4 space-y-4">
                   <h2 className="text-lg font-bold mb-4">Menu</h2>
                   <nav className="flex flex-col space-y-2">
-                    <Link to="/labs" className={`flex items-center p-2 rounded-md ${activeModule === 'labs' ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
+                    <Link to="/lab-tests" className={`flex items-center p-2 rounded-md ${activeModule === 'labs' ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
                       <TestTube className="mr-2 h-4 w-4" />
                       Lab Tests
                     </Link>

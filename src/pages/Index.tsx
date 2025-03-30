@@ -17,7 +17,7 @@ const Index = () => {
             </div>
             <span className="font-bold text-lg">Ekitsa</span>
           </div>
-          <Button>Login / Signup</Button>
+          <Button onClick={() => navigate("/login")}>Login / Signup</Button>
         </div>
       </header>
 
@@ -42,7 +42,7 @@ const Index = () => {
               <Button 
                 size="lg" 
                 className="mt-auto" 
-                onClick={() => navigate("/labs")}
+                onClick={() => navigate("/lab-tests")}
               >
                 Find Lab Tests
               </Button>

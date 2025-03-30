@@ -1,8 +1,7 @@
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense } from "react";
-import { Spinner } from "@/components/ui/spinner";
 
 // Fallback component for lazy-loaded routes
 const LoadingFallback = () => (
@@ -27,6 +26,7 @@ const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
 import HealthRecords from "./pages/HealthRecords";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -42,6 +42,8 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
+          {/* Add a redirect from /labs to /lab-tests */}
+          <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
           <Route path="/labs/:id" element={<LabDetail />} />
           <Route path="/test-booking/:id" element={<TestBooking />} />
           <Route path="/health-records" element={<HealthRecords />} />
@@ -50,18 +52,6 @@ function App() {
       </Suspense>
       <Toaster />
     </>
-  );
-}
-
-function NotFound() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-4xl font-bold mb-4">404 - Page Not Found</h1>
-      <p className="text-lg mb-8">The page you are looking for doesn't exist or has been moved.</p>
-      <a href="/" className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md">
-        Go Home
-      </a>
-    </div>
   );
 }
 
