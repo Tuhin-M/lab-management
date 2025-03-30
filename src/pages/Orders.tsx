@@ -27,8 +27,43 @@ import {
   User,
 } from "lucide-react";
 
+// Define types for different order types
+interface BaseOrder {
+  id: string;
+  type: "doctor" | "lab";
+  status: string;
+  date: string;
+  time: string;
+  paymentStatus: string;
+  amount: number;
+  address: string;
+}
+
+interface DoctorOrder extends BaseOrder {
+  type: "doctor";
+  doctor: string;
+  specialty: string;
+  hospital: string;
+  prescriptionUrl?: string;
+}
+
+interface LabOrder extends BaseOrder {
+  type: "lab";
+  lab: string;
+  tests: string[];
+  trackingSteps: Array<{
+    id: number;
+    label: string;
+    completed: boolean;
+    date?: string;
+  }>;
+  reportUrl?: string;
+}
+
+type Order = DoctorOrder | LabOrder;
+
 // Sample data for orders
-const appointmentOrders = [
+const appointmentOrders: DoctorOrder[] = [
   {
     id: "APT-001",
     type: "doctor",
@@ -58,7 +93,7 @@ const appointmentOrders = [
   },
 ];
 
-const labOrders = [
+const labOrders: LabOrder[] = [
   {
     id: "LAB-001",
     type: "lab",
@@ -101,9 +136,7 @@ const labOrders = [
 ];
 
 // Combine all orders
-const allOrders = [...appointmentOrders, ...labOrders];
-
-type Order = typeof allOrders[0];
+const allOrders: Order[] = [...appointmentOrders, ...labOrders];
 
 const OrderCard = ({ order }: { order: Order }) => {
   return (
@@ -113,7 +146,9 @@ const OrderCard = ({ order }: { order: Order }) => {
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-medium">{order.type === "doctor" ? order.doctor : order.lab}</h3>
+                <h3 className="font-medium">
+                  {order.type === "doctor" ? order.doctor : order.lab}
+                </h3>
                 <Badge variant={order.status === "completed" ? "success" : order.status === "upcoming" || order.status === "processing" ? "outline" : "secondary"}>
                   {order.status}
                 </Badge>
