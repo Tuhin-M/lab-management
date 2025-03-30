@@ -337,23 +337,22 @@ const TestBooking = () => {
                                   <FormLabel>Preferred Time</FormLabel>
                                   <div className="grid grid-cols-2 gap-2 h-[280px] overflow-y-auto border rounded-md p-2">
                                     {timeSlots.map((slot) => (
-                                      <FormItem key={slot} className="flex items-center space-x-2">
-                                        <FormControl>
-                                          <RadioGroupItem 
-                                            checked={field.value === slot}
-                                            value={slot} 
-                                            onSelect={() => field.onChange(slot)}
-                                            className="peer sr-only"
-                                            id={`time-${slot}`}
-                                          />
-                                        </FormControl>
+                                      <div key={slot} className="flex items-center space-x-2">
+                                        <RadioGroup 
+                                          value={field.value} 
+                                          onValueChange={field.onChange}
+                                          className="hidden"
+                                        >
+                                          <RadioGroupItem value={slot} id={`time-${slot}`} />
+                                        </RadioGroup>
                                         <Label 
                                           htmlFor={`time-${slot}`}
-                                          className="flex justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary peer-data-[state=checked]:text-primary cursor-pointer text-xs w-full"
+                                          className={`flex justify-center rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer text-xs w-full ${field.value === slot ? 'border-primary text-primary' : ''}`}
+                                          onClick={() => field.onChange(slot)}
                                         >
                                           {slot}
                                         </Label>
-                                      </FormItem>
+                                      </div>
                                     ))}
                                   </div>
                                   <FormMessage />
