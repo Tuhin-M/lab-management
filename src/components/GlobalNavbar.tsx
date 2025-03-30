@@ -31,12 +31,12 @@ const GlobalNavbar: React.FC = () => {
   return (
     <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        {/* Logo & Brand */}
+        {/* Logo & Brand - Made logo bigger */}
         <Link to="/" className="flex items-center space-x-2">
           <img 
             src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
             alt="Ekitsa Logo" 
-            className="h-8 md:h-10"
+            className="h-10 md:h-12" 
           />
         </Link>
 
@@ -114,7 +114,7 @@ const GlobalNavbar: React.FC = () => {
                     <img 
                       src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
                       alt="Ekitsa Logo" 
-                      className="h-8"
+                      className="h-10"
                     />
                   </div>
                   

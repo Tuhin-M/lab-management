@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter, MapPin } from "lucide-react";
@@ -7,7 +6,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import RecommendedFilters from "@/components/RecommendedFilters";
-import DoctorAppointmentHeader from "@/components/doctor/DoctorAppointmentHeader";
 import DoctorAppointmentFooter from "@/components/doctor/DoctorAppointmentFooter";
 import DoctorFilters from "@/components/doctor/DoctorFilters";
 import DoctorCard from "@/components/doctor/DoctorCard";
@@ -116,9 +114,6 @@ const DoctorAppointment = () => {
       exit="exit"
       variants={pageVariants}
     >
-      {/* Header */}
-      <DoctorAppointmentHeader />
-
       <main className="container mx-auto py-6 px-4">
         <Button 
           variant="ghost" 

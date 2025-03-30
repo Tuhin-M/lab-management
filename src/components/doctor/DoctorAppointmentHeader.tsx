@@ -1,56 +1,13 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { 
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle
-} from "@/components/ui/navigation-menu";
 
+// Removing this component since we're now using the GlobalNavbar across the app
 const DoctorAppointmentHeader: React.FC = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto py-4 px-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <Link to="/">
-              <img 
-                src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
-                alt="Ekitsa Logo" 
-                className="h-8" 
-              />
-            </Link>
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link to="/lab-tests" className={navigationMenuTriggerStyle()}>
-                    Labs
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/doctors" className={navigationMenuTriggerStyle()}>
-                    Doctors
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => navigate('/login')}>Sign In</Button>
-            <Button onClick={() => navigate('/signup')}>Sign Up</Button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
+  // This component is no longer needed as we're using the GlobalNavbar
+  // But we'll keep it as an empty component to avoid breaking any imports
+  return null;
 };
 
 export default DoctorAppointmentHeader;

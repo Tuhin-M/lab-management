@@ -37,9 +37,10 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/home" element={<Home />} />
           <Route path="/about" element={<AboutUs />} />
-          <Route path="/doctors" element={<Home />} />
+          {/* Remove Home component and redirect /home to / */}
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/doctors" element={<DoctorAppointment />} />
           <Route path="/doctors/:id" element={<DoctorAppointment />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
