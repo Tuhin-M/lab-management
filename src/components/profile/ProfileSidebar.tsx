@@ -1,73 +1,40 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, FileText, Settings, LogOut, Upload } from "lucide-react";
-import { toast } from "sonner";
+import React from "react";
+import { User, LockKeyhole, CalendarCheck, BarChart, ShieldCheck } from "lucide-react";
 
 interface ProfileSidebarProps {
-  avatarFile: File | null;
-  avatarPreview: string | null;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
-const ProfileSidebar = ({ avatarFile, avatarPreview, handleFileChange }: ProfileSidebarProps) => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    toast.success("Logged out successfully");
-    navigate("/");
-  };
+const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    { id: "profile", label: "Profile Information", icon: <User className="mr-2 h-4 w-4" /> },
+    { id: "security", label: "Security", icon: <LockKeyhole className="mr-2 h-4 w-4" /> },
+    { id: "appointments", label: "Appointments", icon: <CalendarCheck className="mr-2 h-4 w-4" /> },
+    { id: "overview", label: "Health Overview", icon: <BarChart className="mr-2 h-4 w-4" /> },
+    { id: "kyc", label: "KYC Verification", icon: <ShieldCheck className="mr-2 h-4 w-4" /> },
+  ];
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center">
-          <div className="relative mb-4">
-            <Avatar className="w-24 h-24 border-4 border-background">
-              <AvatarImage src={avatarPreview || undefined} />
-              <AvatarFallback className="text-xl">JD</AvatarFallback>
-            </Avatar>
-            <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full cursor-pointer">
-              <Upload className="h-4 w-4" />
-              <input 
-                id="avatar-upload" 
-                type="file" 
-                className="hidden" 
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </label>
-          </div>
-          <h2 className="text-xl font-semibold">John Doe</h2>
-          <p className="text-sm text-muted-foreground">john@example.com</p>
-        </div>
-        
-        <div className="mt-8 space-y-2">
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/profile")}>
-            <User className="mr-2 h-4 w-4" /> My Profile
-          </Button>
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/appointments")}>
-            <Calendar className="mr-2 h-4 w-4" /> My Appointments
-          </Button>
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/health-records")}>
-            <FileText className="mr-2 h-4 w-4" /> Health Records
-          </Button>
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/settings")}>
-            <Settings className="mr-2 h-4 w-4" /> Settings
-          </Button>
-          <Button 
-            variant="destructive" 
-            className="w-full justify-start mt-6" 
-            onClick={handleLogout}
+    <aside className="w-full md:w-64 md:pr-8 mb-6 md:mb-0">
+      <nav className="space-y-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center w-full px-4 py-2 text-sm rounded-lg ${
+              activeTab === tab.id
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted/50"
+            }`}
           >
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+    </aside>
   );
 };
 

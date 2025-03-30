@@ -9,28 +9,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b">
-        <div className="container mx-auto px-4 flex items-center justify-between h-16">
-          <div className="flex items-center space-x-2">
-            <div className="rounded-full bg-primary w-8 h-8 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
-            </div>
-            <span className="font-bold text-lg">Ekitsa</span>
-          </div>
-          <Button onClick={() => navigate("/login")}>Login / Signup</Button>
-        </div>
-      </header>
-
       <main className="flex-grow container mx-auto py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-5xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-8">
             Your Health Companion
           </h1>
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
             Get lab tests and doctor appointments easily in one place. Compare options, book online, and manage your health journey.
           </p>
 
-          <div className="grid gap-8 md:grid-cols-2 max-w-3xl mx-auto">
+          <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             <div className="bg-card border rounded-lg p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <TestTube className="h-8 w-8 text-primary" />

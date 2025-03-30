@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense } from "react";
+import GlobalNavbar from "./components/GlobalNavbar";
 
 // Fallback component for lazy-loaded routes
 const LoadingFallback = () => (
@@ -25,12 +26,15 @@ const LabTests = lazy(() => import("./pages/LabTests"));
 const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
+const BookAppointment = lazy(() => import("./pages/BookAppointment"));
+const Orders = lazy(() => import("./pages/Orders"));
 import HealthRecords from "./pages/HealthRecords";
 import NotFound from "./pages/NotFound";
 
 function App() {
   return (
     <>
+      <GlobalNavbar />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -43,6 +47,8 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
+          <Route path="/book-appointment" element={<BookAppointment />} />
+          <Route path="/orders" element={<Orders />} />
           {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
           <Route path="/lab/:id" element={<Navigate to="/labs/:id" replace />} />
