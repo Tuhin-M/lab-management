@@ -28,6 +28,7 @@ import { TestPackage } from "@/components/TestPackage";
 import TestPackageComponent from "@/components/TestPackage";
 import { useToast } from "@/components/ui/use-toast";
 import LabTestSearch from "@/components/LabTestSearch";
+import { Link } from "react-router-dom";
 
 // Mock data for Test Packages
 const mockTestPackages: TestPackage[] = [
@@ -184,9 +185,8 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
     : test.price;
   
   const handleBookAppointment = () => {
-    toast({
-      title: "Appointment Booked!",
-      description: `Your appointment has been booked at ${lab.name} for ${test.name}`,
+    navigate(`/test-booking/${test.id}`, { 
+      state: { lab, test, price: discountedPrice }
     });
   };
   
@@ -210,7 +210,13 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
       <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto py-4 px-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">Ekitsa</h1>
+            <Link to="/" className="text-2xl font-bold text-primary">
+              <img 
+                src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
+                alt="Ekitsa Logo" 
+                className="h-8" 
+              />
+            </Link>
             <div className="flex items-center space-x-4">
               <Button variant="ghost">Sign In</Button>
               <Button>Sign Up</Button>
@@ -586,6 +592,11 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
       <footer className="border-t mt-12">
         <div className="container mx-auto py-6 px-4 md:flex justify-between items-center">
           <div className="text-center md:text-left mb-4 md:mb-0">
+            <img 
+              src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
+              alt="Ekitsa Logo" 
+              className="h-8 mx-auto md:mx-0 mb-2" 
+            />
             <p className="text-sm text-muted-foreground">
               © 2023 Ekitsa. All rights reserved.
             </p>
@@ -608,4 +619,3 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
 };
 
 export default LabDetail;
-

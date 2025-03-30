@@ -21,9 +21,13 @@ const DoctorAppointmentHeader: React.FC = () => {
       <div className="container mx-auto py-4 px-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <h1 className="text-2xl font-bold text-primary">
-              <Link to="/">Ekitsa</Link>
-            </h1>
+            <Link to="/">
+              <img 
+                src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
+                alt="Ekitsa Logo" 
+                className="h-8" 
+              />
+            </Link>
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>

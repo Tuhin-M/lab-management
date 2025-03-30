@@ -15,7 +15,6 @@ import {
   Bell, 
   Menu, 
   Home as HomeIcon, 
-  BookOpen, 
   ShoppingBag, 
   FileText 
 } from "lucide-react";
@@ -34,10 +33,11 @@ const GlobalNavbar: React.FC = () => {
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         {/* Logo & Brand */}
         <Link to="/" className="flex items-center space-x-2">
-          <div className="rounded-full bg-primary w-8 h-8 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">E</span>
-          </div>
-          <span className="font-bold text-lg hidden md:inline-block">Ekitsa</span>
+          <img 
+            src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
+            alt="Ekitsa Logo" 
+            className="h-8 md:h-10"
+          />
         </Link>
 
         {/* Navigation for Desktop */}
@@ -71,16 +71,6 @@ const GlobalNavbar: React.FC = () => {
                   >
                     <User className="mr-2 h-4 w-4" />
                     Doctor Appointments
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/book-appointment">
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle() + (isActive("/book-appointment") ? " bg-accent/50" : "")}
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Book Appointment
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
@@ -120,6 +110,14 @@ const GlobalNavbar: React.FC = () => {
               </SheetTrigger>
               <SheetContent side="right">
                 <div className="py-4 space-y-4">
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
+                      alt="Ekitsa Logo" 
+                      className="h-8"
+                    />
+                  </div>
+                  
                   <h2 className="text-lg font-bold mb-4">Menu</h2>
                   <nav className="flex flex-col space-y-2">
                     <Link to="/" className={`flex items-center p-2 rounded-md ${isActive("/") && !isActive("/lab-tests") && !isActive("/doctors") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
@@ -133,10 +131,6 @@ const GlobalNavbar: React.FC = () => {
                     <Link to="/doctors" className={`flex items-center p-2 rounded-md ${isActive("/doctors") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
                       <User className="mr-2 h-4 w-4" />
                       Doctor Appointments
-                    </Link>
-                    <Link to="/book-appointment" className={`flex items-center p-2 rounded-md ${isActive("/book-appointment") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Book Appointment
                     </Link>
                     <Link to="/orders" className={`flex items-center p-2 rounded-md ${isActive("/orders") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
                       <ShoppingBag className="mr-2 h-4 w-4" />

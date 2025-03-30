@@ -26,7 +26,6 @@ const LabTests = lazy(() => import("./pages/LabTests"));
 const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
-const BookAppointment = lazy(() => import("./pages/BookAppointment"));
 const Orders = lazy(() => import("./pages/Orders"));
 import HealthRecords from "./pages/HealthRecords";
 import NotFound from "./pages/NotFound";
@@ -47,7 +46,6 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
-          <Route path="/book-appointment" element={<BookAppointment />} />
           <Route path="/orders" element={<Orders />} />
           {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
