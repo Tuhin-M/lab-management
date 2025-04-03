@@ -16,7 +16,8 @@ import {
   Menu, 
   Home as HomeIcon, 
   ShoppingBag, 
-  FileText 
+  FileText,
+  CalendarCheck
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -31,7 +32,7 @@ const GlobalNavbar: React.FC = () => {
   return (
     <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        {/* Logo & Brand - Made logo bigger */}
+        {/* Logo & Brand */}
         <Link to="/" className="flex items-center space-x-2">
           <img 
             src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
@@ -81,6 +82,16 @@ const GlobalNavbar: React.FC = () => {
                   >
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     Orders
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/health-records">
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle() + (isActive("/health-records") ? " bg-accent/50" : "")}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Health Records
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
@@ -135,6 +146,10 @@ const GlobalNavbar: React.FC = () => {
                     <Link to="/orders" className={`flex items-center p-2 rounded-md ${isActive("/orders") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
                       <ShoppingBag className="mr-2 h-4 w-4" />
                       Orders
+                    </Link>
+                    <Link to="/health-records" className={`flex items-center p-2 rounded-md ${isActive("/health-records") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Health Records
                     </Link>
                     <Link to="/profile" className={`flex items-center p-2 rounded-md ${isActive("/profile") ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
                       <User className="mr-2 h-4 w-4" />
