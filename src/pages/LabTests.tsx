@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import LabFilters from "@/components/LabFilters";
 import LabTestSearch from "@/components/LabTestSearch";
-import TestResult, { Test } from "@/components/TestResult";
+import TestResult from "@/components/TestResult";
 import SearchBar from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
@@ -18,23 +18,6 @@ const LabTests = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState("Bengaluru");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
-  
-  // State for filters
-  const [sortOption, setSortOption] = useState("relevance");
-  const [filters, setFilters] = useState({
-    rating: 0,
-    maxDistance: 10,
-    openNow: false,
-    facilities: {
-      "Home Collection": false,
-      "Digital Reports": false,
-      "NABL Accredited": false,
-      "Open 24x7": false,
-      "Free Home Delivery": false,
-      "Insurance Accepted": false,
-    },
-  });
 
   // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -44,17 +27,6 @@ const LabTests = () => {
 
   // Set up initial state based on URL parameters
   const [searchQuery, setSearchQuery] = useState(queryParam || "");
-  
-  // Sample test for the TestResult component
-  const sampleTest: Test = {
-    id: "test-1",
-    name: "Complete Blood Count",
-    description: "Measures your red and white blood cells, platelets, hemoglobin, and other blood components",
-    category: "Blood Test",
-    price: 599,
-    discount: 30,
-    isPopular: true
-  };
   
   useEffect(() => {
     if (cityParam) {
@@ -113,26 +85,6 @@ const LabTests = () => {
       pathname: location.pathname,
       search: params.toString()
     });
-  };
-
-  // Handler for sort change
-  const handleSortChange = (sortOption: string) => {
-    setSortOption(sortOption);
-    // Add any logic needed when sort option changes
-    console.log(`Sort option changed to: ${sortOption}`);
-  };
-
-  // Handler for filter change
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-    // Add any logic needed when filters change
-    console.log("Filters changed:", newFilters);
-  };
-
-  // Handler for test selection
-  const handleTestSelect = (test: Test) => {
-    setSelectedTest(test);
-    console.log("Selected test:", test);
   };
 
   // Mock data for popular tests
@@ -198,12 +150,7 @@ const LabTests = () => {
                   <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                     <div className="py-4">
                       <h2 className="text-lg font-semibold mb-4">Filter Tests</h2>
-                      <LabFilters 
-                        onSortChange={handleSortChange} 
-                        onFilterChange={handleFilterChange}
-                        isMobile={true}
-                        onClose={() => setIsMobileFilterOpen(false)}
-                      />
+                      <LabFilters />
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -213,21 +160,14 @@ const LabTests = () => {
               <div className="hidden md:block w-64 shrink-0">
                 <div className="sticky top-24">
                   <h2 className="text-lg font-semibold mb-4">Filter Tests</h2>
-                  <LabFilters 
-                    onSortChange={handleSortChange}
-                    onFilterChange={handleFilterChange}
-                  />
+                  <LabFilters />
                 </div>
               </div>
 
               {/* Test Results */}
               <div className="flex-1">
                 <LabTestSearch />
-                <TestResult 
-                  test={sampleTest}
-                  isSelected={selectedTest?.id === sampleTest.id}
-                  onSelect={handleTestSelect}
-                />
+                <TestResult />
               </div>
             </div>
           </TabsContent>

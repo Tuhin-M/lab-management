@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,11 +14,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import TopNavigation from "@/components/TopNavigation";
 import { TestTube, Calendar as CalendarIcon, MapPin, CreditCard, Clock, User, Home, Building2, CheckCircle, Info } from "lucide-react";
 import CitySelection from "@/components/CitySelection";
 
-// Sample lab data
 const labData = {
   id: "lab123",
   name: "HealthPlus Diagnostics",
@@ -34,7 +31,6 @@ const labData = {
   homeCollectionCharges: 100,
 };
 
-// Sample test data
 const testData = {
   id: "test456",
   name: "Complete Blood Count (CBC)",
@@ -83,7 +79,6 @@ const TestBooking = () => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<BookingFormValues | null>(null);
   
-  // Time slots
   const timeSlots = [
     "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM",
     "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM",
@@ -121,14 +116,11 @@ const TestBooking = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopNavigation activeModule="labs" />
-      
       <main className="flex-grow container mx-auto py-6 px-4">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Book Your Test</h1>
           
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Booking form */}
             <div className="md:col-span-2">
               <Card>
                 <CardHeader>
@@ -414,7 +406,6 @@ const TestBooking = () => {
               </Card>
             </div>
 
-            {/* Test and lab details */}
             <div>
               <div className="space-y-6 md:sticky md:top-6">
                 <Card>
@@ -536,7 +527,7 @@ const TestBooking = () => {
                           <span>₹{labData.homeCollectionCharges}</span>
                         </div>
                       )}
-                      <div className="flex justify-between pt-2 border-t font-semibold">
+                      <div className="flex justify-between font-semibold border-t pt-2 mt-2">
                         <span>Total Amount</span>
                         <span>₹{testData.discountPrice + (collectionType === "home" ? labData.homeCollectionCharges : 0)}</span>
                       </div>
@@ -549,7 +540,6 @@ const TestBooking = () => {
         </div>
       </main>
 
-      {/* Confirmation Dialog */}
       {bookingDetails && (
         <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
           <DialogContent className="sm:max-w-md">
