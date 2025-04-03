@@ -21,8 +21,11 @@ interface TestResultProps {
 }
 
 const TestResult = ({ test, isSelected, onSelect }: TestResultProps) => {
-  const hasDiscount = test.price && test.discount;
-  const discountPrice = hasDiscount ? test.price! - (test.price! * test.discount! / 100) : undefined;
+  // Check if both price and discount exist before calculating
+  const hasDiscount = test && typeof test.price === 'number' && typeof test.discount === 'number';
+  const discountPrice = hasDiscount 
+    ? test.price! - (test.price! * test.discount! / 100) 
+    : undefined;
   
   return (
     <Card 
@@ -48,7 +51,7 @@ const TestResult = ({ test, isSelected, onSelect }: TestResultProps) => {
               {test.category}
             </span>
             
-            {test.price && (
+            {typeof test.price === 'number' && (
               <div className="text-right">
                 {hasDiscount && (
                   <div className="flex items-center gap-2">
