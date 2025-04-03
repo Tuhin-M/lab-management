@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import LabFilters from "@/components/LabFilters";
+import LabFilters, { LabFiltersState } from "@/components/LabFilters";
 import LabTestSearch from "@/components/LabTestSearch";
 import TestResult from "@/components/TestResult";
 import SearchBar from "@/components/SearchBar";
@@ -18,6 +18,25 @@ const LabTests = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState("Bengaluru");
   const [activeTab, setActiveTab] = useState("all");
+  
+  // Add states for sorting and filtering
+  const [sortOption, setSortOption] = useState("relevance");
+  const [filters, setFilters] = useState<LabFiltersState>({
+    rating: 0,
+    maxDistance: 10,
+    openNow: false,
+    facilities: {
+      "Home Collection": false,
+      "Digital Reports": false,
+      "NABL Accredited": false,
+      "Open 24x7": false,
+      "Free Home Delivery": false,
+      "Insurance Accepted": false,
+    },
+  });
+  
+  // Add state for test selection
+  const [selectedTest, setSelectedTest] = useState<null | { id: string, name: string, description: string, category: string }>(null);
 
   // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -39,6 +58,17 @@ const LabTests = () => {
       setActiveTab(testType);
     }
   }, [cityParam, queryParams]);
+
+  // Sample test data for the TestResult component
+  const sampleTest = {
+    id: "sample-test-1",
+    name: "Complete Blood Count",
+    description: "Basic blood test to check overall health",
+    category: "Blood Test",
+    price: 599,
+    discount: 25,
+    isPopular: true
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -85,6 +115,22 @@ const LabTests = () => {
       pathname: location.pathname,
       search: params.toString()
     });
+  };
+  
+  // Handlers for LabFilters props
+  const handleSortChange = (option: string) => {
+    setSortOption(option);
+    // Additional logic for sorting test results could be added here
+  };
+  
+  const handleFilterChange = (newFilters: LabFiltersState) => {
+    setFilters(newFilters);
+    // Additional logic for filtering test results could be added here
+  };
+  
+  // Handler for TestResult selection
+  const handleTestSelect = (test: any) => {
+    setSelectedTest(test.id === selectedTest?.id ? null : test);
   };
 
   // Mock data for popular tests
@@ -150,7 +196,10 @@ const LabTests = () => {
                   <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                     <div className="py-4">
                       <h2 className="text-lg font-semibold mb-4">Filter Tests</h2>
-                      <LabFilters />
+                      <LabFilters 
+                        onSortChange={handleSortChange}
+                        onFilterChange={handleFilterChange}
+                      />
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -160,14 +209,21 @@ const LabTests = () => {
               <div className="hidden md:block w-64 shrink-0">
                 <div className="sticky top-24">
                   <h2 className="text-lg font-semibold mb-4">Filter Tests</h2>
-                  <LabFilters />
+                  <LabFilters 
+                    onSortChange={handleSortChange}
+                    onFilterChange={handleFilterChange}
+                  />
                 </div>
               </div>
 
               {/* Test Results */}
               <div className="flex-1">
                 <LabTestSearch />
-                <TestResult />
+                <TestResult 
+                  test={sampleTest}
+                  isSelected={selectedTest?.id === sampleTest.id}
+                  onSelect={handleTestSelect}
+                />
               </div>
             </div>
           </TabsContent>
