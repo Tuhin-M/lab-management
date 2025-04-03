@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import LabFilters, { LabFiltersState } from "@/components/LabFilters";
 import LabTestSearch from "@/components/LabTestSearch";
-import TestResult from "@/components/TestResult";
+import TestResult, { Test } from "@/components/TestResult";
 import SearchBar from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
@@ -19,7 +18,6 @@ const LabTests = () => {
   const [selectedCity, setSelectedCity] = useState("Bengaluru");
   const [activeTab, setActiveTab] = useState("all");
   
-  // Add states for sorting and filtering
   const [sortOption, setSortOption] = useState("relevance");
   const [filters, setFilters] = useState<LabFiltersState>({
     rating: 0,
@@ -35,32 +33,27 @@ const LabTests = () => {
     },
   });
   
-  // Add state for test selection
-  const [selectedTest, setSelectedTest] = useState<null | { id: string, name: string, description: string, category: string }>(null);
+  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
 
-  // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
   const cityParam = queryParams.get("city");
   const queryParam = queryParams.get("query");
   const dateParam = queryParams.get("date");
 
-  // Set up initial state based on URL parameters
   const [searchQuery, setSearchQuery] = useState(queryParam || "");
-  
+
   useEffect(() => {
     if (cityParam) {
       setSelectedCity(cityParam);
     }
     
-    // Set active tab based on query parameters
     const testType = queryParams.get("type");
     if (testType) {
       setActiveTab(testType);
     }
   }, [cityParam, queryParams]);
 
-  // Sample test data for the TestResult component
-  const sampleTest = {
+  const sampleTest: Test = {
     id: "sample-test-1",
     name: "Complete Blood Count",
     description: "Basic blood test to check overall health",
@@ -73,7 +66,6 @@ const LabTests = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     
-    // Update URL with search parameters
     const params = new URLSearchParams(location.search);
     if (query) {
       params.set("query", query);
@@ -90,7 +82,6 @@ const LabTests = () => {
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     
-    // Update URL with city parameter
     const params = new URLSearchParams(location.search);
     params.set("city", city);
     
@@ -103,7 +94,6 @@ const LabTests = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Update URL with test type parameter
     const params = new URLSearchParams(location.search);
     if (value !== "all") {
       params.set("type", value);
@@ -117,23 +107,18 @@ const LabTests = () => {
     });
   };
   
-  // Handlers for LabFilters props
   const handleSortChange = (option: string) => {
     setSortOption(option);
-    // Additional logic for sorting test results could be added here
   };
   
   const handleFilterChange = (newFilters: LabFiltersState) => {
     setFilters(newFilters);
-    // Additional logic for filtering test results could be added here
   };
   
-  // Handler for TestResult selection
-  const handleTestSelect = (test: any) => {
+  const handleTestSelect = (test: Test) => {
     setSelectedTest(test.id === selectedTest?.id ? null : test);
   };
 
-  // Mock data for popular tests
   const popularTests = [
     { id: 1, name: "Complete Blood Count", price: 599, discountPrice: 399 },
     { id: 2, name: "Lipid Profile", price: 799, discountPrice: 499 },
@@ -184,7 +169,6 @@ const LabTests = () => {
           
           <TabsContent value="all" className="mt-4">
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Mobile Filter Button */}
               <div className="md:hidden mb-4">
                 <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
                   <SheetTrigger asChild>
@@ -205,7 +189,6 @@ const LabTests = () => {
                 </Sheet>
               </div>
 
-              {/* Desktop Filters */}
               <div className="hidden md:block w-64 shrink-0">
                 <div className="sticky top-24">
                   <h2 className="text-lg font-semibold mb-4">Filter Tests</h2>
@@ -216,7 +199,6 @@ const LabTests = () => {
                 </div>
               </div>
 
-              {/* Test Results */}
               <div className="flex-1">
                 <LabTestSearch />
                 <TestResult 
