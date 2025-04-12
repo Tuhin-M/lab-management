@@ -11,11 +11,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { authAPI } from "@/services/api";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
   rememberMe: z.boolean().optional(),
+  userType: z.enum(["user", "lab_owner"]),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -30,14 +33,26 @@ const Login = () => {
       email: "",
       password: "",
       rememberMe: false,
+      userType: "user",
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    console.log("Login data:", data);
-    toast.success("Login successful");
-    // In a real app, you would authenticate with your API
-    navigate("/profile");
+  const onSubmit = async (data: LoginFormValues) => {
+    try {
+      const response = await authAPI.login(data.email, data.password);
+      
+      toast.success("Login successful");
+      
+      // Navigate based on user role
+      if (response.role === "lab_owner") {
+        navigate("/lab-dashboard");
+      } else {
+        navigate("/profile");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Login failed. Please check your credentials.");
+    }
   };
 
   return (
@@ -102,6 +117,33 @@ const Login = () => {
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="userType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>I am a</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="user" id="user" />
+                            <FormLabel htmlFor="user" className="font-normal">Patient / User</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="lab_owner" id="lab_owner" />
+                            <FormLabel htmlFor="lab_owner" className="font-normal">Lab Owner</FormLabel>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -12,14 +12,15 @@ const auth = require('../middleware/auth');
 router.post('/signup', [
   check('name', 'Name is required').not().isEmpty(),
   check('email', 'Please include a valid email').isEmail(),
-  check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+  check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
+  check('role', 'Role is required').isIn(['user', 'lab_owner'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, email, password, phone, address } = req.body;
+  const { name, email, password, phone, address, role } = req.body;
 
   try {
     // Check if user exists
@@ -34,7 +35,8 @@ router.post('/signup', [
       email,
       password,
       phone,
-      address
+      address,
+      role
     });
 
     await user.save();
@@ -42,7 +44,8 @@ router.post('/signup', [
     // Create JWT
     const payload = {
       user: {
-        id: user.id
+        id: user.id,
+        role: user.role
       }
     };
 
@@ -52,7 +55,7 @@ router.post('/signup', [
       { expiresIn: '1d' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.json({ token, role: user.role });
       }
     );
   } catch (err) {
@@ -91,7 +94,8 @@ router.post('/login', [
     // Create JWT
     const payload = {
       user: {
-        id: user.id
+        id: user.id,
+        role: user.role
       }
     };
 
@@ -101,7 +105,7 @@ router.post('/login', [
       { expiresIn: '1d' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.json({ token, role: user.role });
       }
     );
   } catch (err) {

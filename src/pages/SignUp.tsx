@@ -3,14 +3,15 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { authAPI } from "@/services/api";
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -18,6 +19,7 @@ const signUpSchema = z.object({
   phone: z.string().min(10, { message: "Phone number must be at least 10 digits" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   confirmPassword: z.string(),
+  role: z.enum(["user", "lab_owner"]),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -38,14 +40,32 @@ const SignUp = () => {
       phone: "",
       password: "",
       confirmPassword: "",
+      role: "user",
     },
   });
 
-  const onSubmit = (data: SignUpFormValues) => {
-    console.log("Sign up data:", data);
-    toast.success("Account created successfully");
-    // In a real app, you would send this data to your API
-    navigate("/login");
+  const onSubmit = async (data: SignUpFormValues) => {
+    try {
+      const response = await authAPI.signup({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+        role: data.role
+      });
+
+      toast.success("Account created successfully");
+      
+      // Navigate based on user role
+      if (response.role === "lab_owner") {
+        navigate("/lab-dashboard");
+      } else {
+        navigate("/profile");
+      }
+    } catch (error) {
+      console.error("Sign up error:", error);
+      toast.error("Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -104,6 +124,33 @@ const SignUp = () => {
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
                         <Input type="tel" placeholder="9876543210" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>I am registering as a</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="user" id="user" />
+                            <FormLabel htmlFor="user" className="font-normal">Patient / User</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="lab_owner" id="lab_owner" />
+                            <FormLabel htmlFor="lab_owner" className="font-normal">Lab Owner</FormLabel>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

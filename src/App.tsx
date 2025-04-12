@@ -27,13 +27,24 @@ const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
 const Orders = lazy(() => import("./pages/Orders"));
+const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
+const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
+const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
 import HealthRecords from "./pages/HealthRecords";
 import NotFound from "./pages/NotFound";
 
 function App() {
+  // Check if user is on a lab-owner route
+  const isLabOwnerRoute = (pathname: string) => {
+    return pathname.startsWith('/lab-owner') || pathname === '/lab-dashboard';
+  };
+
+  // Only show navbar if not on lab owner routes
+  const shouldShowNavbar = !isLabOwnerRoute(window.location.pathname);
+
   return (
     <>
-      <GlobalNavbar />
+      {shouldShowNavbar && <GlobalNavbar />}
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -48,6 +59,15 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
           <Route path="/orders" element={<Orders />} />
+
+          {/* Lab Owner Routes */}
+          <Route path="/lab-dashboard" element={<LabDashboard />} />
+          <Route path="/lab-owner/add-lab" element={<AddLab />} />
+          <Route path="/lab-owner/edit-lab/:id" element={<AddLab />} />
+          <Route path="/lab-owner/lab/:id" element={<LabOwnerLabDetail />} />
+          <Route path="/lab-owner/lab/:id/appointments" element={<LabOwnerLabDetail />} />
+          <Route path="/lab-owner/lab/:id/tests" element={<LabOwnerLabDetail />} />
+
           {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
           <Route path="/lab/:id" element={<Navigate to="/labs/:id" replace />} />

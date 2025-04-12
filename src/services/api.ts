@@ -42,6 +42,7 @@ export const authAPI = {
     try {
       const response = await apiClient.post('/auth/login', { email, password });
       localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('userRole', response.data.role);
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
@@ -53,6 +54,7 @@ export const authAPI = {
     try {
       const response = await apiClient.post('/auth/signup', userData);
       localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('userRole', response.data.role);
       return response.data;
     } catch (error) {
       console.error('Signup error:', error);
@@ -62,6 +64,7 @@ export const authAPI = {
   
   logout: () => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
   },
   
   getProfile: async () => {
@@ -70,6 +73,10 @@ export const authAPI = {
   
   updateProfile: async (profileData: any) => {
     return apiClient.put('/auth/profile', profileData);
+  },
+  
+  getCurrentUserRole: () => {
+    return localStorage.getItem('userRole') || 'user';
   }
 };
 
@@ -214,6 +221,33 @@ export const blogAPI = {
   
   getCategories: async () => {
     return apiClient.get('/blog/categories');
+  }
+};
+
+// Lab Owner specific API calls
+export const labOwnerAPI = {
+  getOwnedLabs: async () => {
+    return apiClient.get('/lab-owner/labs');
+  },
+  
+  createLab: async (labData: any) => {
+    return apiClient.post('/lab-owner/labs', labData);
+  },
+  
+  updateLab: async (id: string, labData: any) => {
+    return apiClient.put(`/lab-owner/labs/${id}`, labData);
+  },
+  
+  deleteLab: async (id: string) => {
+    return apiClient.delete(`/lab-owner/labs/${id}`);
+  },
+  
+  getLabAppointments: async (labId: string) => {
+    return apiClient.get(`/lab-owner/labs/${labId}/appointments`);
+  },
+  
+  updateAppointmentStatus: async (appointmentId: string, status: string) => {
+    return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
   }
 };
 
