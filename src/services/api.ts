@@ -9,6 +9,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // This is important for cookies
 });
 
 // Add request interceptor for auth tokens
@@ -23,15 +24,37 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling common errors
+// Response interceptor for handling common errors and token refresh
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If error is 401 and we haven't already tried to refresh the token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to get a new token using the refresh endpoint
+        const response = await apiClient.get('/auth/refresh');
+        
+        // If successful, update the token and retry
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('userRole', response.data.role);
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        
+        originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
+        return axios(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, log the user out
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userData');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -43,6 +66,7 @@ export const authAPI = {
       const response = await apiClient.post('/auth/login', { email, password });
       localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('userRole', response.data.role);
+      localStorage.setItem('userData', JSON.stringify(response.data.user));
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
@@ -55,6 +79,7 @@ export const authAPI = {
       const response = await apiClient.post('/auth/signup', userData);
       localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('userRole', response.data.role);
+      localStorage.setItem('userData', JSON.stringify(response.data.user));
       return response.data;
     } catch (error) {
       console.error('Signup error:', error);
@@ -62,9 +87,17 @@ export const authAPI = {
     }
   },
   
-  logout: () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
+  logout: async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Always clear local storage even if the API call fails
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userData');
+    }
   },
   
   getProfile: async () => {
@@ -75,8 +108,21 @@ export const authAPI = {
     return apiClient.put('/auth/profile', profileData);
   },
   
+  refreshToken: async () => {
+    return apiClient.get('/auth/refresh');
+  },
+  
   getCurrentUserRole: () => {
     return localStorage.getItem('userRole') || 'user';
+  },
+  
+  isAuthenticated: () => {
+    return !!localStorage.getItem('authToken');
+  },
+  
+  getCurrentUser: () => {
+    const userData = localStorage.getItem('userData');
+    return userData ? JSON.parse(userData) : null;
   }
 };
 
@@ -115,6 +161,30 @@ export const labsAPI = {
   
   bookTest: async (testData: any) => {
     return apiClient.post('/test-bookings', testData);
+  },
+  
+  getLabsSortedByDiscountedPrice: async (sortOrder: 'asc' | 'desc' = 'asc') => {
+    const response = await apiClient.get('/labs');
+    
+    const labsWithDiscountedPrice = response.data.map((lab: any) => {
+      const avgDiscountedPrice = lab.tests.reduce((acc: number, test: any) => {
+        const discountedPrice = test.price - (test.price * (test.discount || 0) / 100);
+        return acc + discountedPrice;
+      }, 0) / (lab.tests.length || 1);
+      
+      return {
+        ...lab,
+        avgDiscountedPrice
+      };
+    });
+    
+    const sortedLabs = labsWithDiscountedPrice.sort((a: any, b: any) => {
+      return sortOrder === 'asc' 
+        ? a.avgDiscountedPrice - b.avgDiscountedPrice
+        : b.avgDiscountedPrice - a.avgDiscountedPrice;
+    });
+    
+    return { data: sortedLabs };
   }
 };
 
@@ -248,6 +318,41 @@ export const labOwnerAPI = {
   
   updateAppointmentStatus: async (appointmentId: string, status: string) => {
     return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
+  }
+};
+
+// Doctor chat API calls
+export const doctorChatAPI = {
+  getChats: async () => {
+    return apiClient.get('/doctor-chats');
+  },
+  
+  getChatById: async (id: string) => {
+    return apiClient.get(`/doctor-chats/${id}`);
+  },
+  
+  createChat: async (doctorId: string) => {
+    return apiClient.post('/doctor-chats', { doctorId });
+  },
+  
+  sendMessage: async (chatId: string, message: string) => {
+    return apiClient.post(`/doctor-chats/${chatId}/messages`, { message });
+  },
+  
+  initiateVideoCall: async (chatId: string) => {
+    return apiClient.post(`/doctor-chats/${chatId}/video-call`);
+  },
+  
+  acceptVideoCall: async (chatId: string) => {
+    return apiClient.put(`/doctor-chats/${chatId}/video-call/accept`);
+  },
+  
+  endVideoCall: async (chatId: string) => {
+    return apiClient.put(`/doctor-chats/${chatId}/video-call/end`);
+  },
+  
+  getVideoCallToken: async (chatId: string) => {
+    return apiClient.get(`/doctor-chats/${chatId}/video-call/token`);
   }
 };
 

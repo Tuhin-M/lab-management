@@ -30,6 +30,7 @@ const Orders = lazy(() => import("./pages/Orders"));
 const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
 const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
+const DoctorChat = lazy(() => import("./pages/DoctorChat"));
 import HealthRecords from "./pages/HealthRecords";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ function App() {
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/doctors" element={<DoctorAppointment />} />
           <Route path="/doctors/:id" element={<DoctorAppointment />} />
+          <Route path="/doctor-chat/:id" element={<DoctorChat />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/signup" element={<SignUp />} />

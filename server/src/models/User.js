@@ -42,6 +42,14 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Lab'
   }],
+  refreshToken: {
+    type: String,
+    select: false
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -61,6 +69,12 @@ UserSchema.pre('save', async function(next) {
 // Match password
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate refresh token
+UserSchema.methods.generateRefreshToken = function() {
+  this.refreshToken = require('crypto').randomBytes(40).toString('hex');
+  return this.refreshToken;
 };
 
 module.exports = mongoose.model('User', UserSchema);

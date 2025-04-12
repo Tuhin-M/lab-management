@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Filter, MapPin } from "lucide-react";
+import { ArrowLeft, Filter, MapPin, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -12,6 +13,7 @@ import DoctorCard from "@/components/doctor/DoctorCard";
 import { doctors } from "@/data/doctorsData";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import SearchBar from "@/components/SearchBar";
+import { authAPI } from "@/services/api";
 
 const DoctorAppointment = () => {
   const navigate = useNavigate();
@@ -81,6 +83,21 @@ const DoctorAppointment = () => {
     setSelectedDoctor(null);
     setSelectedDate(undefined);
     setSelectedTimeSlot(null);
+  };
+  
+  const handleChatWithDoctor = (doctorId: string) => {
+    // Check if user is logged in before redirecting to chat
+    if (!authAPI.isAuthenticated()) {
+      toast({
+        title: "Login required",
+        description: "You need to log in to chat with doctors",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    navigate(`/doctor-chat/${doctorId}`);
   };
 
   // Page transition variants
@@ -268,16 +285,29 @@ const DoctorAppointment = () => {
                     variants={itemVariants}
                     custom={index}
                   >
-                    <DoctorCard
-                      doctor={doctor}
-                      selectedDoctor={selectedDoctor}
-                      selectedDate={selectedDate}
-                      selectedTimeSlot={selectedTimeSlot}
-                      setSelectedDoctor={setSelectedDoctor}
-                      setSelectedDate={setSelectedDate}
-                      setSelectedTimeSlot={setSelectedTimeSlot}
-                      onBookAppointment={handleBookAppointment}
-                    />
+                    <div className="relative">
+                      <DoctorCard
+                        doctor={doctor}
+                        selectedDoctor={selectedDoctor}
+                        selectedDate={selectedDate}
+                        selectedTimeSlot={selectedTimeSlot}
+                        setSelectedDoctor={setSelectedDoctor}
+                        setSelectedDate={setSelectedDate}
+                        setSelectedTimeSlot={setSelectedTimeSlot}
+                        onBookAppointment={handleBookAppointment}
+                      />
+                      <div className="absolute top-4 right-4">
+                        <Button 
+                          size="sm" 
+                          variant="secondary"
+                          onClick={() => handleChatWithDoctor(doctor.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          <span>Chat</span>
+                        </Button>
+                      </div>
+                    </div>
                   </motion.div>
                 ))
               )}

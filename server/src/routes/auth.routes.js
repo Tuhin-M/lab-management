@@ -39,6 +39,10 @@ router.post('/signup', [
       role
     });
 
+    // Generate refresh token
+    const refreshToken = user.generateRefreshToken();
+    user.lastLogin = new Date();
+    
     await user.save();
 
     // Create JWT
@@ -49,15 +53,30 @@ router.post('/signup', [
       }
     };
 
-    jwt.sign(
+    const token = jwt.sign(
       payload,
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: '1d' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token, role: user.role });
-      }
+      { expiresIn: '1d' }
     );
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    res.json({ 
+      token, 
+      role: user.role,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -91,6 +110,11 @@ router.post('/login', [
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Update refresh token and last login
+    const refreshToken = user.generateRefreshToken();
+    user.lastLogin = new Date();
+    await user.save();
+
     // Create JWT
     const payload = {
       user: {
@@ -99,15 +123,93 @@ router.post('/login', [
       }
     };
 
-    jwt.sign(
+    const token = jwt.sign(
       payload,
       process.env.JWT_SECRET || 'secret',
-      { expiresIn: '1d' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token, role: user.role });
-      }
+      { expiresIn: '1d' }
     );
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    res.json({ 
+      token, 
+      role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET /api/auth/refresh
+// @desc    Refresh access token
+// @access  Private (with refresh token)
+router.get('/refresh', async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token' });
+  }
+
+  try {
+    // Find user with this refresh token
+    const user = await User.findOne({ refreshToken }).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    // Create new JWT
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.role
+      }
+    };
+
+    const token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '1d' }
+    );
+
+    res.json({ 
+      token, 
+      role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   POST /api/auth/logout
+// @desc    Logout user and clear cookies
+// @access  Private
+router.post('/logout', auth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
+    
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
