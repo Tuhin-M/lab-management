@@ -1,6 +1,6 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -9,14 +9,46 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
-import { TestTube, User, Bell, Menu } from "lucide-react";
+import { TestTube, User, Bell, Menu, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { authAPI } from "@/services/api";
+import { toast } from "sonner";
 
 interface TopNavigationProps {
   activeModule: "labs" | "doctors";
 }
 
 const TopNavigation = ({ activeModule }: TopNavigationProps) => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  useEffect(() => {
+    const checkAuth = () => {
+      const authenticated = authAPI.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      
+      if (authenticated) {
+        setCurrentUser(authAPI.getCurrentUser());
+      } else {
+        setCurrentUser(null);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to logout. Please try again.");
+    }
+  };
+
   return (
     <header className="border-b sticky top-0 z-50 bg-white">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
@@ -59,12 +91,25 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
 
         {/* User Actions */}
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" className="hidden md:flex">
-            <Bell className="h-4 w-4" />
-          </Button>
-          <Button className="hidden md:flex">
-            Login / Signup
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button variant="outline" size="icon" className="hidden md:flex">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Button 
+                className="hidden md:flex items-center" 
+                variant="destructive" 
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Button className="hidden md:flex" onClick={() => navigate("/login")}>
+              Login / Signup
+            </Button>
+          )}
 
           {/* Mobile Menu */}
           <div className="md:hidden">
@@ -83,6 +128,14 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
                       className="h-8" 
                     />
                   </div>
+                  
+                  {isAuthenticated && currentUser && (
+                    <div className="mb-4 pb-4 border-b">
+                      <p className="font-medium">Hello, {currentUser.name}</p>
+                      <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                    </div>
+                  )}
+                  
                   <h2 className="text-lg font-bold mb-4">Menu</h2>
                   <nav className="flex flex-col space-y-2">
                     <Link to="/lab-tests" className={`flex items-center p-2 rounded-md ${activeModule === 'labs' ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'}`}>
@@ -95,7 +148,20 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
                     </Link>
                   </nav>
                   <div className="pt-4 border-t mt-4">
-                    <Button className="w-full">Login / Signup</Button>
+                    {isAuthenticated ? (
+                      <Button 
+                        className="w-full flex items-center justify-center" 
+                        variant="destructive"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                      </Button>
+                    ) : (
+                      <Button className="w-full" onClick={() => navigate("/login")}>
+                        Login / Signup
+                      </Button>
+                    )}
                   </div>
                 </div>
               </SheetContent>

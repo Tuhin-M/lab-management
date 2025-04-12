@@ -1,17 +1,44 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Bell, Plus, Video } from "lucide-react";
+import { Search, Bell, Plus, Video, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { authAPI } from "@/services/api";
+import { toast } from "sonner";
 
 const LabDashboardHeader = () => {
   const navigate = useNavigate();
   const [notificationCount, setNotificationCount] = React.useState(2); // Example count
   const [videoCallCount, setVideoCallCount] = React.useState(1); // Example count
-  const currentUser = authAPI.getCurrentUser();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  useEffect(() => {
+    // Get current user data
+    const user = authAPI.getCurrentUser();
+    setCurrentUser(user);
+    
+    // Check if user is logged in and is a lab owner
+    if (!authAPI.isAuthenticated()) {
+      toast.error("Please login to access Lab Dashboard");
+      navigate("/login");
+    } else if (authAPI.getCurrentUserRole() !== "lab_owner") {
+      toast.error("You don't have permission to access Lab Dashboard");
+      navigate("/");
+    }
+  }, [navigate]);
+  
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to logout. Please try again.");
+    }
+  };
   
   return (
     <div className="border-b bg-card">
@@ -51,15 +78,33 @@ const LabDashboardHeader = () => {
                 </Badge>
               )}
             </Button>
+            {/* Logout button */}
+            <Button 
+              variant="destructive" 
+              size="sm"
+              className="flex items-center"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-1 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <Button onClick={() => navigate("/lab-owner/add-lab")} className="hidden md:flex">
             <Plus className="mr-2 h-4 w-4" />
             Add New Lab
           </Button>
           <Button onClick={() => navigate("/lab-owner/add-lab")} size="icon" className="md:hidden">
             <Plus className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="icon" 
+            className="md:hidden"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </div>

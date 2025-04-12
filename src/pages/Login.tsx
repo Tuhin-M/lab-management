@@ -27,6 +27,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -53,6 +54,8 @@ const Login = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       // We'll handle the role check on the backend
       const response = await authAPI.login(data.email, data.password);
       
@@ -66,6 +69,7 @@ const Login = () => {
       }
     } catch (error: any) {
       console.error("Login error:", error);
+      setError(error.response?.data?.message || "Login failed. Please check your credentials.");
       toast.error(error.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
@@ -90,6 +94,12 @@ const Login = () => {
 
         <Card>
           <CardContent className="pt-6">
+            {error && (
+              <div className="mb-4 p-3 bg-destructive/15 border border-destructive text-destructive rounded-md text-sm">
+                {error}
+              </div>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField

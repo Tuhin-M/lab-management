@@ -32,6 +32,7 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -60,6 +61,8 @@ const SignUp = () => {
   const onSubmit = async (data: SignUpFormValues) => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const response = await authAPI.signup({
         name: data.name,
         email: data.email,
@@ -78,6 +81,7 @@ const SignUp = () => {
       }
     } catch (error: any) {
       console.error("Sign up error:", error);
+      setError(error.response?.data?.message || "Registration failed. Please try again.");
       toast.error(error.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -102,6 +106,12 @@ const SignUp = () => {
 
         <Card>
           <CardContent className="pt-6">
+            {error && (
+              <div className="mb-4 p-3 bg-destructive/15 border border-destructive text-destructive rounded-md text-sm">
+                {error}
+              </div>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
