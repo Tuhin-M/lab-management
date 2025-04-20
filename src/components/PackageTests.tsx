@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { Search, Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Dialog,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface PackageTestsProps {

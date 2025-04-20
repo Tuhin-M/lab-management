@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -13,7 +12,8 @@ router.post('/signup', [
   check('name', 'Name is required').not().isEmpty(),
   check('email', 'Please include a valid email').isEmail(),
   check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-  check('role', 'Role is required').isIn(['user', 'lab_owner'])
+  check('role', 'Role is required').isIn(['user', 'lab_owner']),
+  check('phone').optional().isMobilePhone()
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -23,10 +23,18 @@ router.post('/signup', [
   const { name, email, password, phone, address, role } = req.body;
 
   try {
-    // Check if user exists
+    // Check if email exists
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Check if phone exists (only if provided)
+    if (phone) {
+      user = await User.findOne({ phone });
+      if (user) {
+        return res.status(400).json({ message: 'Phone number already exists' });
+      }
     }
 
     // Create new user
@@ -34,7 +42,7 @@ router.post('/signup', [
       name,
       email,
       password,
-      phone,
+      phone: phone || undefined, // Store as undefined if not provided
       address,
       role
     });
@@ -63,7 +71,7 @@ router.post('/signup', [
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production'
     });
 
@@ -133,7 +141,7 @@ router.post('/login', [
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production'
     });
 
@@ -167,8 +175,17 @@ router.get('/refresh', async (req, res) => {
     // Find user with this refresh token
     const user = await User.findOne({ refreshToken }).select('-password');
     
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+    if (!user || !user.refreshToken) {
+      // Clear the cookie if invalid
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      });
+      return res.status(401).json({ 
+        message: 'Invalid refresh token',
+        shouldStopRefresh: true
+      });
     }
 
     // Create new JWT
@@ -208,8 +225,23 @@ router.post('/logout', auth, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
     
-    res.clearCookie('refreshToken');
-    res.json({ message: 'Logged out successfully' });
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      expires: new Date(0) // Immediately expire the cookie
+    });
+    
+    res.json({ 
+      message: 'Logged out successfully',
+      instructions: {
+        clientSideActions: [
+          'Remove JWT token from client-side storage (localStorage/sessionStorage)',
+          'Clear any auth-related state from your application',
+          'Stop any pending token refresh requests'
+        ]
+      }
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

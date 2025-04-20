@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
+// Import centralized CORS and error handler middleware
+const corsOptions = require("./middleware/corsOptions");
+const errorHandler = require("./middleware/errorHandler");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
@@ -14,6 +16,7 @@ const categoriesRoutes = require("./routes/categories.routes");
 const specialtiesRoutes = require("./routes/specialties.routes");
 const testsRoutes = require("./routes/tests.routes");
 const healthRecordsRoutes = require("./routes/health-records.routes");
+const labOwnerRoutes = require('./routes/lab-owner.routes');
 
 // Initialize express app
 const app = express();
@@ -22,15 +25,14 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(
-  cors({
-    origin:
-      process.env.CLIENT_URL || "https://preview--lab-management.lovable.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// Use CORS middleware for frontend
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:8080"],
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -38,6 +40,7 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/doctors", doctorsRoutes);
 app.use("/api/labs", labsRoutes);
+app.use("/api/lab-owner", labOwnerRoutes);
 app.use("/api/appointments", appointmentsRoutes);
 app.use("/api/test-bookings", testBookingsRoutes);
 app.use("/api/blog", blogRoutes);
@@ -52,17 +55,13 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Healthcare App API" });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: "Server Error",
-    message:
-      process.env.NODE_ENV === "development"
-        ? err.message
-        : "An unexpected error occurred",
-  });
+// Health check endpoint for deployment readiness
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
+
+// Centralized error handling middleware
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;

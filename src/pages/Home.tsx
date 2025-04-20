@@ -1,12 +1,13 @@
 
 import React, { useState } from "react";
+import { popularTests, popularSpecialties } from "@/constants/homeData";
 import { Link, useNavigate } from "react-router-dom";
+import { ChevronRight, Search, TestTube, User, Star, MapPin, Shield, Clock, Award } from "lucide-react";
+import CitySelection from "@/components/CitySelection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, Search, TestTube, User, Star, MapPin, Shield, Clock, Award } from "lucide-react";
-import CitySelection from "@/components/CitySelection";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -21,25 +22,8 @@ const Home = () => {
     navigate("/doctors", { state: { city: selectedCity, query: searchQuery } });
   };
 
-  // Popular lab tests
-  const popularTests = [
-    { id: 1, name: "Complete Blood Count (CBC)", price: 599, discountPrice: 399 },
-    { id: 2, name: "Lipid Profile", price: 799, discountPrice: 499 },
-    { id: 3, name: "Thyroid Profile (T3, T4, TSH)", price: 1199, discountPrice: 799 },
-    { id: 4, name: "Vitamin D Test", price: 899, discountPrice: 649 },
-    { id: 5, name: "Diabetes Screening", price: 999, discountPrice: 699 },
-    { id: 6, name: "HbA1c Test", price: 599, discountPrice: 449 }
-  ];
-
-  // Popular specialties
-  const popularSpecialties = [
-    { id: 1, name: "General Physician", icon: "🩺", count: 240 },
-    { id: 2, name: "Dermatologist", icon: "👨‍⚕️", count: 120 },
-    { id: 3, name: "Pediatrician", icon: "👶", count: 180 },
-    { id: 4, name: "Gynecologist", icon: "👩‍⚕️", count: 150 },
-    { id: 5, name: "Orthopedic", icon: "🦴", count: 90 },
-    { id: 6, name: "Neurologist", icon: "🧠", count: 75 }
-  ];
+  // Data imported from @/constants/homeData
+// See src/constants/homeData.ts for details.
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

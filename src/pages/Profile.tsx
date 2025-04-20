@@ -1,12 +1,12 @@
 
 import React, { useState } from "react";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileInformationTab from "@/components/profile/ProfileInformationTab";
 import SecurityTab from "@/components/profile/SecurityTab";
 import AppointmentsTab from "@/components/profile/AppointmentsTab";
 import HealthOverviewTab from "@/components/profile/HealthOverviewTab";
 import KycVerificationTab from "@/components/profile/KycVerificationTab";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("profile");

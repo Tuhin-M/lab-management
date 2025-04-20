@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Lab = require('../models/Lab');
@@ -212,6 +211,64 @@ router.post('/:id/reviews', [
     }
     res.status(500).send('Server error');
   }
+});
+
+// @route   GET /api/lab-owner/labs
+// @desc    Get labs owned by current user
+// @access  Private (Lab Owner)
+router.get('/labs', auth, async (req, res) => {
+  try {
+    // Check if user is lab owner
+    if (req.user.role !== 'lab_owner') {
+      return res.status(403).json({ msg: 'Access denied' });
+    }
+    
+    // Get labs owned by this user
+    const labs = await Lab.find({ owner: req.user.id })
+      .populate('tests')
+      .sort({ createdAt: -1 });
+    
+    res.json(labs);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   POST /api/lab-owner/labs
+// @desc    Create new lab
+// @access  Private (Lab Owner)
+router.post('/labs', 
+  [
+    auth,
+    [
+      check('name', 'Name is required').not().isEmpty(),
+      check('address', 'Address is required').not().isEmpty()
+    ]
+  ], 
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { name, description, address, contact } = req.body;
+      
+      const newLab = new Lab({
+        owner: req.user.id,
+        name,
+        description,
+        address,
+        contact
+      });
+
+      const lab = await newLab.save();
+      res.json(lab);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
 });
 
 module.exports = router;

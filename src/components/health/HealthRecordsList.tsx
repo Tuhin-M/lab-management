@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import HealthRecordCard from './HealthRecordCard';
+import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus } from "lucide-react";
 
 interface HealthRecord {
   _id: string;

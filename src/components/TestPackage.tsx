@@ -1,10 +1,10 @@
 
 import React from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Shield, BadgePercent } from "lucide-react";
+import PackageTests from "./PackageTests";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import PackageTests from "./PackageTests";
 
 export interface TestPackage {
   id: string;

@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
 import { Search, CheckCircle, XCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock data for available tests in the lab
 const allLabTests = [

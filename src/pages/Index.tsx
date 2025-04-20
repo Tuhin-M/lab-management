@@ -1,9 +1,9 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { TestTube, User, ArrowRight } from "lucide-react";
 import HomeSearch from "@/components/HomeSearch";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const navigate = useNavigate();

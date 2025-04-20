@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import TopNavigation from "@/components/TopNavigation";
 import { Search, Clock, Calendar, ChevronRight, ArrowRight, Tag } from "lucide-react";
 
 // Mock blog posts data
@@ -66,7 +64,7 @@ const blogPosts = [
     readTime: "4 min read",
     author: {
       name: "Ananya Gupta",
-      avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
+      avatar: "https://images.unsplash.com/photo-1573497019940-c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
       title: "Healthcare Consultant"
     },
     tags: ["Home Collection", "Convenience", "Lab Tests", "Healthcare Services"]
@@ -157,8 +155,6 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <TopNavigation activeModule="doctors" />
-      
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="bg-primary/5 py-12">
@@ -194,7 +190,7 @@ const Blog = () => {
           <h2 className="text-2xl font-bold mb-6">Featured Article</h2>
           
           <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="rounded-xl overflow-hidden aspect-video">
+            <div className="rounded-xl overflow-hidden aspect-video shadow-lg">
               <img 
                 src={featuredPost.image} 
                 alt={featuredPost.title}
@@ -268,10 +264,10 @@ const Blog = () => {
                   {categories.map((category) => (
                     <TabsContent key={category.name} value={category.name} className="mt-0">
                       {filteredPosts.length > 0 ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {filteredPosts.filter(post => category.name === "All" || post.category === category.name).map((post) => (
                             <Card key={post.id} className="overflow-hidden h-full flex flex-col hover:shadow-md transition-shadow">
-                              <div className="aspect-video relative overflow-hidden">
+                              <div className="rounded-xl aspect-video overflow-hidden relative shadow-lg">
                                 <img 
                                   src={post.image} 
                                   alt={post.title}
@@ -370,7 +366,7 @@ const Blog = () => {
                     <div className="space-y-4">
                       {blogPosts.slice(0, 3).map((post) => (
                         <div key={post.id} className="flex items-start space-x-2">
-                          <div className="w-20 h-16 rounded overflow-hidden flex-shrink-0">
+                          <div className="w-20 h-16 rounded-xl overflow-hidden flex-shrink-0">
                             <img 
                               src={post.image} 
                               alt={post.title}
@@ -437,7 +433,7 @@ const Blog = () => {
       <footer className="bg-gray-900 text-gray-300 py-12">
         <div className="container mx-auto px-4">
           <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center">
-            <p>© 2023 Ekitsa. All rights reserved.</p>
+            <p> 2023 Ekitsa. All rights reserved.</p>
           </div>
         </div>
       </footer>

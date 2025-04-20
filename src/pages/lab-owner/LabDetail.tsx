@@ -1,13 +1,13 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MapPin, Phone, Mail, Globe, Shield, Calendar } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
 import { toast } from "sonner";
 import AppointmentsList from "@/components/lab-owner/AppointmentsList";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const LabDetail = () => {
   const navigate = useNavigate();
@@ -156,7 +156,7 @@ const LabDetail = () => {
                 />
               </div>
               <CardHeader>
-                <CardTitle>{lab.name}</CardTitle>
+                <h6 className="text-lg font-semibold">{lab.name}</h6>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-sm text-muted-foreground">
@@ -226,12 +226,14 @@ const LabDetail = () => {
                 <div className="pt-4 flex justify-between">
                   <Button 
                     variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/lab-owner/edit-lab/${id}`)}
                   >
                     Edit Details
                   </Button>
                   <Button 
                     variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/lab-owner/lab/${id}/tests`)}
                   >
                     Manage Tests
@@ -240,46 +242,45 @@ const LabDetail = () => {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="md:col-span-2">
             <Tabs defaultValue="appointments">
-              <TabsList className="mb-4">
-                <TabsTrigger value="appointments">Appointments</TabsTrigger>
-                <TabsTrigger value="tests">Tests</TabsTrigger>
-                <TabsTrigger value="reports">Reports</TabsTrigger>
-              </TabsList>
-              
               <TabsContent value="appointments">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Lab Appointments</CardTitle>
+                    <h6 className="text-lg font-semibold">Lab Appointments</h6>
                   </CardHeader>
                   <CardContent>
                     <AppointmentsList 
-                      labId={id || ''} 
+                      labId={id} 
                       appointments={appointments} 
                       onStatusChange={refreshAppointments} 
+                      onSearch={() => {}} 
+                      onFilter={() => {}} 
                     />
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="tests">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Available Tests</CardTitle>
+                    <h6 className="text-lg font-semibold">Available Tests</h6>
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-center mb-4">
                       <p className="text-muted-foreground">Manage the tests available at this lab</p>
-                      <Button onClick={() => navigate(`/lab-owner/lab/${id}/add-test`)}>
+                      <Button 
+                        size="sm"
+                        onClick={() => navigate(`/lab-owner/lab/${id}/add-test`)}
+                      >
                         Add New Test
                       </Button>
                     </div>
-                    
                     <div className="text-center py-12 border rounded-md">
                       <p className="text-muted-foreground">No tests have been added yet</p>
                       <Button 
+                        size="sm"
                         className="mt-4"
                         onClick={() => navigate(`/lab-owner/lab/${id}/add-test`)}
                       >
@@ -289,17 +290,16 @@ const LabDetail = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="reports">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Lab Reports</CardTitle>
+                    <h6 className="text-lg font-semibold">Lab Reports</h6>
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-8">
                       View and analyze performance reports for this lab
                     </p>
-                    
                     <div className="text-center py-12">
                       <p className="text-lg font-medium mb-2">Coming Soon</p>
                       <p className="text-muted-foreground">

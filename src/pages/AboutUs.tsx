@@ -1,9 +1,9 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import TopNavigation from "@/components/TopNavigation";
 import { Award, Users, MapPin, CheckCircle, Heart, Clock, Target, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AboutUs = () => {
   const navigate = useNavigate();

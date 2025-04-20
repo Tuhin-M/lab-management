@@ -1,10 +1,6 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Accordion,
   AccordionContent,
@@ -26,6 +22,11 @@ import {
   TestTube,
   User,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 
 // Define types for different order types
 interface BaseOrder {

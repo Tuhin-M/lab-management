@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { 
   MapPin, 
   Clock, 
@@ -14,14 +13,7 @@ import {
   ShieldCheck, 
   BadgePercent
 } from "lucide-react";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Test } from "@/components/TestResult";
 import { Lab } from "@/components/LabCard";
 import { TestPackage } from "@/components/TestPackage";
@@ -29,6 +21,9 @@ import TestPackageComponent from "@/components/TestPackage";
 import { useToast } from "@/components/ui/use-toast";
 import LabTestSearch from "@/components/LabTestSearch";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data for Test Packages
 const mockTestPackages: TestPackage[] = [

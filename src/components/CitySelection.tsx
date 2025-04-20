@@ -1,50 +1,35 @@
-
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MapPin } from "lucide-react";
+import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface CitySelectionProps {
   selectedCity: string;
-  onCityChange: (city: string) => void;
+  onCityChange: (value: string) => void;
   className?: string;
 }
 
-const CitySelection = ({
+const CitySelection: React.FC<CitySelectionProps> = ({
   selectedCity,
   onCityChange,
-  className = "",
-}: CitySelectionProps) => {
+  className = '',
+}) => {
   const cities = [
-    "Bengaluru",
-    "Mumbai",
-    "Delhi",
-    "Chennai",
-    "Hyderabad",
-    "Kolkata",
-    "Pune",
-    "Ahmedabad",
-    "Jaipur",
-    "Chandigarh",
+    'Mumbai',
+    'Delhi',
+    'Bangalore',
+    'Chennai',
+    'Kolkata'
   ];
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={className}>
+      <label className="block mb-2 font-medium">City</label>
       <Select value={selectedCity} onValueChange={onCityChange}>
-        <SelectTrigger className="bg-white h-12 border-primary/20 focus:ring-primary w-full md:w-[180px]">
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-2 text-primary" />
-            <SelectValue placeholder="Select city" />
-          </div>
-        </SelectTrigger>
+        <SelectTrigger className="w-full" />
         <SelectContent>
-          {cities.map((city) => (
+          {cities.map(city => (
             <SelectItem key={city} value={city}>
+              <MapPin className="inline-block mr-2" />
               {city}
             </SelectItem>
           ))}

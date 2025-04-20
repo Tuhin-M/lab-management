@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter, MapPin, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,6 +13,7 @@ import { doctors } from "@/data/doctorsData";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import SearchBar from "@/components/SearchBar";
 import { authAPI } from "@/services/api";
+import { Button } from "@/components/ui/button";
 
 const DoctorAppointment = () => {
   const navigate = useNavigate();

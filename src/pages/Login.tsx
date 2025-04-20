@@ -1,9 +1,5 @@
-
 import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -11,14 +7,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { authAPI } from "@/services/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { CardFooter } from "@/components/ui/card";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
   rememberMe: z.boolean().optional(),
-  userType: z.enum(["user", "lab_owner"]),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -47,7 +46,6 @@ const Login = () => {
       email: "",
       password: "",
       rememberMe: false,
-      userType: "user",
     },
   });
 
@@ -56,7 +54,6 @@ const Login = () => {
       setIsLoading(true);
       setError(null);
       
-      // We'll handle the role check on the backend
       const response = await authAPI.login(data.email, data.password);
       
       toast.success("Login successful! Welcome back.");
@@ -65,7 +62,7 @@ const Login = () => {
       if (response.role === "lab_owner") {
         navigate("/lab-dashboard");
       } else {
-        navigate("/profile");
+        navigate("/home");
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -80,38 +77,40 @@ const Login = () => {
     <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <div className="rounded-full bg-primary w-8 h-8 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
-            </div>
-            <span className="font-bold text-lg">Ekitsa</span>
-          </Link>
           <h1 className="text-2xl font-bold mt-6">Welcome back</h1>
           <p className="text-muted-foreground mt-2">
             Log in to continue with Ekitsa
           </p>
         </div>
 
-        <Card>
+        <Card className="shadow-lg border-2 border-primary/10">
           <CardContent className="pt-6">
             {error && (
-              <div className="mb-4 p-3 bg-destructive/15 border border-destructive text-destructive rounded-md text-sm">
-                {error}
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm animate-shake" role="alert">
+                <span className="font-semibold">Error:</span> {error}
               </div>
             )}
-            
+
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="you@example.com" {...field} />
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          className={fieldState.invalid ? "border-red-500 focus:border-red-500" : ""}
+                          aria-invalid={fieldState.invalid}
+                          aria-describedby="email-error"
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage id="email-error" />
                     </FormItem>
                   )}
                 />
@@ -119,60 +118,33 @@ const Login = () => {
                 <FormField
                   control={form.control}
                   name="password"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
-                      <div className="flex justify-between">
-                        <FormLabel>Password</FormLabel>
-                        <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                          Forgot password?
-                        </Link>
-                      </div>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Input 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="********" 
-                            {...field} 
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                            className={fieldState.invalid ? "border-red-500 focus:border-red-500 pr-10" : "pr-10"}
+                            aria-invalid={fieldState.invalid}
+                            aria-describedby="password-error"
                           />
-                          <Button 
+                          <button
                             type="button"
-                            variant="ghost" 
-                            size="icon"
-                            className="absolute right-1 top-1"
-                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none"
+                            onClick={() => setShowPassword((v) => !v)}
+                            tabIndex={-1}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                           >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
                         </div>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="userType"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>I am a</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex gap-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="user" id="user" />
-                            <FormLabel htmlFor="user" className="font-normal">Patient / User</FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="lab_owner" id="lab_owner" />
-                            <FormLabel htmlFor="lab_owner" className="font-normal">Lab Owner</FormLabel>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
+                      <div className="text-xs text-muted-foreground mt-1">Password is case sensitive.</div>
+                      <FormMessage id="password-error" />
                     </FormItem>
                   )}
                 />
@@ -181,49 +153,37 @@ const Login = () => {
                   control={form.control}
                   name="rememberMe"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
+                    <FormItem className="flex items-center gap-2">
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} id="rememberMe" />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Remember me</FormLabel>
-                      </div>
+                      <FormLabel htmlFor="rememberMe" className="font-normal cursor-pointer">Remember me</FormLabel>
                     </FormItem>
                   )}
                 />
 
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6" 
+                <Button
+                  type="submit"
+                  className="w-full font-semibold text-base py-2 transition-transform duration-100 active:scale-95"
                   disabled={isLoading}
+                  aria-busy={isLoading}
                 >
                   {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Logging in...
+                    <span className="flex items-center justify-center gap-2">
+                      <LogIn className="animate-spin h-5 w-5" /> Logging in...
                     </span>
                   ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" /> Log In
-                    </>
+                    <span className="flex items-center justify-center gap-2">
+                      <LogIn className="h-5 w-5" /> Log In
+                    </span>
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center border-t p-4">
-            <div className="text-sm text-center">
-              Don't have an account?{" "}
-              <Link to="/signup" className="text-primary font-medium hover:underline">
-                Sign Up
-              </Link>
-            </div>
+          <CardFooter className="justify-center bg-muted rounded-b-lg py-4">
+            <span className="text-sm text-muted-foreground">Don&apos;t have an account?</span>
+            <Link to="/signup" className="ml-2 text-primary font-medium hover:underline">Sign up</Link>
           </CardFooter>
         </Card>
       </div>

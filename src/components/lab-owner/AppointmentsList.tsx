@@ -1,24 +1,13 @@
-
 import React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import { labOwnerAPI } from "@/services/api";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface Appointment {
   _id: string;
@@ -35,12 +24,16 @@ interface AppointmentsListProps {
   labId: string;
   appointments: Appointment[];
   onStatusChange: () => void;
+  onSearch: (query: string) => void;
+  onFilter: (filter: {status?: string, date?: string}) => void;
 }
 
 const AppointmentsList = ({ 
   labId, 
   appointments,
-  onStatusChange 
+  onStatusChange,
+  onSearch,
+  onFilter
 }: AppointmentsListProps) => {
   
   const handleStatusChange = async (appointmentId: string, status: string) => {
@@ -75,8 +68,40 @@ const AppointmentsList = ({
 
   return (
     <div className="bg-white rounded-md shadow">
-      <div className="p-4 border-b">
-        <h3 className="text-lg font-medium">Recent Appointments</h3>
+      <div className="p-4 border-b flex justify-between items-center">
+        <h3 className="text-lg font-medium">Appointments</h3>
+        <div className="flex gap-2">
+          <Input 
+            placeholder="Search patients/tests" 
+            onChange={(e) => onSearch(e.target.value)}
+            className="w-64"
+          />
+          <Select onValueChange={(value) => onFilter({status: value})}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-40">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                <span>Date</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar 
+                mode="single" 
+                onSelect={(date) => onFilter({date: date?.toISOString()})}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <Table>
@@ -140,3 +165,4 @@ const AppointmentsList = ({
 };
 
 export default AppointmentsList;
+export type { Appointment };

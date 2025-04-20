@@ -1,7 +1,7 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 // Removing this component since we're now using the GlobalNavbar across the app
 const DoctorAppointmentHeader: React.FC = () => {

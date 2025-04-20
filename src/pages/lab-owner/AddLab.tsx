@@ -1,10 +1,7 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -12,6 +9,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Upload } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const labSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -71,13 +71,12 @@ const AddLab = () => {
 
   const onSubmit = async (data: LabFormValues) => {
     try {
-      // In a real app, this would handle file upload and API calls
-      // const formData = new FormData();
-      // if (imageFile) formData.append('image', imageFile);
-      // Object.entries(data).forEach(([key, value]) => formData.append(key, value));
-      // await labOwnerAPI.createLab(formData);
-      
-      console.log('Lab data submitted:', data);
+      const res = await fetch('/api/labs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('Failed to add lab');
       toast.success('Lab added successfully');
       navigate('/lab-dashboard');
     } catch (error) {

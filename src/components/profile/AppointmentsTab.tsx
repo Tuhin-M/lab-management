@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Card } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 // Demo appointment data
 const appointments = [

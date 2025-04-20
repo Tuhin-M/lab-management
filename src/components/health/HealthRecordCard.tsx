@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Calendar, User, Hospital, Tag } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface HealthRecordProps {

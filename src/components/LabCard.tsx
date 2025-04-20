@@ -1,8 +1,8 @@
 
 import React from "react";
+import { MapPin, Clock, Star, Check, BadgePercent, Award } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Star, Check, BadgePercent, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export interface Lab {

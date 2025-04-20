@@ -32,6 +32,14 @@ apiClient.interceptors.response.use(
     
     // If error is 401 and we haven't already tried to refresh the token
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Check if we should stop refresh attempts
+      if (error.response.data?.shouldStopRefresh) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userData');
+        return Promise.reject(error);
+      }
+      
       originalRequest._retry = true;
       
       try {
@@ -89,14 +97,30 @@ export const authAPI = {
   
   logout: async () => {
     try {
-      await apiClient.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Always clear local storage even if the API call fails
+      const response = await apiClient.post('/auth/logout');
+      
+      // Clear interceptors and tokens
+      apiClient.interceptors.response.clear();
       localStorage.removeItem('authToken');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userData');
+      
+      // Force redirect to login with full page refresh
+      window.location.replace('/login');
+      
+      return response.data;
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Ensure cleanup and redirect even if API fails
+      apiClient.interceptors.response.clear();
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userData');
+      
+      window.location.replace('/login');
+      
+      throw error;
     }
   },
   
@@ -147,44 +171,196 @@ export const doctorsAPI = {
 
 // Lab Test related API calls
 export const labsAPI = {
+  // Enhanced dummy Indian labs data
+  dummyLabs: [
+    {
+      id: 'lab1',
+      name: 'Thyrocare Technologies',
+      location: 'Mumbai, Maharashtra',
+      rating: 4.5,
+      specializations: ['Endocrinology', 'Hematology'],
+      operatingHours: {
+        weekdays: '7:00 AM - 8:00 PM',
+        weekends: '7:00 AM - 3:00 PM'
+      },
+      tests: [
+        { name: 'Thyroid Profile', price: 1200, discountPrice: 999, category: 'Endocrinology' },
+        { name: 'Complete Blood Count', price: 500, discountPrice: 399, category: 'Hematology' },
+        { name: 'Lipid Profile', price: 900, discountPrice: 699, category: 'Cardiology' }
+      ]
+    },
+    {
+      id: 'lab2',
+      name: 'Dr. Lal PathLabs',
+      location: 'Delhi NCR',
+      rating: 4.7,
+      specializations: ['Diabetes', 'Hepatology'],
+      operatingHours: {
+        weekdays: '6:30 AM - 9:00 PM',
+        weekends: '6:30 AM - 2:00 PM'
+      },
+      tests: [
+        { name: 'Diabetes Screening', price: 1500, discountPrice: 1199, category: 'Diabetes' },
+        { name: 'Liver Function Test', price: 800, discountPrice: 599, category: 'Hepatology' },
+        { name: 'Kidney Function Test', price: 1000, discountPrice: 799, category: 'Nephrology' }
+      ]
+    },
+    {
+      id: 'lab3',
+      name: 'SRL Diagnostics',
+      location: 'Bangalore, Karnataka',
+      rating: 4.3,
+      specializations: ['Nutrition', 'Endocrinology'],
+      operatingHours: {
+        weekdays: '8:00 AM - 7:30 PM',
+        weekends: '8:00 AM - 1:00 PM'
+      },
+      tests: [
+        { name: 'Vitamin D Test', price: 1100, discountPrice: 899, category: 'Nutrition' },
+        { name: 'HbA1c', price: 600, discountPrice: 499, category: 'Diabetes' },
+        { name: 'Thyroid Stimulating Hormone', price: 700, discountPrice: 599, category: 'Endocrinology' }
+      ]
+    },
+    {
+      id: 'lab4',
+      name: 'Metropolis Healthcare',
+      location: 'Chennai, Tamil Nadu',
+      rating: 4.6,
+      specializations: ['Cardiology', 'Infectious Diseases'],
+      operatingHours: {
+        weekdays: '7:30 AM - 8:30 PM',
+        weekends: '7:30 AM - 2:30 PM'
+      },
+      tests: [
+        { name: 'Cardiac Risk Markers', price: 2000, discountPrice: 1799, category: 'Cardiology' },
+        { name: 'Iron Studies', price: 900, discountPrice: 749, category: 'Hematology' },
+        { name: 'Dengue NS1 Antigen', price: 800, discountPrice: 699, category: 'Infectious Diseases' }
+      ]
+    },
+    {
+      id: 'lab5',
+      name: 'Apollo Diagnostics',
+      location: 'Hyderabad, Telangana',
+      rating: 4.4,
+      specializations: ['Comprehensive Health', 'Women\'s Health'],
+      operatingHours: {
+        weekdays: '7:00 AM - 9:00 PM',
+        weekends: '7:00 AM - 4:00 PM'
+      },
+      tests: [
+        { name: 'Thyroid Profile', price: 1300, discountPrice: 1099, category: 'Endocrinology' },
+        { name: 'Complete Blood Count', price: 550, discountPrice: 449, category: 'Hematology' },
+        { name: 'Lipid Profile', price: 950, discountPrice: 799, category: 'Cardiology' },
+        { name: 'Pap Smear Test', price: 1200, discountPrice: 999, category: 'Women\'s Health' }
+      ]
+    }
+  ],
+
+  // Get all labs (with dummy data fallback)
   getAllLabs: async (params?: any) => {
-    return apiClient.get('/labs', { params });
+    try {
+      const response = await apiClient.get('/labs', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Using dummy labs data', error);
+      return this.dummyLabs;
+    }
   },
-  
-  getLabById: async (id: string) => {
-    return apiClient.get(`/labs/${id}`);
-  },
-  
+
+  // Get all tests (with dummy data fallback)
   getAllTests: async (params?: any) => {
-    return apiClient.get('/tests', { params });
+    try {
+      const response = await apiClient.get('/tests', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Using dummy tests data', error);
+      const allTests = new Set();
+      this.dummyLabs.forEach(lab => {
+        lab.tests.forEach(test => allTests.add(test.name));
+      });
+      return Array.from(allTests);
+    }
   },
-  
+
+  getLabById: async (id: string) => {
+    try {
+      const response = await apiClient.get(`/labs/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Using dummy lab data', error);
+      return this.dummyLabs.find(lab => lab.id === id);
+    }
+  },
+
   bookTest: async (testData: any) => {
-    return apiClient.post('/test-bookings', testData);
+    const response = await apiClient.post('/tests/book', testData);
+    return response.data;
   },
-  
+
   getLabsSortedByDiscountedPrice: async (sortOrder: 'asc' | 'desc' = 'asc') => {
-    const response = await apiClient.get('/labs');
-    
-    const labsWithDiscountedPrice = response.data.map((lab: any) => {
-      const avgDiscountedPrice = lab.tests.reduce((acc: number, test: any) => {
-        const discountedPrice = test.price - (test.price * (test.discount || 0) / 100);
-        return acc + discountedPrice;
-      }, 0) / (lab.tests.length || 1);
-      
-      return {
-        ...lab,
-        avgDiscountedPrice
-      };
-    });
-    
-    const sortedLabs = labsWithDiscountedPrice.sort((a: any, b: any) => {
-      return sortOrder === 'asc' 
-        ? a.avgDiscountedPrice - b.avgDiscountedPrice
-        : b.avgDiscountedPrice - a.avgDiscountedPrice;
-    });
-    
-    return { data: sortedLabs };
+    try {
+      const response = await apiClient.get('/labs/sorted', { params: { sortOrder } });
+      return response.data;
+    } catch (error) {
+      console.error('Using dummy sorted labs data', error);
+      return [...this.dummyLabs].sort((a, b) => {
+        const avgPriceA = a.tests.reduce((sum, test) => sum + test.discountPrice, 0) / a.tests.length;
+        const avgPriceB = b.tests.reduce((sum, test) => sum + test.discountPrice, 0) / b.tests.length;
+        return sortOrder === 'asc' ? avgPriceA - avgPriceB : avgPriceB - avgPriceA;
+      });
+    }
+  }
+};
+
+// Mock data for development
+const mockStats = {
+  totalLabs: 3,
+  totalAppointments: 42,
+  totalTests: 86,
+  totalRevenue: 68400,
+  pendingAppointments: 5
+};
+
+const mockLabs = [
+  {
+    _id: '1',
+    name: 'Metropolis Lab',
+    address: {
+      street: '123 Medical Plaza',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      zip: '400001'
+    },
+    tests: [],
+    stats: {
+      totalAppointments: 42,
+      totalTests: 86,
+      totalRevenue: 68400,
+      pendingAppointments: 5
+    }
+  }
+];
+
+// Lab owner related API calls
+export const labOwnerAPI = {
+  getLabStats: async () => {
+    if (process.env.NODE_ENV === 'development') {
+      return { data: mockStats };
+    }
+    return apiClient.get('/lab-owner/stats');
+  },
+  getOwnedLabs: async () => {
+    if (process.env.NODE_ENV === 'development') {
+      return { data: mockLabs };
+    }
+    return apiClient.get('/lab-owner/labs');
+  },
+  updateAppointmentStatus: async (appointmentId: string, status: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Mock update: Appointment ${appointmentId} status changed to ${status}`);
+      return { data: { success: true } };
+    }
+    return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
   }
 };
 
@@ -294,32 +470,37 @@ export const blogAPI = {
   }
 };
 
-// Lab Owner specific API calls
-export const labOwnerAPI = {
-  getOwnedLabs: async () => {
-    return apiClient.get('/lab-owner/labs');
-  },
-  
-  createLab: async (labData: any) => {
-    return apiClient.post('/lab-owner/labs', labData);
-  },
-  
-  updateLab: async (id: string, labData: any) => {
-    return apiClient.put(`/lab-owner/labs/${id}`, labData);
-  },
-  
-  deleteLab: async (id: string) => {
-    return apiClient.delete(`/lab-owner/labs/${id}`);
-  },
-  
-  getLabAppointments: async (labId: string) => {
-    return apiClient.get(`/lab-owner/labs/${labId}/appointments`);
-  },
-  
-  updateAppointmentStatus: async (appointmentId: string, status: string) => {
-    return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
-  }
-};
+interface Lab {
+  id: string;
+  name: string;
+  description?: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  contact: {
+    phone: string;
+    email: string;
+  };
+  rating?: number;
+  tests: Array<{
+    id: string;
+    name: string;
+    price: number;
+    discountPrice?: number;
+  }>;
+}
+
+interface ApiResponse<T> {
+  data: T;
+  isDummy?: boolean;
+  error?: {
+    message: string;
+    originalError?: any;
+  };
+}
 
 // Doctor chat API calls
 export const doctorChatAPI = {

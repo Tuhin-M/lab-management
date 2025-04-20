@@ -1,20 +1,14 @@
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense } from "react";
 import GlobalNavbar from "./components/GlobalNavbar";
+import LoadingFallback from "@/utils/LoadingFallback";
+import { isLabOwnerRoute } from "@/utils/routeUtils";
+import LabOwnerDashboard from "./components/lab-owner/LabOwnerDashboard";
+import SingleLabDashboard from "./components/lab-owner/SingleLabDashboard";
 
-// Fallback component for lazy-loaded routes
-const LoadingFallback = () => (
-  <div className="flex h-screen w-full items-center justify-center">
-    <div className="flex flex-col items-center space-y-4">
-      <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-primary"></div>
-      <p className="text-lg font-medium">Loading...</p>
-    </div>
-  </div>
-);
-
-// Lazy-loaded pages
+// All pages are now lazy-loaded for consistency and performance
 const Home = lazy(() => import("./pages/Home"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 const DoctorAppointment = lazy(() => import("./pages/DoctorAppointment"));
@@ -31,20 +25,17 @@ const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
 const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
 const DoctorChat = lazy(() => import("./pages/DoctorChat"));
-import HealthRecords from "./pages/HealthRecords";
-import NotFound from "./pages/NotFound";
+const HealthRecords = lazy(() => import("./pages/HealthRecords"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
-  // Check if user is on a lab-owner route
-  const isLabOwnerRoute = (pathname: string) => {
-    return pathname.startsWith('/lab-owner') || pathname === '/lab-dashboard';
-  };
-
-  // Only show navbar if not on lab owner routes
-  const shouldShowNavbar = !isLabOwnerRoute(window.location.pathname);
+  // Initialize React Query client
+  const queryClient = new QueryClient();
+  // Show global navbar on lab-dashboard as well
+  const shouldShowNavbar = window.location.pathname === '/lab-dashboard' || !isLabOwnerRoute(window.location.pathname);
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       {shouldShowNavbar && <GlobalNavbar />}
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
@@ -63,7 +54,9 @@ function App() {
           <Route path="/orders" element={<Orders />} />
 
           {/* Lab Owner Routes */}
-          <Route path="/lab-dashboard" element={<LabDashboard />} />
+          <Route path="/lab-dashboard" element={<LabOwnerDashboard />} />
+          <Route path="/lab-owner" element={<LabOwnerDashboard />} />
+          <Route path="/lab-owner/labs/:labId" element={<SingleLabDashboard />} />
           <Route path="/lab-owner/add-lab" element={<AddLab />} />
           <Route path="/lab-owner/edit-lab/:id" element={<AddLab />} />
           <Route path="/lab-owner/lab/:id" element={<LabOwnerLabDetail />} />
@@ -80,7 +73,7 @@ function App() {
         </Routes>
       </Suspense>
       <Toaster />
-    </>
+    </QueryClientProvider>
   );
 }
 

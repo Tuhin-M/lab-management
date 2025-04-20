@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import UserMenu from "@/components/navbar/UserMenu";
+import NavLinks from "@/components/navbar/NavLinks";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -8,7 +10,6 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
 import { 
   TestTube, 
   User, 
@@ -24,6 +25,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { authAPI } from "@/services/api";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const GlobalNavbar: React.FC = () => {
   const navigate = useNavigate();
@@ -76,107 +78,15 @@ const GlobalNavbar: React.FC = () => {
           />
         </Link>
 
-        {/* Navigation for Desktop */}
+        {/* Navigation for Desktop - now uses NavLinks subcomponent */}
         <div className="hidden md:block">
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link to="/">
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle() + (isActive("/") && !isActive("/lab-tests") && !isActive("/doctors") ? " bg-accent/50" : "")}
-                  >
-                    <HomeIcon className="mr-2 h-4 w-4" />
-                    Home
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/lab-tests">
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle() + (isActive("/lab-tests") ? " bg-accent/50" : "")}
-                  >
-                    <TestTube className="mr-2 h-4 w-4" />
-                    Lab Tests
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link to="/doctors">
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle() + (isActive("/doctors") ? " bg-accent/50" : "")}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    Doctor Appointments
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              {isAuthenticated && (
-                <>
-                  <NavigationMenuItem>
-                    <Link to="/orders">
-                      <NavigationMenuLink
-                        className={navigationMenuTriggerStyle() + (isActive("/orders") ? " bg-accent/50" : "")}
-                      >
-                        <ShoppingBag className="mr-2 h-4 w-4" />
-                        Orders
-                      </NavigationMenuLink>
-                    </Link>
-                  </NavigationMenuItem>
-                  
-                  <NavigationMenuItem>
-                    <Link to="/health-records">
-                      <NavigationMenuLink
-                        className={navigationMenuTriggerStyle() + (isActive("/health-records") ? " bg-accent/50" : "")}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Health Records
-                      </NavigationMenuLink>
-                    </Link>
-                  </NavigationMenuItem>
-                  
-                  {userRole === 'lab_owner' && (
-                    <NavigationMenuItem>
-                      <Link to="/lab-dashboard">
-                        <NavigationMenuLink
-                          className={navigationMenuTriggerStyle() + (isActive("/lab-dashboard") ? " bg-accent/50" : "")}
-                        >
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          Lab Dashboard
-                        </NavigationMenuLink>
-                      </Link>
-                    </NavigationMenuItem>
-                  )}
-                </>
-              )}
-            </NavigationMenuList>
-          </NavigationMenu>
+          <NavLinks isAuthenticated={isAuthenticated} userRole={userRole} />
         </div>
 
-        {/* User Actions */}
+        {/* User Actions - now uses UserMenu subcomponent */}
         <div className="flex items-center space-x-2">
-          {isAuthenticated ? (
-            <>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="hidden md:flex" 
-                onClick={() => navigate('/profile')}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" className="hidden md:flex">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button 
-                className="hidden md:flex items-center" 
-                variant="destructive" 
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
-            </>
+          {isAuthenticated && currentUser ? (
+            <UserMenu currentUser={currentUser} onLogout={handleLogout} />
           ) : (
             <Button 
               className="hidden md:flex" 

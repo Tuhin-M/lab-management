@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import DoctorChatComponent from "@/components/doctor/DoctorChat";
 import { doctorsAPI } from "@/services/api";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface Doctor {
   id: string;

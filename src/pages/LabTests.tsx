@@ -6,11 +6,12 @@ import TestResult, { Test } from "@/components/TestResult";
 import LabCard, { Lab } from "@/components/LabCard";
 import LabFilters, { LabFiltersState } from "@/components/LabFilters";
 import CitySelection from "@/components/CitySelection";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, Filter, BadgeIndianRupee, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import RecommendedFilters from "@/components/RecommendedFilters";
+import { Button } from "@/components/ui/button";
+
 // Sample data for tests with Indian context
 const mockTests: Test[] = [
   {

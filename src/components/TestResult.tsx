@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export interface Test {
