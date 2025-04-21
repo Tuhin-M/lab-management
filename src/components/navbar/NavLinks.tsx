@@ -12,11 +12,17 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const commonLinks = [
-    { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
-    { path: "/tests", label: "Tests", icon: <TestTube className="h-4 w-4" /> },
-    { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
-  ];
+  // For lab owners, remove 'Tests' from commonLinks
+  const commonLinks = userRole === 'lab_owner'
+    ? [
+        { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
+        { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
+      ]
+    : [
+        { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
+        { path: "/tests", label: "Tests", icon: <TestTube className="h-4 w-4" /> },
+        { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
+      ];
 
   const authenticatedUserLinks = [
     { path: "/appointments", label: "Appointments", icon: <CalendarCheck className="h-4 w-4" /> },
@@ -25,7 +31,6 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
 
   const labOwnerLinks = [
     { path: "/lab-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { path: "/lab-appointments", label: "Lab Appointments", icon: <CalendarCheck className="h-4 w-4" /> },
     { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-4 w-4" /> }
   ];
 
@@ -57,19 +62,9 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
         ))
       }
 
-      {/* Lab owner sees both regular and lab-specific links */}
+      {/* Lab owner sees ONLY lab-specific links */}
       {isAuthenticated && userRole === 'lab_owner' && (
         <>
-          {authenticatedUserLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? "text-primary" : "text-muted-foreground"}`}
-            >
-              {link.icon}
-              {link.label}
-            </Link>
-          ))}
           {labOwnerLinks.map((link) => (
             <Link
               key={link.path}

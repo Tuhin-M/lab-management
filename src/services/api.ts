@@ -361,6 +361,13 @@ export const labOwnerAPI = {
       return { data: { success: true } };
     }
     return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
+  },
+  deleteLab: async (id: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Mock delete: Lab ${id} deleted`);
+      return { data: { success: true } };
+    }
+    return apiClient.delete(`/lab-owner/labs/${id}`);
   }
 };
 

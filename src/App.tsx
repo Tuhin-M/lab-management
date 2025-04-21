@@ -5,8 +5,8 @@ import { lazy, Suspense } from "react";
 import GlobalNavbar from "./components/GlobalNavbar";
 import LoadingFallback from "@/utils/LoadingFallback";
 import { isLabOwnerRoute } from "@/utils/routeUtils";
-import LabOwnerDashboard from "./components/lab-owner/LabOwnerDashboard";
 import SingleLabDashboard from "./components/lab-owner/SingleLabDashboard";
+const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 
 // All pages are now lazy-loaded for consistency and performance
 const Home = lazy(() => import("./pages/Home"));
@@ -21,7 +21,6 @@ const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
 const Orders = lazy(() => import("./pages/Orders"));
-const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
 const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
 const DoctorChat = lazy(() => import("./pages/DoctorChat"));
@@ -32,11 +31,10 @@ function App() {
   // Initialize React Query client
   const queryClient = new QueryClient();
   // Show global navbar on lab-dashboard as well
-  const shouldShowNavbar = window.location.pathname === '/lab-dashboard' || !isLabOwnerRoute(window.location.pathname);
-
+  
   return (
     <QueryClientProvider client={queryClient}>
-      {shouldShowNavbar && <GlobalNavbar />}
+      <GlobalNavbar />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -54,8 +52,8 @@ function App() {
           <Route path="/orders" element={<Orders />} />
 
           {/* Lab Owner Routes */}
-          <Route path="/lab-dashboard" element={<LabOwnerDashboard />} />
-          <Route path="/lab-owner" element={<LabOwnerDashboard />} />
+          <Route path="/lab-dashboard" element={<LabDashboard />} />
+          <Route path="/lab-owner" element={<LabDashboard />} />
           <Route path="/lab-owner/labs/:labId" element={<SingleLabDashboard />} />
           <Route path="/lab-owner/add-lab" element={<AddLab />} />
           <Route path="/lab-owner/edit-lab/:id" element={<AddLab />} />

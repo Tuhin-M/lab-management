@@ -81,7 +81,10 @@ const LabTestSearch = () => {
                 <button 
                   className="ml-1 rounded-full hover:bg-primary/20 p-0.5"
                   onClick={() => handleRemoveTest(test)}
+                  aria-label={`Remove ${test}`}
+                  title={`Remove ${test}`}
                 >
+                  ×
                   <XCircle className="h-3 w-3" />
                 </button>
               </Badge>

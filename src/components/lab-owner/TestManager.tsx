@@ -1,7 +1,24 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-export const TestManager = () => {
+interface Lab {
+  _id: string;
+  name: string;
+  address: {
+    city: string;
+    state: string;
+  };
+  image: string;
+  rating: number;
+  tests: any[];
+  status: string;
+}
+
+interface TestManagerProps {
+  labs: Lab[];
+}
+
+export const TestManager = ({ labs }: TestManagerProps) => {
   const [tests, setTests] = useState([
     { id: 1, name: 'Complete Blood Count', price: 500, duration: '1 day', active: true },
     { id: 2, name: 'Thyroid Profile', price: 1200, duration: '2 days', active: true },

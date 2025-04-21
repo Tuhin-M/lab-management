@@ -147,7 +147,7 @@ const AddLab = () => {
                       >
                         <Upload className="h-8 w-8 text-gray-400" />
                         <p className="mt-2 text-sm text-gray-600">Click to upload image</p>
-                        <input 
+                        <input placeholder="Enter value" title="Enter value" 
                           type="file" 
                           id="lab-image"
                           accept="image/*"

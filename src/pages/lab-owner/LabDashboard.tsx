@@ -10,8 +10,64 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import Sidebar from "@/components/lab-owner/Sidebar";
+import DashboardSummaryCard from "@/components/lab-owner/DashboardSummaryCard";
+import DashboardTabs from "@/components/lab-owner/DashboardTabs";
+import DashboardCircularProgress from "@/components/lab-owner/DashboardCircularProgress";
+import DashboardLegend from "@/components/lab-owner/DashboardLegend";
+import DashboardRevenueBar from "@/components/lab-owner/DashboardRevenueBar";
+import DashboardAreaChart from "@/components/lab-owner/DashboardAreaChart";
+
 const LabDashboard = () => {
-  const [activeTab, setActiveTab] = useState('labs');
+  // Available sections: dashboard, labs, support, patients, bookings, team, calendar
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'D'|'W'|'M'|'Y'>('M');
+
+  // Dummy data for each tab
+  const leadsData = {
+    D: { percent: 10 },
+    W: { percent: 20 },
+    M: { percent: 25 },
+    Y: { percent: 40 },
+  };
+  const revenueData = {
+    D: { collected: 5, pending: 95, total: 'INR 1,000' },
+    W: { collected: 30, pending: 70, total: 'INR 8,000' },
+    M: { collected: 67, pending: 33, total: 'INR 28,56,000' },
+    Y: { collected: 80, pending: 20, total: 'INR 3,40,000' },
+  };
+  const areaChartData = {
+    D: [
+      { month: 'Today', score: 5 },
+      { month: 'Now', score: 10 },
+    ],
+    W: [
+      { month: 'Mon', score: 10 },
+      { month: 'Tue', score: 15 },
+      { month: 'Wed', score: 20 },
+      { month: 'Thu', score: 25 },
+      { month: 'Fri', score: 30 },
+      { month: 'Sat', score: 35 },
+      { month: 'Sun', score: 40 },
+    ],
+    M: [
+      { month: 'Jan 2022', score: 15 },
+      { month: 'Feb 2022', score: 24 },
+      { month: 'Mar 2022', score: 40 },
+      { month: 'Apr 2022', score: 60 },
+      { month: 'May 2022', score: 55 },
+      { month: 'Jun 2022', score: 70 },
+      { month: 'Jul 2022', score: 65 },
+      { month: 'Aug 2022', score: 80 },
+      { month: 'Sep 2022', score: 67 },
+    ],
+    Y: [
+      { month: '2021', score: 60 },
+      { month: '2022', score: 80 },
+      { month: '2023', score: 95 },
+    ],
+  };
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [labs, setLabs] = useState([]);
@@ -226,116 +282,196 @@ const LabDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <LabDashboardHeader />
-      <div className="flex-1 container p-4 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow cursor-pointer hover:bg-gray-50 transition" onClick={() => setActiveTab('labs')}>
-            <h3 className="text-sm font-medium text-gray-500">Total Labs</h3>
-            <p className="mt-1 text-2xl font-semibold">{stats.totalLabs}</p>
+  <div className="flex min-h-screen bg-gray-100">
+  {/* Sidebar */}
+  <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+  <div className="flex-1 flex flex-col">
+    <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+      {activeTab === "dashboard" && (
+  <>
+    {/* Summary Cards Row */}
+    <div className="bg-[#F5F6FA] min-h-screen w-full">
+      <div className="max-w-6xl mx-auto px-4 pt-3">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 items-center">
+          <DashboardSummaryCard icon={<span className="material-icons">event</span>} value={25} label="Bookings Today" color="#F7B500" />
+          <DashboardSummaryCard icon={<span className="material-icons">local_hotel</span>} value={300} label="Reports to be delivered" color="#007AFF" />
+          <DashboardSummaryCard icon={<span className="material-icons">sentiment_very_satisfied</span>} value={89} label="Reports delivered" color="#1FC37E" />
+        </div>
+
+        {/* Analytics + Appointments Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+          {/* Combined Analytics Card */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 h-full min-h-[340px] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <div className="font-semibold text-base">Analytics</div>
+              <DashboardTabs value={activeAnalyticsTab} onChange={(val) => setActiveAnalyticsTab(val as 'D'|'W'|'M'|'Y')} options={["D","W","M","Y"]} />
+            </div>
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="font-semibold text-sm mb-2">Leads</div>
+                <div className="flex flex-row gap-6 items-center w-full">
+                  <DashboardCircularProgress percent={leadsData[activeAnalyticsTab].percent} color="#1FC37E" />
+                  <DashboardLegend items={[
+                    { label: "Star Rated", color: "#1FC37E" },
+                    { label: "Yet to be reviewed", color: "#007AFF" },
+                    { label: "Wants Review", color: "#F7B500" },
+                    { label: "Review to be improved", color: "#FF4A4A" },
+                  ]} />
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-sm mb-2">Revenue Metrics</div>
+                <DashboardRevenueBar collectedPercent={revenueData[activeAnalyticsTab].collected} pendingPercent={revenueData[activeAnalyticsTab].pending} />
+                <div className="flex justify-between text-xs mt-2">
+                  <span>Total Expected Revenue : {revenueData[activeAnalyticsTab].total}</span>
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-sm mb-2">Analytical Report</div>
+                <DashboardAreaChart data={areaChartData[activeAnalyticsTab]} color="#1FC37E" />
+                <div className="flex justify-between text-xs mt-2">
+                  <span>X = Time Period</span>
+                  <span>Y = Average Score</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow cursor-pointer hover:bg-gray-50 transition" onClick={() => setActiveTab('appointments')}>
-            <h3 className="text-sm font-medium text-gray-500">Appointments</h3>
-            <p className="mt-1 text-2xl font-semibold">{stats.totalAppointments}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow cursor-pointer hover:bg-gray-50 transition" onClick={() => setActiveTab('lab-tests')}>
-            <h3 className="text-sm font-medium text-gray-500">Tests Conducted</h3>
-            <p className="mt-1 text-2xl font-semibold">{stats.totalTests}</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow cursor-pointer hover:bg-gray-50 transition" onClick={() => setActiveTab('analytics')}>
-            <h3 className="text-sm font-medium text-gray-500">Total Revenue</h3>
-            <p className="mt-1 text-2xl font-semibold">₹{stats.totalRevenue.toLocaleString()}</p>
+          {/* Upcoming Appointments */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 h-full min-h-[340px] flex flex-col">
+            <div className="font-semibold text-base mb-4">Upcoming Appointments</div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F5F7FA]">
+                <img src="/placeholder.svg" alt="Patient" className="w-10 h-10 rounded-full" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Patient Name</div>
+                  <div className="text-xs text-gray-500">Test name</div>
+                </div>
+                <span className="bg-[#1FC37E] text-white text-xs px-3 py-1 rounded-lg">Ongoing</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl border">
+                <img src="/placeholder.svg" alt="Patient" className="w-10 h-10 rounded-full" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Patient Name</div>
+                  <div className="text-xs text-gray-500">Test name</div>
+                </div>
+                <span className="text-xs text-gray-500">10:30 AM</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl border">
+                <img src="/placeholder.svg" alt="Patient" className="w-10 h-10 rounded-full" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Patient Name</div>
+                  <div className="text-xs text-gray-500">Test name</div>
+                </div>
+                <span className="text-xs text-gray-500">11:10 AM</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList>
-            <TabsTrigger value="labs">Your Labs</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="lab-tests">Lab Tests</TabsTrigger>
-            <TabsTrigger value="staff">Staff</TabsTrigger>
-            <TabsTrigger value="feedback">Feedback</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="labs" className="mt-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Your Labs</h2>
-              <Button onClick={() => navigate("/lab-owner/add-lab")}>Add New Lab</Button>
-            </div>
-            <LabsList labs={labs} onDeleteLab={handleDeleteLab} />
-          </TabsContent>
-
-          <TabsContent value="appointments" className="mt-4">
-            <h2 className="text-xl font-semibold mb-4">All Appointments</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded shadow">
-                <thead>
-                  <tr>
-                    <th className="py-2 px-4 border-b">Patient</th>
-                    <th className="py-2 px-4 border-b">Lab</th>
-                    <th className="py-2 px-4 border-b">Test</th>
-                    <th className="py-2 px-4 border-b">Date</th>
-                    <th className="py-2 px-4 border-b">Time</th>
-                    <th className="py-2 px-4 border-b">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockAppointments.map((appt) => {
-                    const lab = labs.find((l: any) => l._id === appt.labId);
-                    return (
-                      <tr key={appt.id}>
-                        <td className="py-2 px-4 border-b">{appt.patient}</td>
-                        <td className="py-2 px-4 border-b">{lab ? lab.name : '-'}</td>
-                        <td className="py-2 px-4 border-b">{appt.test}</td>
-                        <td className="py-2 px-4 border-b">{appt.date}</td>
-                        <td className="py-2 px-4 border-b">{appt.time}</td>
-                        <td className="py-2 px-4 border-b">{appt.status}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="lab-tests" className="mt-4">
-            <TestManager labs={labs} />
-          </TabsContent>
-
-          <TabsContent value="staff" className="mt-4">
-            <h2 className="text-xl font-semibold mb-4">Staff Members</h2>
-            <div className="flex flex-wrap justify-center -mx-4">
-              {mockStaff.map((staff) => (
-                <div key={staff.id} className="w-full md:w-1/2 xl:w-1/3 px-4 mb-8">
-                  <img src={staff.image} alt={staff.name} className="mx-auto h-24 w-24 object-cover rounded-full" />
-                  <h3 className="mt-4 text-lg font-medium">{staff.name}</h3>
-                  <p className="text-sm text-gray-500">{staff.role}</p>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="feedback" className="mt-4">
-            <h2 className="text-xl font-semibold mb-4">Patient Feedback</h2>
-            <div className="space-y-4">
-              {mockFeedback.map((fb) => (
-                <div key={fb.id} className="bg-white rounded-lg shadow p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{fb.user}</p>
-                      <p className="text-sm text-gray-500">{fb.date}</p>
-                    </div>
-                    <div className="text-yellow-500">{'★'.repeat(fb.rating)}</div>
-                  </div>
-                  <p className="mt-2 text-gray-700">{fb.comment}</p>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
-  );
+  </>
+)}
+      {activeTab === "labs" && (
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-xl font-bold mb-4">Labs</h2>
+          <ul className="divide-y">
+            {labs.map((lab: any) => (
+              <li key={lab._id} className="py-4 flex items-center gap-4">
+                <img src={lab.image} alt={lab.name} className="w-12 h-12 rounded-full border" />
+                <div>
+                  <div className="font-semibold text-lg">{lab.name}</div>
+                  <div className="text-sm text-gray-500">{lab.address.city}, {lab.address.state}</div>
+                </div>
+                <span className="ml-auto text-xs text-green-600 font-semibold">Active</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {activeTab === "support" && (
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-xl font-bold mb-4">Support</h2>
+          <p>For any assistance, please contact our support team at <a href="mailto:support@lab.com" className="text-indigo-600 underline">support@lab.com</a> or call 1800-123-4567.</p>
+        </div>
+      )}
+      {activeTab === "patients" && (
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-xl font-bold mb-4">Patients</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="py-2 px-4 text-left font-semibold">Name</th>
+                <th className="py-2 px-4 text-left font-semibold">Email</th>
+                <th className="py-2 px-4 text-left font-semibold">Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td className="py-2 px-4">Rahul Sharma</td><td className="py-2 px-4">rahul@example.com</td><td className="py-2 px-4">9876543210</td></tr>
+              <tr><td className="py-2 px-4">Priya Patel</td><td className="py-2 px-4">priya@example.com</td><td className="py-2 px-4">8765432109</td></tr>
+              <tr><td className="py-2 px-4">Amit Joshi</td><td className="py-2 px-4">amit@example.com</td><td className="py-2 px-4">7654321098</td></tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {activeTab === "bookings" && (
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-xl font-bold mb-4">Bookings</h2>
+          <ul className="divide-y">
+            <li className="py-4 flex items-center justify-between">
+              <span>Rahul Sharma - Blood Test</span>
+              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">Scheduled</span>
+            </li>
+            <li className="py-4 flex items-center justify-between">
+              <span>Priya Patel - X-Ray</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Completed</span>
+            </li>
+            <li className="py-4 flex items-center justify-between">
+              <span>Amit Joshi - MRI</span>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">In Progress</span>
+            </li>
+          </ul>
+        </div>
+      )}
+      {activeTab === "team" && (
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-xl font-bold mb-4">Team</h2>
+          <ul className="divide-y">
+            <li className="py-4 flex items-center gap-4">
+              <img src="/placeholder.svg" alt="Anjali Mehta" className="w-10 h-10 rounded-full border" />
+              <div>
+                <div className="font-semibold">Anjali Mehta</div>
+                <div className="text-xs text-gray-500">Lab Technician</div>
+              </div>
+            </li>
+            <li className="py-4 flex items-center gap-4">
+              <img src="/placeholder.svg" alt="Ravi Kumar" className="w-10 h-10 rounded-full border" />
+              <div>
+                <div className="font-semibold">Ravi Kumar</div>
+                <div className="text-xs text-gray-500">Lab Assistant</div>
+              </div>
+            </li>
+            <li className="py-4 flex items-center gap-4">
+              <img src="/placeholder.svg" alt="Sneha Shah" className="w-10 h-10 rounded-full border" />
+              <div>
+                <div className="font-semibold">Sneha Shah</div>
+                <div className="text-xs text-gray-500">Quality Analyst</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      )}
+      {activeTab === "calendar" && (
+        <div className="bg-white rounded-2xl shadow p-8 flex flex-col items-center justify-center min-h-[300px]">
+          <h2 className="text-xl font-bold mb-4">Calendar</h2>
+          <div className="text-gray-400">[Calendar Placeholder]</div>
+        </div>
+      )}
+    </main>
+  </div>
+</div>
+);
 };
 
 export default LabDashboard;
