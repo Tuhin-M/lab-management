@@ -49,25 +49,32 @@ const Login = () => {
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const handleLogin = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await authAPI.login(data.email, data.password);
+      const response = await authAPI.login(values.email, values.password);
       
-      toast.success("Login successful! Welcome back.");
-      
-      // Navigate based on user role
-      if (response.role === "lab_owner") {
-        navigate("/lab-dashboard");
+      // Store token based on remember me choice
+      if (values.rememberMe) {
+        localStorage.setItem('token', response.token);
       } else {
-        navigate("/home");
+        sessionStorage.setItem('token', response.token);
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      setError(error.response?.data?.message || "Login failed. Please check your credentials.");
-      toast.error(error.response?.data?.message || "Login failed. Please check your credentials.");
+      
+      // Redirect based on role
+      const userRole = authAPI.getCurrentUserRole();
+      if (userRole === 'lab_owner') {
+        navigate('/lab-dashboard');
+      } else {
+        navigate('/profile');
+      }
+      
+    } catch (error) {
+      console.error('Login failed:', error);
+      setError('Invalid email or password');
+      toast.error('Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +99,7 @@ const Login = () => {
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"

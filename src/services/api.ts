@@ -312,34 +312,53 @@ export const labsAPI = {
   }
 };
 
-// Mock data for development
-const mockStats = {
-  totalLabs: 3,
-  totalAppointments: 42,
-  totalTests: 86,
-  totalRevenue: 68400,
-  pendingAppointments: 5
-};
+interface LabAddress {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country?: string;
+  landmark?: string;
+}
 
-const mockLabs = [
-  {
-    _id: '1',
-    name: 'Metropolis Lab',
-    address: {
-      street: '123 Medical Plaza',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      zip: '400001'
-    },
-    tests: [],
-    stats: {
-      totalAppointments: 42,
-      totalTests: 86,
-      totalRevenue: 68400,
-      pendingAppointments: 5
-    }
-  }
-];
+interface LabContact {
+  email: string;
+  phone: string;
+  emergencyContact?: string;
+  website?: string;
+}
+
+interface LabStaff {
+  pathologists: number;
+  technicians: number;
+  receptionists: number;
+}
+
+interface LabWorkingHours {
+  weekdays: string;
+  weekends: string;
+  holidays: string;
+}
+
+export interface LabCreateRequest {
+  name: string;
+  description: string;
+  establishedDate: string;
+  registrationNumber: string;
+  address: LabAddress;
+  contact: LabContact;
+  facilities: string[];
+  certifications: string[];
+  workingHours: LabWorkingHours;
+  staff: LabStaff;
+  services: string[];
+}
+
+interface LabCreateResponse {
+  id: string;
+  name: string;
+  message: string;
+}
 
 // Lab owner related API calls
 export const labOwnerAPI = {
@@ -347,28 +366,97 @@ export const labOwnerAPI = {
     if (process.env.NODE_ENV === 'development') {
       return { data: mockStats };
     }
-    return apiClient.get('/lab-owner/stats');
+    try {
+      const response = await apiClient.get('/lab-owner/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting lab stats:', error);
+      return mockStats;
+    }
   },
+
   getOwnedLabs: async () => {
     if (process.env.NODE_ENV === 'development') {
       return { data: mockLabs };
     }
-    return apiClient.get('/lab-owner/labs');
+    try {
+      const response = await apiClient.get('/lab-owner/labs');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting owned labs:', error);
+      return [];
+    }
   },
+
   updateAppointmentStatus: async (appointmentId: string, status: string) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`Mock update: Appointment ${appointmentId} status changed to ${status}`);
       return { data: { success: true } };
     }
-    return apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
+    try {
+      const response = await apiClient.put(`/lab-owner/appointments/${appointmentId}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      throw error;
+    }
   },
+
   deleteLab: async (id: string) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`Mock delete: Lab ${id} deleted`);
       return { data: { success: true } };
     }
-    return apiClient.delete(`/lab-owner/labs/${id}`);
-  }
+    try {
+      const response = await apiClient.delete(`/lab-owner/labs/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting lab:', error);
+      throw error;
+    }
+  },
+
+  addLab: async (labData: LabCreateRequest): Promise<LabCreateResponse> => {
+    try {
+      const response = await axios.post('/api/labs', {
+        labName: labData.name,
+        labDescription: labData.description,
+        establishedDate: labData.establishedDate,
+        registrationNumber: labData.registrationNumber,
+        contactDetails: {
+          email: labData.contact.email,
+          phone: labData.contact.phone,
+          emergencyContact: labData.contact.emergencyContact,
+          website: labData.contact.website
+        },
+        address: {
+          street: labData.address.street,
+          city: labData.address.city,
+          state: labData.address.state,
+          zipCode: labData.address.zipCode,
+          country: labData.address.country,
+          landmark: labData.address.landmark
+        },
+        facilities: labData.facilities,
+        certifications: labData.certifications,
+        workingHours: labData.workingHours,
+        staffDetails: labData.staff,
+        servicesOffered: labData.services
+      }, {
+        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  },
+
+  // ... other methods ...
 };
 
 // User appointments and bookings
@@ -545,3 +633,32 @@ export const doctorChatAPI = {
 };
 
 export default apiClient;
+
+// Mock data for development
+const mockStats = {
+  totalLabs: 3,
+  totalAppointments: 42,
+  totalTests: 86,
+  totalRevenue: 68400,
+  pendingAppointments: 5
+};
+
+const mockLabs = [
+  {
+    _id: '1',
+    name: 'Metropolis Lab',
+    address: {
+      street: '123 Medical Plaza',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      zip: '400001'
+    },
+    tests: [],
+    stats: {
+      totalAppointments: 42,
+      totalTests: 86,
+      totalRevenue: 68400,
+      pendingAppointments: 5
+    }
+  }
+];

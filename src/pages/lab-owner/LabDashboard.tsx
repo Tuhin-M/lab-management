@@ -9,6 +9,7 @@ import { AnalyticsDashboard } from "@/components/lab-owner/AnalyticsDashboard";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LabOnboardingModal } from "@/components/lab-owner/LabOnboardingModal";
 
 import Sidebar from "@/components/lab-owner/Sidebar";
 import DashboardSummaryCard from "@/components/lab-owner/DashboardSummaryCard";
@@ -17,11 +18,130 @@ import DashboardCircularProgress from "@/components/lab-owner/DashboardCircularP
 import DashboardLegend from "@/components/lab-owner/DashboardLegend";
 import DashboardRevenueBar from "@/components/lab-owner/DashboardRevenueBar";
 import DashboardAreaChart from "@/components/lab-owner/DashboardAreaChart";
+import { Plus } from "react-feather";
 
 const LabDashboard = () => {
   // Available sections: dashboard, labs, support, patients, bookings, team, calendar
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'D'|'W'|'M'|'Y'>('M');
+  const [showAddLabModal, setShowAddLabModal] = useState(false);
+  const [newLabData, setNewLabData] = useState<LabCreateRequest>({
+    name: '',
+    description: '',
+    establishedDate: '',
+    registrationNumber: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: '',
+      landmark: ''
+    },
+    contact: {
+      email: '',
+      phone: '',
+      emergencyContact: '',
+      website: ''
+    },
+    facilities: [],
+    certifications: [],
+    workingHours: {
+      weekdays: '9:00 AM - 6:00 PM',
+      weekends: '10:00 AM - 4:00 PM',
+      holidays: 'Closed'
+    },
+    staff: {
+      pathologists: 0,
+      technicians: 0,
+      receptionists: 0
+    },
+    services: []
+  });
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Add new lab handler
+  const handleAddLab = async (formData: LabCreateRequest) => {
+    try {
+      const response = await labOwnerAPI.addLab({
+        name: formData.name,
+        description: formData.description,
+        establishedDate: formData.establishedDate,
+        registrationNumber: formData.registrationNumber,
+        address: {
+          street: formData.address.street,
+          city: formData.address.city,
+          state: formData.address.state,
+          zipCode: formData.address.zipCode,
+          country: formData.address.country,
+          landmark: formData.address.landmark
+        },
+        contact: {
+          email: formData.contact.email,
+          phone: formData.contact.phone,
+          emergencyContact: formData.contact.emergencyContact,
+          website: formData.contact.website
+        },
+        facilities: formData.facilities,
+        certifications: formData.certifications,
+        workingHours: {
+          weekdays: formData.workingHours.weekdays,
+          weekends: formData.workingHours.weekends,
+          holidays: formData.workingHours.holidays
+        },
+        staff: {
+          pathologists: formData.staff.pathologists,
+          technicians: formData.staff.technicians,
+          receptionists: formData.staff.receptionists
+        },
+        services: formData.services
+      });
+      
+      setLabs([...labs, response]);
+      setShowAddLabModal(false);
+      setNewLabData({
+        name: '',
+        description: '',
+        establishedDate: '',
+        registrationNumber: '',
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+          landmark: ''
+        },
+        contact: {
+          email: '',
+          phone: '',
+          emergencyContact: '',
+          website: ''
+        },
+        facilities: [],
+        certifications: [],
+        workingHours: {
+          weekdays: '9:00 AM - 6:00 PM',
+          weekends: '10:00 AM - 4:00 PM',
+          holidays: 'Closed'
+        },
+        staff: {
+          pathologists: 0,
+          technicians: 0,
+          receptionists: 0
+        },
+        services: []
+      });
+      toast.success("Lab added successfully");
+    } catch (error) {
+      console.error("Add lab failed:", error);
+      toast.error("Failed to add lab");
+    }
+  };
+
+  const handleAddLabSubmit = async () => {
+    await handleAddLab(newLabData);
+  };
 
   // Dummy data for each tab
   const leadsData = {
@@ -88,6 +208,10 @@ const LabDashboard = () => {
       console.error("Delete lab failed:", error);
       toast.error("Failed to delete lab");
     }
+  };
+
+  const handleViewLabDetails = (lab: any) => {
+    navigate(`/lab/${lab._id}`, { state: { fromDashboard: true } });
   };
 
   // Dummy staff and feedback data
@@ -174,6 +298,26 @@ const LabDashboard = () => {
     { id: 't4', name: 'Urine Test', price: 300, duration: '10 min', description: 'Routine urine analysis.' },
     { id: 't5', name: 'Liver Function', price: 800, duration: '25 min', description: 'Liver function panel.' }
   ];
+
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        
+        // Verify token is still valid
+        await authAPI.getCurrentUser();
+      } catch (error) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
+    };
+
+    validateToken();
+  }, [navigate]);
 
   useEffect(() => {
     const checkUserRole = () => {
@@ -297,6 +441,56 @@ const LabDashboard = () => {
           <DashboardSummaryCard icon={<span className="material-icons">event</span>} value={25} label="Bookings Today" color="#F7B500" />
           <DashboardSummaryCard icon={<span className="material-icons">local_hotel</span>} value={300} label="Reports to be delivered" color="#007AFF" />
           <DashboardSummaryCard icon={<span className="material-icons">sentiment_very_satisfied</span>} value={89} label="Reports delivered" color="#1FC37E" />
+        </div>
+
+        {/* Labs Management Section */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Your Labs</h2>
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => setShowAddLabModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Lab
+            </Button>
+          </div>
+          
+          {labs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {labs.map(lab => (
+                <div key={lab._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h3 className="font-semibold">{lab.name}</h3>
+                  <p className="text-sm text-gray-600">
+                    {lab.address?.street}, {lab.address?.city}, {lab.address?.state} {lab.address?.zip}
+                  </p>
+                  <div className="mt-2 flex justify-between">
+                    <Button variant="outline" size="sm" onClick={() => handleViewLabDetails(lab)}>
+                      View
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteLab(lab._id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No labs added yet</p>
+              <Button 
+                onClick={() => setShowAddLabModal(true)}
+                className="mt-4 bg-primary hover:bg-primary-dark"
+              >
+                Add Your First Lab
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Analytics + Appointments Row */}
@@ -469,6 +663,18 @@ const LabDashboard = () => {
         </div>
       )}
     </main>
+    <LabOnboardingModal 
+      show={showAddLabModal}
+      onClose={() => {
+        setShowAddLabModal(false);
+        setCurrentStep(1);
+      }}
+      currentStep={currentStep}
+      labData={newLabData}
+      onLabDataChange={setNewLabData}
+      onSubmit={handleAddLabSubmit}
+      onStepChange={setCurrentStep}
+    />
   </div>
 </div>
 );
