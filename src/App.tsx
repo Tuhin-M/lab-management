@@ -23,6 +23,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Orders = lazy(() => import("./pages/Orders"));
 const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
 const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
+const AddTest = lazy(() => import("./pages/lab-owner/AddTest"));
 const DoctorChat = lazy(() => import("./pages/DoctorChat"));
 const HealthRecords = lazy(() => import("./pages/HealthRecords"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -60,6 +61,7 @@ function App() {
           <Route path="/lab-owner/lab/:id" element={<LabOwnerLabDetail />} />
           <Route path="/lab-owner/lab/:id/appointments" element={<LabOwnerLabDetail />} />
           <Route path="/lab-owner/lab/:id/tests" element={<LabOwnerLabDetail />} />
+          <Route path="/lab-owner/:labId/add-test" element={<AddTest />} />
 
           {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />

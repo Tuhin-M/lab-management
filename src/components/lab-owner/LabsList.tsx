@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Edit, Trash2, ExternalLink } from "lucide-react";
@@ -28,7 +27,7 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {labs.length === 0 ? (
         <div className="col-span-full text-center py-12">
           <h3 className="text-lg font-medium text-gray-500">No labs found</h3>
@@ -85,13 +84,6 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
                 onClick={() => navigate(`/lab-owner/lab/${lab._id}`)}
               >
                 <ExternalLink className="h-4 w-4 mr-2" /> View
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate(`/lab-owner/edit-lab/${lab._id}`)}
-              >
-                <Edit className="h-4 w-4 mr-2" /> Edit
               </Button>
               <Button 
                 variant="destructive" 

@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-interface LabCreateRequest {
+export interface LabCreateRequest {
   name: string;
   type: string;
   description: string;

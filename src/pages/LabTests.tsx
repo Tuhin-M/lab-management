@@ -326,7 +326,7 @@ const LabTests = () => {
 
   // Function to view lab details
   const handleViewLabDetails = (lab: Lab) => {
-    navigate(`/lab/${lab.id}`);
+    navigate(`/lab/${lab.id}`, { state: { lab } });
   };
 
   // Handle filter selection from recommended filters
@@ -622,7 +622,7 @@ const LabTests = () => {
         <div className="container mx-auto py-6 px-4 md:flex justify-between items-center">
           <div className="text-center md:text-left mb-4 md:mb-0">
             <p className="text-sm text-muted-foreground">
-              © 2023 Ekitsa. All rights reserved.
+              2023 Ekitsa. All rights reserved.
             </p>
           </div>
           <div className="flex justify-center md:justify-end space-x-6">

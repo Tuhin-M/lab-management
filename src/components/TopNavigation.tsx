@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -57,7 +56,7 @@ const TopNavigation = ({ activeModule }: TopNavigationProps) => {
           <img 
             src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
             alt="Ekitsa Logo" 
-            className="h-8" 
+            className="w-12 md:w-14" 
           />
         </Link>
 

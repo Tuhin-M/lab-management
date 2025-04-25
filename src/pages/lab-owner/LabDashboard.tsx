@@ -10,6 +10,8 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LabOnboardingModal } from "@/components/lab-owner/LabOnboardingModal";
+import type { LabCreateRequest } from "@/components/lab-owner/LabOnboardingModal";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import Sidebar from "@/components/lab-owner/Sidebar";
 import DashboardSummaryCard from "@/components/lab-owner/DashboardSummaryCard";
@@ -211,7 +213,7 @@ const LabDashboard = () => {
   };
 
   const handleViewLabDetails = (lab: any) => {
-    navigate(`/lab/${lab._id}`, { state: { fromDashboard: true } });
+    navigate(`/lab/${lab._id}`, { state: { fromDashboard: true, lab } });
   };
 
   // Dummy staff and feedback data
@@ -458,28 +460,7 @@ const LabDashboard = () => {
           </div>
           
           {labs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {labs.map(lab => (
-                <div key={lab._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <h3 className="font-semibold">{lab.name}</h3>
-                  <p className="text-sm text-gray-600">
-                    {lab.address?.street}, {lab.address?.city}, {lab.address?.state} {lab.address?.zip}
-                  </p>
-                  <div className="mt-2 flex justify-between">
-                    <Button variant="outline" size="sm" onClick={() => handleViewLabDetails(lab)}>
-                      View
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => handleDeleteLab(lab._id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LabsList labs={labs} onDeleteLab={handleDeleteLab} />
           ) : (
             <div className="text-center py-8 text-gray-500">
               <p>No labs added yet</p>
@@ -568,46 +549,71 @@ const LabDashboard = () => {
   </>
 )}
       {activeTab === "labs" && (
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-xl font-bold mb-4">Labs</h2>
-          <ul className="divide-y">
-            {labs.map((lab: any) => (
-              <li key={lab._id} className="py-4 flex items-center gap-4">
-                <img src={lab.image} alt={lab.name} className="w-12 h-12 rounded-full border" />
-                <div>
-                  <div className="font-semibold text-lg">{lab.name}</div>
-                  <div className="text-sm text-gray-500">{lab.address.city}, {lab.address.state}</div>
-                </div>
-                <span className="ml-auto text-xs text-green-600 font-semibold">Active</span>
-              </li>
-            ))}
-          </ul>
+        <div className="container mx-auto p-4">
+          <LabsList labs={labs} onDeleteLab={handleDeleteLab} />
         </div>
       )}
       {activeTab === "support" && (
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-xl font-bold mb-4">Support</h2>
-          <p>For any assistance, please contact our support team at <a href="mailto:support@lab.com" className="text-indigo-600 underline">support@lab.com</a> or call 1800-123-4567.</p>
-        </div>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Support</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>
+              For assistance, contact us at{' '}
+              <a href="mailto:support@lab.com" className="text-indigo-600 underline">
+                support@lab.com
+              </a>{' '}
+              or call{' '}
+              <a href="tel:18001234567" className="text-indigo-600 underline">
+                1800-123-4567
+              </a>.
+            </p>
+            <div className="mt-4 flex space-x-4">
+              <Button variant="outline" onClick={() => window.location.href = 'mailto:support@lab.com'}>
+                Email Support
+              </Button>
+              <Button variant="outline" onClick={() => window.location.href = 'tel:18001234567'}>
+                Call Support
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
       {activeTab === "patients" && (
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-xl font-bold mb-4">Patients</h2>
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="py-2 px-4 text-left font-semibold">Name</th>
-                <th className="py-2 px-4 text-left font-semibold">Email</th>
-                <th className="py-2 px-4 text-left font-semibold">Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td className="py-2 px-4">Rahul Sharma</td><td className="py-2 px-4">rahul@example.com</td><td className="py-2 px-4">9876543210</td></tr>
-              <tr><td className="py-2 px-4">Priya Patel</td><td className="py-2 px-4">priya@example.com</td><td className="py-2 px-4">8765432109</td></tr>
-              <tr><td className="py-2 px-4">Amit Joshi</td><td className="py-2 px-4">amit@example.com</td><td className="py-2 px-4">7654321098</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Patients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full table-auto divide-y">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="py-2 px-4 text-left">Name</th>
+                  <th className="py-2 px-4 text-left">Email</th>
+                  <th className="py-2 px-4 text-left">Phone</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td className="py-2 px-4">Rahul Sharma</td>
+                  <td className="py-2 px-4">rahul@example.com</td>
+                  <td className="py-2 px-4">9876543210</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-4">Priya Patel</td>
+                  <td className="py-2 px-4">priya@example.com</td>
+                  <td className="py-2 px-4">8765432109</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-4">Amit Joshi</td>
+                  <td className="py-2 px-4">amit@example.com</td>
+                  <td className="py-2 px-4">7654321098</td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       )}
       {activeTab === "bookings" && (
         <div className="bg-white rounded-2xl shadow p-8">
@@ -629,38 +635,32 @@ const LabDashboard = () => {
         </div>
       )}
       {activeTab === "team" && (
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-xl font-bold mb-4">Team</h2>
-          <ul className="divide-y">
-            <li className="py-4 flex items-center gap-4">
-              <img src="/placeholder.svg" alt="Anjali Mehta" className="w-10 h-10 rounded-full border" />
-              <div>
-                <div className="font-semibold">Anjali Mehta</div>
-                <div className="text-xs text-gray-500">Lab Technician</div>
-              </div>
-            </li>
-            <li className="py-4 flex items-center gap-4">
-              <img src="/placeholder.svg" alt="Ravi Kumar" className="w-10 h-10 rounded-full border" />
-              <div>
-                <div className="font-semibold">Ravi Kumar</div>
-                <div className="text-xs text-gray-500">Lab Assistant</div>
-              </div>
-            </li>
-            <li className="py-4 flex items-center gap-4">
-              <img src="/placeholder.svg" alt="Sneha Shah" className="w-10 h-10 rounded-full border" />
-              <div>
-                <div className="font-semibold">Sneha Shah</div>
-                <div className="text-xs text-gray-500">Quality Analyst</div>
-              </div>
-            </li>
-          </ul>
-        </div>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Team</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {mockStaff.map(member => (
+                <Card key={member.id} className="text-center p-4">
+                  <img src={member.image} alt={member.name} className="w-16 h-16 mx-auto rounded-full" />
+                  <div className="mt-2 font-semibold">{member.name}</div>
+                  <div className="text-sm text-gray-500">{member.role}</div>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
       {activeTab === "calendar" && (
-        <div className="bg-white rounded-2xl shadow p-8 flex flex-col items-center justify-center min-h-[300px]">
-          <h2 className="text-xl font-bold mb-4">Calendar</h2>
-          <div className="text-gray-400">[Calendar Placeholder]</div>
-        </div>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Calendar</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center min-h-[300px]">
+            <div className="text-gray-400">[Calendar Component Placeholder]</div>
+          </CardContent>
+        </Card>
       )}
     </main>
     <LabOnboardingModal 

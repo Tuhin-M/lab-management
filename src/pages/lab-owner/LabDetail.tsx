@@ -153,12 +153,12 @@ const LabDetail = () => {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         <div className="min-h-screen bg-background pt-16 pb-12">
           <div className="container mx-auto p-4">
-            <Button 
-              variant="ghost" 
-              className="mb-6"
-              onClick={() => navigate("/lab-dashboard")}
+            <Button
+              variant="ghost"
+              className="mb-6 flex items-center"
+              onClick={() => navigate(-1)}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Labs
             </Button>
 
             <div className="grid gap-6 md:grid-cols-3">

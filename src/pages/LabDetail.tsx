@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   MapPin, 
@@ -11,7 +11,8 @@ import {
   Calendar, 
   CheckSquare, 
   ShieldCheck, 
-  BadgePercent
+  BadgePercent,
+  Plus
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Test } from "@/components/TestResult";
@@ -24,6 +25,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { authAPI, labOwnerAPI } from "@/services/api";
 
 // Mock data for Test Packages
 const mockTestPackages: TestPackage[] = [
@@ -148,7 +150,21 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
   const navigate = useNavigate();
   const params = useParams<{ labId: string }>();
   const [selectedTab, setSelectedTab] = useState("overview");
-  
+  const [isOwner, setIsOwner] = useState(false);
+  // Hide booking for lab owners
+  const isLabOwner = authAPI.getCurrentUserRole() === "lab_owner";
+
+  useEffect(() => {
+    if (authAPI.getCurrentUserRole() === "lab_owner" && params.labId) {
+      labOwnerAPI.getOwnedLabs()
+        .then(res => {
+          const labsList = res.data ?? res;
+          setIsOwner(labsList.some(l => l._id === params.labId || l.id === params.labId));
+        })
+        .catch(console.error);
+    }
+  }, [params.labId]);
+
   const lab = selectedLab || {
     id: "1",
     name: "LifeCare Diagnostics",
@@ -201,24 +217,7 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
   
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto py-4 px-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-2xl font-bold text-primary">
-              <img 
-                src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
-                alt="Ekitsa Logo" 
-                className="h-8" 
-              />
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost">Sign In</Button>
-              <Button>Sign Up</Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header removed: only global navbar will be shown */}
 
       <main className="container mx-auto py-6 px-4">
         <Button 
@@ -228,7 +227,7 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Search Results
+          Back
         </Button>
         
         {/* Lab Header */}
@@ -276,7 +275,9 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
               <TabsList className="w-full grid grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="tests">Tests & Packages</TabsTrigger>
-                <TabsTrigger value="testSearch">Test Search</TabsTrigger>
+                {!isLabOwner && (
+                  <TabsTrigger value="testSearch">Test Search</TabsTrigger>
+                )}
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
               </TabsList>
               
@@ -357,15 +358,30 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
                       <h3 className="font-medium">Report Time</h3>
                       <p className="text-sm text-muted-foreground">Available within 24 hours</p>
                     </div>
-                    <Button onClick={handleBookAppointment} className="bg-primary hover:bg-primary/90">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Book Appointment
-                    </Button>
+                    {isLabOwner ? (
+                      <Button size="sm" className="bg-primary/10 text-primary hover:bg-primary/20" onClick={() => navigate(`/lab-owner/${params.labId}/add-test`)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Test
+                      </Button>
+                    ) : (
+                      <Button onClick={handleBookAppointment} className="bg-primary hover:bg-primary/90">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Book Appointment
+                      </Button>
+                    )}
                   </div>
                 </div>
               </TabsContent>
               
               <TabsContent value="tests" className="space-y-6 mt-6">
+                {isOwner && (
+                  <div className="flex justify-end mb-4">
+                    <Button size="sm" className="bg-primary/10 text-primary hover:bg-primary/20" onClick={() => navigate(`/lab-owner/${params.labId}/add-test`)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add New Test
+                    </Button>
+                  </div>
+                )}
                 <div className="bg-card rounded-lg border p-6">
                   <h2 className="text-xl font-semibold mb-4">Available Packages</h2>
                   
@@ -433,9 +449,11 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
                 </div>
               </TabsContent>
               
+              {!isLabOwner && (
               <TabsContent value="testSearch" className="mt-6">
                 <LabTestSearch />
               </TabsContent>
+              )}
               
               <TabsContent value="reviews" className="mt-6">
                 <div className="bg-card rounded-lg border p-6">
@@ -527,58 +545,71 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
           
           {/* Right Column - Map and Details */}
           <div className="space-y-6">
-            <div className="bg-card rounded-lg border p-6 sticky top-24">
-              <h3 className="font-semibold mb-3">Book Your Test</h3>
-              
-              <div className="space-y-4">
-                <div className="bg-secondary/50 p-3 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Selected Test</span>
-                    <Badge variant="outline" className="bg-primary/10 text-primary">
-                      {test.category}
-                    </Badge>
-                  </div>
-                  <p className="font-medium">{test.name}</p>
-                </div>
+            {!isLabOwner ? (
+              <div className="bg-card rounded-lg border p-6 sticky top-24">
+                <h3 className="font-semibold mb-3">Book Your Test</h3>
                 
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm">Test Price</span>
-                    <span>₹{test.price}</span>
-                  </div>
-                  {lab.discount && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm flex items-center text-primary">
-                        <BadgePercent className="h-3 w-3 mr-1" />
-                        Discount
-                      </span>
-                      <span className="text-primary">- ₹{test.price! - discountedPrice}</span>
-                    </div>
-                  )}
-                  <div className="border-t pt-2 mt-2">
+                <div className="space-y-4">
+                  <div className="bg-secondary/50 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Total</span>
-                      <span className="font-bold text-lg">₹{discountedPrice}</span>
+                      <span className="text-sm">Selected Test</span>
+                      <Badge variant="outline" className="bg-primary/10 text-primary">
+                        {test.category}
+                      </Badge>
+                    </div>
+                    <p className="font-medium">{test.name}</p>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm">Test Price</span>
+                      <span>₹{test.price}</span>
+                    </div>
+                    {lab.discount && (
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm flex items-center text-primary">
+                          <BadgePercent className="h-3 w-3 mr-1" />
+                          Discount
+                        </span>
+                        <span className="text-primary">- ₹{test.price! - discountedPrice}</span>
+                      </div>
+                    )}
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Total</span>
+                        <span className="font-bold text-lg">₹{discountedPrice}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="border-t pt-4 flex justify-between items-center">
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-1 text-primary" />
-                    <span>Report in 24 hours</span>
+                  
+                  <div className="border-t pt-4 flex justify-between items-center">
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-1 text-primary" />
+                      <span>Report in 24 hours</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <ShieldCheck className="h-4 w-4 mr-1 text-primary" />
+                      <span>Secure Payment</span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <ShieldCheck className="h-4 w-4 mr-1 text-primary" />
-                    <span>Secure Payment</span>
-                  </div>
+                  
+                  <Button onClick={handleBookAppointment} className="w-full bg-primary hover:bg-primary/90">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Book Appointment
+                  </Button>
                 </div>
-                
-                <Button onClick={handleBookAppointment} className="w-full bg-primary hover:bg-primary/90">
-                  Book Appointment
-                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="bg-card rounded-lg border p-6 sticky top-24">
+                <h3 className="font-semibold mb-3">Add New Test</h3>
+                <div className="flex justify-center">
+                  <Button size="sm" className="bg-primary/10 text-primary hover:bg-primary/20" onClick={() => navigate(`/lab-owner/${params.labId}/add-test`)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Test
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -593,7 +624,7 @@ const LabDetail = ({ selectedLab, selectedTest }: LabDetailsProps) => {
               className="h-8 mx-auto md:mx-0 mb-2" 
             />
             <p className="text-sm text-muted-foreground">
-              © 2023 Ekitsa. All rights reserved.
+              2023 Ekitsa. All rights reserved.
             </p>
           </div>
           <div className="flex justify-center md:justify-end space-x-6">
