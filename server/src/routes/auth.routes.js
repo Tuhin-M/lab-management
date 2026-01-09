@@ -2,8 +2,23 @@ const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+
+// Helper to map roles to Prisma enum
+const mapRole = (role) => {
+  const roles = {
+    'user': 'PATIENT',
+    'patient': 'PATIENT',
+    'doctor': 'DOCTOR',
+    'lab_owner': 'LAB_OWNER',
+    'admin': 'ADMIN',
+    'staff': 'STAFF'
+  };
+  return roles[role.toLowerCase()] || 'PATIENT';
+};
 
 // @route   POST /api/auth/signup
 // @desc    Register a user
@@ -12,7 +27,7 @@ router.post('/signup', [
   check('name', 'Name is required').not().isEmpty(),
   check('email', 'Please include a valid email').isEmail(),
   check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-  check('role', 'Role is required').isIn(['user', 'lab_owner']),
+  check('role', 'Role is required').isIn(['user', 'lab_owner', 'doctor']), // expanded roles
   check('phone').optional().isMobilePhone()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -24,34 +39,39 @@ router.post('/signup', [
 
   try {
     // Check if email exists
-    let user = await User.findOne({ email });
-    if (user) {
+    let existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
     // Check if phone exists (only if provided)
     if (phone) {
-      user = await User.findOne({ phone });
-      if (user) {
+      existingUser = await prisma.user.findFirst({ where: { phone } });
+      if (existingUser) {
         return res.status(400).json({ message: 'Phone number already exists' });
       }
     }
 
-    // Create new user
-    user = new User({
-      name,
-      email,
-      password,
-      phone: phone || undefined, // Store as undefined if not provided
-      address,
-      role
-    });
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // Generate refresh token
-    const refreshToken = user.generateRefreshToken();
-    user.lastLogin = new Date();
-    
-    await user.save();
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+
+    // Create new user
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        phone: phone || null,
+        address: address || null,
+        role: mapRole(role),
+        refreshToken,
+        lastLogin: new Date()
+      }
+    });
 
     // Create JWT
     const payload = {
@@ -75,8 +95,8 @@ router.post('/signup', [
       secure: process.env.NODE_ENV === 'production'
     });
 
-    res.json({ 
-      token, 
+    res.json({
+      token,
       role: user.role,
       user: {
         id: user.id,
@@ -107,21 +127,27 @@ router.post('/login', [
 
   try {
     // Check if user exists
-    const user = await User.findOne({ email }).select('+password');
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check if password matches
-    const isMatch = await user.matchPassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Update refresh token and last login
-    const refreshToken = user.generateRefreshToken();
-    user.lastLogin = new Date();
-    await user.save();
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        refreshToken,
+        lastLogin: new Date()
+      }
+    });
 
     // Create JWT
     const payload = {
@@ -145,11 +171,11 @@ router.post('/login', [
       secure: process.env.NODE_ENV === 'production'
     });
 
-    res.json({ 
-      token, 
+    res.json({
+      token,
       role: user.role,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role
@@ -173,8 +199,10 @@ router.get('/refresh', async (req, res) => {
 
   try {
     // Find user with this refresh token
-    const user = await User.findOne({ refreshToken }).select('-password');
-    
+    const user = await prisma.user.findFirst({
+      where: { refreshToken }
+    });
+
     if (!user || !user.refreshToken) {
       // Clear the cookie if invalid
       res.clearCookie('refreshToken', {
@@ -182,7 +210,7 @@ router.get('/refresh', async (req, res) => {
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         secure: process.env.NODE_ENV === 'production'
       });
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Invalid refresh token',
         shouldStopRefresh: true
       });
@@ -202,11 +230,11 @@ router.get('/refresh', async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.json({ 
-      token, 
+    res.json({
+      token,
       role: user.role,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role
@@ -223,24 +251,20 @@ router.get('/refresh', async (req, res) => {
 // @access  Private
 router.post('/logout', auth, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
-    
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { refreshToken: null }
+    });
+
     res.clearCookie('refreshToken', {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
       expires: new Date(0) // Immediately expire the cookie
     });
-    
-    res.json({ 
-      message: 'Logged out successfully',
-      instructions: {
-        clientSideActions: [
-          'Remove JWT token from client-side storage (localStorage/sessionStorage)',
-          'Clear any auth-related state from your application',
-          'Stop any pending token refresh requests'
-        ]
-      }
+
+    res.json({
+      message: 'Logged out successfully'
     });
   } catch (err) {
     console.error(err.message);
@@ -253,7 +277,19 @@ router.post('/logout', auth, async (req, res) => {
 // @access  Private
 router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        lastLogin: true,
+        createdAt: true
+      }
+    });
     res.json(user);
   } catch (err) {
     console.error(err.message);
@@ -267,19 +303,25 @@ router.get('/profile', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const { name, phone, address } = req.body;
-    
-    // Build user profile object
-    const userFields = {};
-    if (name) userFields.name = name;
-    if (phone) userFields.phone = phone;
-    if (address) userFields.address = address;
 
-    // Update user profile
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: userFields },
-      { new: true }
-    ).select('-password');
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name: name || undefined,
+        phone: phone || undefined,
+        address: address || undefined
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        role: true,
+        lastLogin: true,
+        createdAt: true
+      }
+    });
 
     res.json(updatedUser);
   } catch (err) {

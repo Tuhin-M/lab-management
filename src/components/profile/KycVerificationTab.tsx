@@ -3,12 +3,13 @@ import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { FileUp, CheckCircle, ShieldCheck, AlertCircle } from "lucide-react";
+import { FileUp, CheckCircle, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { storageService } from "@/services/storage";
 
 const KycVerificationTab = () => {
   const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "verified">("not_started");
@@ -17,6 +18,7 @@ const KycVerificationTab = () => {
   const [frontImage, setFrontImage] = useState<File | null>(null);
   const [backImage, setBackImage] = useState<File | null>(null);
   const [selfieImage, setSelfieImage] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFrontImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -36,30 +38,50 @@ const KycVerificationTab = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!documentType) {
       toast.error("Please select a document type");
       return;
     }
-    
+
     if (!documentNumber) {
       toast.error("Please enter document number");
       return;
     }
-    
+
     if (!frontImage || !backImage || !selfieImage) {
       toast.error("Please upload all required documents");
       return;
     }
-    
-    // In a real application, this would submit the KYC data to the server
-    console.log("Submitting KYC", { documentType, documentNumber, frontImage, backImage, selfieImage });
-    
-    // Simulate a successful submission
-    setKycStatus("pending");
-    toast.success("KYC verification submitted successfully! Your verification is in progress.");
+
+    try {
+      setIsUploading(true);
+      const timestamp = Date.now();
+
+      const frontUrl = await storageService.uploadImage('kyc', `${timestamp}-front-${frontImage.name}`, frontImage);
+      const backUrl = await storageService.uploadImage('kyc', `${timestamp}-back-${backImage.name}`, backImage);
+      const selfieUrl = await storageService.uploadImage('kyc', `${timestamp}-selfie-${selfieImage.name}`, selfieImage);
+
+      // In a real application, this would submit the KYC data to the server
+      console.log("Submitting KYC", {
+        documentType,
+        documentNumber,
+        frontUrl,
+        backUrl,
+        selfieUrl
+      });
+
+      // Simulate a successful submission
+      setKycStatus("pending");
+      toast.success("KYC verification submitted successfully! Your verification is in progress.");
+    } catch (error) {
+      console.error("KYC submission error:", error);
+      toast.error("Failed to upload KYC documents. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (kycStatus === "verified") {
@@ -147,26 +169,26 @@ const KycVerificationTab = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="document-number">Document Number</Label>
-            <Input 
-              id="document-number" 
-              placeholder="Enter document number" 
+            <Input
+              id="document-number"
+              placeholder="Enter document number"
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
             />
           </div>
-          
+
           <Separator />
-          
+
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Document Images</h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="front-image">Front Side of Document</Label>
-              <div 
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors" 
+              <div
+                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => document.getElementById('front-image')?.click()}
               >
                 <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
@@ -174,19 +196,19 @@ const KycVerificationTab = () => {
                   {frontImage ? frontImage.name : "Click to upload front side"}
                 </p>
               </div>
-              <Input 
-                id="front-image" 
-                type="file" 
-                accept=".jpg,.jpeg,.png,.pdf" 
-                className="hidden" 
+              <Input
+                id="front-image"
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
                 onChange={handleFrontImageChange}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="back-image">Back Side of Document</Label>
-              <div 
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors" 
+              <div
+                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => document.getElementById('back-image')?.click()}
               >
                 <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
@@ -194,19 +216,19 @@ const KycVerificationTab = () => {
                   {backImage ? backImage.name : "Click to upload back side"}
                 </p>
               </div>
-              <Input 
-                id="back-image" 
-                type="file" 
-                accept=".jpg,.jpeg,.png,.pdf" 
-                className="hidden" 
+              <Input
+                id="back-image"
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
                 onChange={handleBackImageChange}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="selfie-image">Selfie with Document</Label>
-              <div 
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors" 
+              <div
+                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => document.getElementById('selfie-image')?.click()}
               >
                 <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
@@ -217,16 +239,16 @@ const KycVerificationTab = () => {
                   Take a photo of yourself holding your ID document
                 </p>
               </div>
-              <Input 
-                id="selfie-image" 
-                type="file" 
-                accept=".jpg,.jpeg,.png" 
-                className="hidden" 
+              <Input
+                id="selfie-image"
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                className="hidden"
                 onChange={handleSelfieImageChange}
               />
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Declaration</h3>
             <RadioGroup defaultValue="agree">
@@ -240,7 +262,14 @@ const KycVerificationTab = () => {
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">Submit Verification</Button>
+          <Button type="submit" className="w-full" disabled={isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading Documents...
+              </>
+            ) : "Submit Verification"}
+          </Button>
         </CardFooter>
       </form>
     </Card>

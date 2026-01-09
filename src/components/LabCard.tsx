@@ -33,79 +33,87 @@ const LabCard = ({ lab, onSelect }: LabCardProps) => {
     : lab.price;
 
   return (
-    <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg border border-border">
-      <div 
-        className="h-40 bg-cover bg-center w-full" 
-        style={{ backgroundImage: `url(${lab.imageUrl || '/placeholder.svg'})` }}
-      />
-      <CardHeader className="p-4 pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl font-semibold">{lab.name}</CardTitle>
-            {lab.accreditation && (
-              <div className="flex items-center mt-1">
-                <Award className="h-3 w-3 text-primary mr-1" />
-                <span className="text-xs text-muted-foreground">{lab.accreditation}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center bg-primary/10 px-2 py-1 rounded-full">
-            <Star className="h-4 w-4 text-primary mr-1" fill="currentColor" />
-            <span className="text-sm font-medium">{lab.rating.toFixed(1)}</span>
-            <span className="text-xs text-muted-foreground ml-1">({lab.reviewCount})</span>
-          </div>
+    <Card className="h-full overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 border border-border/40 bg-white/90 dark:bg-card/90 backdrop-blur-md group shadow-sm">
+      <div className="relative h-48 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" 
+          style={{ backgroundImage: `url(${lab.imageUrl || '/placeholder.svg'})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-95" />
+        
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
+           <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-white border border-white/20 shadow-lg">
+             <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 mr-1.5" />
+             <span className="text-sm font-bold">{lab.rating.toFixed(1)}</span>
+             <span className="text-xs text-white/70 ml-1">({lab.reviewCount})</span>
+           </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="space-y-2">
+
+        <div className="absolute bottom-3 left-3 right-3 text-white">
+          <CardTitle className="text-xl font-bold mb-1 leading-tight">{lab.name}</CardTitle>
+          {lab.accreditation && (
+            <div className="flex items-center text-white/80 text-xs">
+              <Award className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              <span>{lab.accreditation}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CardContent className="p-5">
+        <div className="space-y-3">
           <div className="flex items-start">
-            <MapPin className="h-4 w-4 text-muted-foreground mt-1 mr-2 flex-shrink-0" />
+            <MapPin className="h-4 w-4 text-primary mt-0.5 mr-2.5 flex-shrink-0" />
             <div>
-              <p className="text-sm">{lab.address}</p>
-              <p className="text-xs text-muted-foreground">{lab.distance.toFixed(1)} km away</p>
+              <p className="text-sm font-medium">{lab.address}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{lab.distance.toFixed(1)} km away</p>
             </div>
           </div>
+          
           <div className="flex items-center">
-            <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-            <div className="flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-1 ${lab.openNow ? 'bg-green-500' : 'bg-red-500'}`}></span>
-              <p className="text-sm">{lab.openNow ? 'Open Now' : 'Closed'} · {lab.waitTime} wait</p>
+            <Clock className="h-4 w-4 text-primary mr-2.5 flex-shrink-0" />
+            <div className="flex items-center text-sm">
+              <span className={`w-2 h-2 rounded-full mr-2 ${lab.openNow ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></span>
+              <span className="font-medium">{lab.openNow ? 'Open Now' : 'Closed'}</span>
+              <span className="mx-2 text-muted-foreground">•</span>
+              <span className="text-muted-foreground">{lab.waitTime} wait</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1 mt-2">
+
+          <div className="flex flex-wrap gap-1.5 pt-1">
             {lab.facilities.slice(0, 3).map((facility, i) => (
-              <span key={i} className="text-xs bg-secondary px-2 py-1 rounded-full">
+              <span key={i} className="text-[10px] font-medium bg-primary/5 text-primary px-2.5 py-1 rounded-full border border-primary/10">
                 {facility}
               </span>
             ))}
             {lab.facilities.length > 3 && (
-              <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+              <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2.5 py-1 rounded-full">
                 +{lab.facilities.length - 3}
               </span>
             )}
           </div>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        <div>
-          {lab.discount ? (
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-lg text-primary">₹{discountedPrice}</p>
-              <div className="flex flex-col">
-                <p className="text-xs line-through text-muted-foreground">₹{lab.price}</p>
-                <p className="text-xs text-primary font-medium">{lab.discount}% off</p>
+
+      <div className="px-5 pb-5 mt-auto">
+        <div className="flex items-center justify-between pt-4 border-t border-border/50">
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Test Fee</p>
+            {lab.discount ? (
+              <div className="flex items-baseline gap-2">
+                <span className="font-bold text-xl text-primary">₹{discountedPrice}</span>
+                <span className="text-xs line-through text-muted-foreground decoration-red-500/50">₹{lab.price}</span>
               </div>
-            </div>
-          ) : (
-            <p className="font-semibold text-lg">₹{lab.price}</p>
-          )}
-          <p className="text-xs text-muted-foreground">Test Fee</p>
+            ) : (
+              <span className="font-bold text-xl">₹{lab.price}</span>
+            )}
+          </div>
+          <Button onClick={() => onSelect(lab)} className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+            Select Lab
+            <Check className="ml-2 h-4 w-4" />
+          </Button>
         </div>
-        <Button onClick={() => onSelect(lab)} className="bg-primary hover:bg-primary/90">
-          <Check className="mr-2 h-4 w-4" />
-          Select Lab
-        </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 };

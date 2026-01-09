@@ -1,17 +1,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit, Trash2, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Trash2, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/common/Card";
+import { Button } from "@/components/common/Button";
+import { Badge } from "@/components/common/Badge";
 
 interface Lab {
-  _id: string;
+  id: string;
+  _id?: string;
   name: string;
-  address: {
-    city: string;
-    state: string;
-  };
+  address: any;
   image: string;
   rating: number;
   tests: any[];
@@ -26,75 +24,81 @@ interface LabsListProps {
 const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
   const navigate = useNavigate();
 
+  const getLabId = (lab: Lab) => lab.id || lab._id || '';
+
+  const formatAddress = (address: any) => {
+    if (typeof address === 'string') return address;
+    if (address && typeof address === 'object') {
+      const parts = [address.street, address.city, address.state].filter(Boolean);
+      return parts.join(', ') || 'No address provided';
+    }
+    return 'No address provided';
+  };
+
   return (
-    <div className="grid gap-6 grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {labs.length === 0 ? (
-        <div className="col-span-full text-center py-12">
-          <h3 className="text-lg font-medium text-gray-500">No labs found</h3>
-          <p className="text-muted-foreground mt-2">Add your first lab to get started</p>
-          <Button 
-            className="mt-4" 
-            onClick={() => navigate("/lab-owner/add-lab")}
-          >
-            Add Lab
-          </Button>
-        </div>
+        <Card className="col-span-full border-dashed p-12 text-center">
+          <h3 className="text-lg font-medium text-muted-foreground">No labs found</h3>
+          <p className="text-sm text-muted-foreground mt-2">Connect your laboratory facilities to start receiving bookings.</p>
+        </Card>
       ) : (
-        labs.map((lab) => (
-          <Card key={lab._id} className="overflow-hidden">
-            <div className="h-48 overflow-hidden">
-              <img
-                src={lab.image || "/placeholder.svg"}
-                alt={lab.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{lab.name}</CardTitle>
-                <Badge 
-                  variant={lab.status === "active" ? "default" : "outline"}
-                  className={lab.status === "active" ? "bg-green-100 text-green-800 border-green-300" : "bg-yellow-100 text-yellow-800 border-yellow-300"}
-                >
-                  {lab.status === "active" ? "Active" : "Pending"}
-                </Badge>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {lab.address.city}, {lab.address.state}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between text-sm">
-                <div>
-                  <div className="font-medium">Tests</div>
-                  <div>{lab.tests?.length || 0} available</div>
+        labs.map((lab) => {
+          const labId = getLabId(lab);
+          return (
+            <Card key={labId} className="overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+              <div className="h-44 overflow-hidden relative">
+                <img
+                  src={lab.image || "https://images.unsplash.com/photo-1579152276503-391494578b94?w=500&auto=format"}
+                  alt={lab.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute top-3 right-3">
+                  <Badge variant={lab.status === "active" ? "success" : "warning"}>
+                    {lab.status === "active" ? "Active" : "Registering"}
+                  </Badge>
                 </div>
-                <div>
-                  <div className="font-medium">Rating</div>
-                  <div>
-                    {lab.rating} / 5
+              </div>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg leading-tight">{lab.name}</CardTitle>
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                  {formatAddress(lab.address)}
+                </p>
+              </CardHeader>
+              <CardContent className="pb-4">
+                <div className="flex justify-between items-center text-sm bg-gray-50/50 p-2 rounded-lg border">
+                  <div className="text-center flex-1 border-r">
+                    <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Tests</div>
+                    <div className="font-semibold">{lab.tests?.length || 0}</div>
+                  </div>
+                  <div className="text-center flex-1">
+                    <div className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Rating</div>
+                    <div className="font-semibold">{lab.rating || 'N/A'}</div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between gap-2 border-t p-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate(`/lab-owner/lab/${lab._id}`)}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" /> View
-              </Button>
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => onDeleteLab(lab._id)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete
-              </Button>
-            </CardFooter>
-          </Card>
-        ))
+              </CardContent>
+              <CardFooter className="flex gap-2 pt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => navigate(`/lab/${labId}`, { state: { lab } })}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" /> Details
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => onDeleteLab(labId)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })
       )}
     </div>
   );

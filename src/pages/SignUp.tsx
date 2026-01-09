@@ -6,13 +6,14 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, User, FlaskConical, Sparkles, CheckCircle2 } from "lucide-react";
 import { authAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { CardContent } from "@/components/ui/card";
-import { CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/store/slices/authSlice";
+import { motion } from "framer-motion";
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -30,21 +31,24 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    if (authAPI.isAuthenticated()) {
-      const userRole = authAPI.getCurrentUserRole();
-      if (userRole === "lab_owner") {
-        navigate("/lab-dashboard");
-      } else {
-        navigate("/profile");
+    const checkAuth = async () => {
+      if (await authAPI.isAuthenticated()) {
+        const userRole = authAPI.getCurrentUserRole();
+        if (userRole === "lab_owner") {
+          navigate("/lab-dashboard");
+        } else {
+          navigate("/profile");
+        }
       }
-    }
+    };
+    checkAuth();
   }, [navigate]);
 
   const form = useForm<SignUpFormValues>({
@@ -72,71 +76,169 @@ const SignUp = () => {
         role: data.role
       });
 
-      toast.success("Account created successfully! Welcome to Ekitsa.");
+      if (response) {
+        dispatch(setCredentials({ user: response.user, role: response.role }));
+        toast.success("Account created successfully! Welcome to Ekitsa.");
 
-      // Navigate based on user role
-      if (response.role === "lab_owner") {
-        navigate("/lab-dashboard");
-      } else {
-        navigate("/profile");
+        // Navigate based on user role
+        if (response.role === "lab_owner") {
+          navigate("/lab-dashboard");
+        } else {
+          navigate("/profile");
+        }
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Sign up error:", error);
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        (error as any).response &&
-        typeof (error as any).response === "object" &&
-        "data" in (error as any).response &&
-        (error as any).response.data &&
-        typeof (error as any).response.data === "object" &&
-        "message" in (error as any).response.data
-      ) {
-        setError((error as any).response.data.message || "Registration failed. Please try again.");
-        toast.error((error as any).response.data.message || "Registration failed. Please try again.");
-      } else {
-        setError("Registration failed. Please try again.");
-        toast.error("Registration failed. Please try again.");
-      }
+      setError(error.message || "Registration failed. Please try again.");
+      toast.error(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex flex-col justify-center items-center p-4 py-16 overflow-hidden bg-slate-50/50">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="absolute left-0 top-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 opacity-50"></div>
+      <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2 opacity-50"></div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-lg relative z-10"
+      >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mt-6">Create your account</h1>
-          <p className="text-muted-foreground mt-2">
-            Join Ekitsa to book lab tests and doctor appointments
-          </p>
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4"
+          >
+            <Sparkles className="w-6 h-6" />
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold tracking-tight"
+          >
+            Create your account
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-muted-foreground mt-2 text-lg"
+          >
+            Join Ekitsa to book lab tests and manage appointments
+          </motion.p>
         </div>
 
-        <Card className="shadow-lg border-2 border-primary/10">
-          <CardContent className="pt-6">
+        <Card className="shadow-2xl border-white/20 bg-white/80 backdrop-blur-md overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/0 pointer-events-none" />
+          <CardContent className="pt-8 relative z-10">
             {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm animate-shake" role="alert">
-                <span className="font-semibold">Error:</span> {error}
-              </div>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mb-6 p-4 bg-red-50/50 backdrop-blur-sm border border-red-200 text-red-700 rounded-lg text-sm flex items-center"
+                role="alert"
+              >
+                <div className="w-2 h-2 rounded-full bg-red-500 mr-2 flex-shrink-0" />
+                <span className="font-semibold mr-1">Error:</span> {error}
+              </motion.div>
             )}
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="role"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-base font-semibold">I am registering as a</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} aria-invalid={!!form.formState.errors.name} className={form.formState.errors.name ? 'border-red-500 focus:border-red-500 ring-red-300' : ''} />
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="grid grid-cols-2 gap-4"
+                        >
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroupItem value="user" className="peer sr-only" />
+                            </FormControl>
+                            <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white/50 backdrop-blur-sm p-4 hover:bg-slate-50 hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer h-full">
+                              <User className="mb-3 h-6 w-6 text-primary" />
+                              <div className="text-center space-y-1">
+                                <span className="block font-semibold">Patient / User</span>
+                                <span className="block text-xs text-muted-foreground font-normal">
+                                  Book tests & appointments
+                                </span>
+                              </div>
+                              {field.value === 'user' && (
+                                <div className="absolute top-2 right-2 text-primary">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </div>
+                              )}
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroupItem value="lab_owner" className="peer sr-only" />
+                            </FormControl>
+                            <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white/50 backdrop-blur-sm p-4 hover:bg-slate-50 hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer h-full">
+                              <FlaskConical className="mb-3 h-6 w-6 text-primary" />
+                              <div className="text-center space-y-1">
+                                <span className="block font-semibold">Lab Owner</span>
+                                <span className="block text-xs text-muted-foreground font-normal">
+                                  Manage labs & tests
+                                </span>
+                              </div>
+                              {field.value === 'lab_owner' && (
+                                <div className="absolute top-2 right-2 text-primary">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </div>
+                              )}
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} className="bg-white/50 backdrop-blur-sm" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="9876543210" {...field} className="bg-white/50 backdrop-blur-sm" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -145,158 +247,98 @@ const SignUp = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} aria-invalid={!!form.formState.errors.email} className={form.formState.errors.email ? 'border-red-500 focus:border-red-500 ring-red-300' : ''} />
+                        <Input type="email" placeholder="john@example.com" {...field} className="bg-white/50 backdrop-blur-sm" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input type="tel" placeholder="9876543210" {...field} aria-invalid={!!form.formState.errors.phone} className={form.formState.errors.phone ? 'border-red-500 focus:border-red-500 ring-red-300' : ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>I am registering as a</FormLabel>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex gap-4"
-                        aria-label="Select your role"
-                      >
-                        <div
-                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer border transition-colors ${field.value === 'user' ? 'border-primary bg-primary/10' : 'border-gray-300'
-                            }`}
-                          onClick={() => field.onChange('user')}
-                          tabIndex={0}
-                          role="radio"
-                          aria-checked={field.value === 'user'}
-                        >
-                          <RadioGroupItem value="user" id="user" />
-                          <FormLabel htmlFor="user" className="font-normal">
-                            Patient / User
-                          </FormLabel>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="********"
+                              {...field}
+                              className="bg-white/50 backdrop-blur-sm pr-10"
+                            />
+                          </FormControl>
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
-                        <div
-                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer border transition-colors ${field.value === 'lab_owner' ? 'border-primary bg-primary/10' : 'border-gray-300'
-                            }`}
-                          onClick={() => field.onChange('lab_owner')}
-                          tabIndex={0}
-                          role="radio"
-                          aria-checked={field.value === 'lab_owner'}
-                        >
-                          <RadioGroupItem value="lab_owner" id="lab_owner" />
-                          <FormLabel htmlFor="lab_owner" className="font-normal">
-                            Lab Owner
-                          </FormLabel>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="********"
+                              {...field}
+                              className="bg-white/50 backdrop-blur-sm pr-10"
+                            />
+                          </FormControl>
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
-                      </RadioGroup>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="********"
-                        {...form.register('password')}
-                        aria-describedby="password-helper"
-                        aria-invalid={!!form.formState.errors.password}
-                        className={form.formState.errors.password ? 'border-red-500 focus:border-red-500 ring-red-300' : ''}
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <p id="password-helper" className="text-xs text-muted-foreground mt-1">
-                      Password must be at least 8 characters.
-                    </p>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="********"
-                        {...form.register('confirmPassword')}
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <Button
                   type="submit"
-                  className="w-full mt-6 font-semibold text-base py-2 transition-transform duration-100 active:scale-95"
+                  className="w-full mt-6 font-semibold text-base py-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-0.5"
                   disabled={isLoading}
-                  aria-busy={isLoading}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Signing up...
+                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                       Signing up...
                     </span>
                   ) : (
-                    <>
-                      Sign Up <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
+                    <span className="flex items-center justify-center gap-2">
+                      Create Account <ArrowRight className="h-5 w-5" />
+                    </span>
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center border-t p-4">
-            <div className="text-sm text-center">
-              Already have an account?{" "}
-              <Link to="/login" className="text-primary font-medium hover:underline">
-                Login
-              </Link>
-            </div>
+          <CardFooter className="justify-center bg-slate-50/50 border-t border-slate-100 py-6 relative z-10">
+            <span className="text-sm text-muted-foreground">Already have an account?</span>
+            <Link to="/login" className="ml-2 text-primary font-semibold hover:underline">
+              Log in
+            </Link>
           </CardFooter>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 };

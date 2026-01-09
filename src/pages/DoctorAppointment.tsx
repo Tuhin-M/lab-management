@@ -6,7 +6,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import RecommendedFilters from "@/components/RecommendedFilters";
-import DoctorAppointmentFooter from "@/components/doctor/DoctorAppointmentFooter";
 import DoctorFilters from "@/components/doctor/DoctorFilters";
 import DoctorCard from "@/components/doctor/DoctorCard";
 import { doctors } from "@/data/doctorsData";
@@ -125,7 +124,7 @@ const DoctorAppointment = () => {
   
   return (
     <motion.div 
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background pt-16"
       initial="initial"
       animate="animate"
       exit="exit"
@@ -315,9 +314,6 @@ const DoctorAppointment = () => {
           </div>
         </div>
       </main>
-      
-      {/* Footer */}
-      <DoctorAppointmentFooter />
     </motion.div>
   );
 };

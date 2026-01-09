@@ -1,9 +1,9 @@
 
 const express = require('express');
 const router = express.Router();
-const BlogPost = require('../models/BlogPost');
-const Category = require('../models/Category');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
 
 // @route   GET /api/blog/posts
@@ -11,36 +11,40 @@ const { check, validationResult } = require('express-validator');
 // @access  Public
 router.get('/posts', async (req, res) => {
   try {
-    // Handle query parameters for filtering
     const { category, tag, search, limit = 10, page = 1 } = req.query;
-    
-    let query = { isPublished: true };
-    
+
+    let whereClause = { isPublished: true };
+
     if (category) {
-      query.category = category;
+      whereClause.category = { name: category };
     }
-    
+
     if (tag) {
-      query.tags = tag;
+      whereClause.tags = { has: tag };
     }
-    
+
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } }
+      whereClause.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
       ];
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    const posts = await BlogPost.find(query)
-      .populate('author', 'name')
-      .sort({ publishedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-      
-    const total = await BlogPost.countDocuments(query);
-    
+
+    const posts = await prisma.blogPost.findMany({
+      where: whereClause,
+      include: {
+        author: { select: { id: true, name: true } },
+        category: true
+      },
+      orderBy: { publishedAt: 'desc' },
+      skip,
+      take: parseInt(limit)
+    });
+
+    const total = await prisma.blogPost.count({ where: whereClause });
+
     res.json({
       posts,
       pagination: {
@@ -61,24 +65,33 @@ router.get('/posts', async (req, res) => {
 // @access  Public
 router.get('/posts/:id', async (req, res) => {
   try {
-    const post = await BlogPost.findById(req.params.id)
-      .populate('author', 'name')
-      .populate('comments.user', 'name');
-    
+    const post = await prisma.blogPost.findUnique({
+      where: { id: req.params.id },
+      include: {
+        author: { select: { id: true, name: true } },
+        category: true,
+        comments: {
+          include: {
+            user: { select: { id: true, name: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
-    
+
     // Increment view count
-    post.views += 1;
-    await post.save();
-    
+    await prisma.blogPost.update({
+      where: { id: req.params.id },
+      data: { views: { increment: 1 } }
+    });
+
     res.json(post);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Post not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -88,7 +101,9 @@ router.get('/posts/:id', async (req, res) => {
 // @access  Public
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const categories = await prisma.category.findMany({
+      orderBy: { name: 'asc' }
+    });
     res.json(categories);
   } catch (err) {
     console.error(err.message);
@@ -101,14 +116,18 @@ router.get('/categories', async (req, res) => {
 // @access  Public
 router.get('/tags', async (req, res) => {
   try {
-    const tags = await BlogPost.aggregate([
-      { $unwind: '$tags' },
-      { $group: { _id: '$tags' } },
-      { $project: { _id: 0, name: '$_id' } },
-      { $sort: { name: 1 } }
-    ]);
-    
-    res.json(tags);
+    // Prisma doesn't have a direct "distinct" on array elements yet, so we get all and process
+    const postsWithTags = await prisma.blogPost.findMany({
+      select: { tags: true },
+      where: { isPublished: true }
+    });
+
+    const allTags = new Set();
+    postsWithTags.forEach(p => p.tags.forEach(t => allTags.add(t)));
+
+    const sortedTags = Array.from(allTags).sort().map(t => ({ name: t }));
+
+    res.json(sortedTags);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -123,7 +142,7 @@ router.post('/posts', [
   [
     check('title', 'Title is required').not().isEmpty(),
     check('content', 'Content is required').not().isEmpty(),
-    check('category', 'Category is required').not().isEmpty()
+    check('category', 'Category name is required').not().isEmpty()
   ]
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -132,30 +151,40 @@ router.post('/posts', [
   }
 
   try {
-    const { 
-      title, content, category, tags, coverImage, 
-      readTime, isPublished 
+    const {
+      title, content, category, tags, coverImage,
+      readTime, isPublished
     } = req.body;
-    
+
+    // Find or create category
+    let categoryEntity = await prisma.category.findUnique({
+      where: { name: category }
+    });
+    if (!categoryEntity) {
+      categoryEntity = await prisma.category.create({
+        data: { name: category, description: `${category} blogs` }
+      });
+    }
+
     // Create new post
-    const post = new BlogPost({
-      title,
-      content,
-      author: req.user.id,
-      category,
-      tags: tags || [],
-      coverImage: coverImage || 'default-blog.jpg',
-      readTime: readTime || 5,
-      isPublished: isPublished !== undefined ? isPublished : true,
-      publishedAt: isPublished ? Date.now() : null
+    const post = await prisma.blogPost.create({
+      data: {
+        title,
+        content,
+        authorId: req.user.id,
+        categoryId: categoryEntity.id,
+        tags: tags || [],
+        coverImage: coverImage || 'default-blog.jpg',
+        readTime: readTime ? parseInt(readTime) : 5,
+        isPublished: isPublished !== undefined ? isPublished : true,
+        publishedAt: isPublished ? new Date() : null
+      },
+      include: {
+        author: { select: { id: true, name: true } }
+      }
     });
 
-    await post.save();
-    
-    const populatedPost = await BlogPost.findById(post._id)
-      .populate('author', 'name');
-    
-    res.json(populatedPost);
+    res.json(post);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -167,50 +196,51 @@ router.post('/posts', [
 // @access  Private
 router.put('/posts/:id', auth, async (req, res) => {
   try {
-    const { 
-      title, content, category, tags, coverImage, 
-      readTime, isPublished 
+    const {
+      title, content, category, tags, coverImage,
+      readTime, isPublished
     } = req.body;
-    
-    let post = await BlogPost.findById(req.params.id);
-    
+
+    let post = await prisma.blogPost.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
-    
-    // Make sure user is the post author
-    if (post.author.toString() !== req.user.id) {
+
+    // Make sure user is the post author or admin
+    if (post.authorId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    // Build post object
-    const postFields = {};
-    if (title) postFields.title = title;
-    if (content) postFields.content = content;
-    if (category) postFields.category = category;
-    if (tags) postFields.tags = tags;
-    if (coverImage) postFields.coverImage = coverImage;
-    if (readTime) postFields.readTime = readTime;
-    if (isPublished !== undefined) {
-      postFields.isPublished = isPublished;
-      // If publishing for the first time
-      if (isPublished && !post.isPublished) {
-        postFields.publishedAt = Date.now();
+
+    let categoryId = undefined;
+    if (category) {
+      let categoryEntity = await prisma.category.findUnique({ where: { name: category } });
+      if (!categoryEntity) {
+        categoryEntity = await prisma.category.create({ data: { name: category, description: `${category} blogs` } });
       }
+      categoryId = categoryEntity.id;
     }
-    
-    post = await BlogPost.findByIdAndUpdate(
-      req.params.id,
-      { $set: postFields },
-      { new: true }
-    ).populate('author', 'name');
-    
-    res.json(post);
+
+    const updatedPost = await prisma.blogPost.update({
+      where: { id: req.params.id },
+      data: {
+        title: title || undefined,
+        content: content || undefined,
+        categoryId: categoryId || undefined,
+        tags: tags || undefined,
+        coverImage: coverImage || undefined,
+        readTime: readTime ? parseInt(readTime) : undefined,
+        isPublished: isPublished !== undefined ? isPublished : undefined,
+        publishedAt: (isPublished && !post.isPublished) ? new Date() : undefined
+      },
+      include: { author: { select: { id: true, name: true } } }
+    });
+
+    res.json(updatedPost);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Post not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -220,25 +250,22 @@ router.put('/posts/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/posts/:id', auth, async (req, res) => {
   try {
-    const post = await BlogPost.findById(req.params.id);
-    
+    const post = await prisma.blogPost.findUnique({ where: { id: req.params.id } });
+
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
-    
-    // Make sure user is the post author
-    if (post.author.toString() !== req.user.id) {
+
+    // Make sure user is the post author or admin
+    if (post.authorId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    await post.deleteOne();
-    
+
+    await prisma.blogPost.delete({ where: { id: req.params.id } });
+
     res.json({ message: 'Post removed' });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Post not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -257,31 +284,20 @@ router.post('/posts/:id/comments', [
 
   try {
     const { text } = req.body;
-    const post = await BlogPost.findById(req.params.id);
-    
-    if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    const comment = {
-      user: req.user.id,
-      text
-    };
-    
-    post.comments.unshift(comment);
-    
-    await post.save();
-    
-    const populatedPost = await BlogPost.findById(post._id)
-      .populate('author', 'name')
-      .populate('comments.user', 'name');
-    
-    res.json(populatedPost.comments);
+    const postId = req.params.id;
+
+    const comment = await prisma.comment.create({
+      data: {
+        text,
+        userId: req.user.id,
+        postId
+      },
+      include: { user: { select: { id: true, name: true } } }
+    });
+
+    res.json(comment);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Post not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -291,40 +307,24 @@ router.post('/posts/:id/comments', [
 // @access  Private
 router.delete('/posts/:id/comments/:comment_id', auth, async (req, res) => {
   try {
-    const post = await BlogPost.findById(req.params.id);
-    
-    if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    
-    // Pull out comment
-    const comment = post.comments.find(
-      comment => comment._id.toString() === req.params.comment_id
-    );
-    
-    // Make sure comment exists
+    const comment = await prisma.comment.findUnique({
+      where: { id: req.params.comment_id }
+    });
+
     if (!comment) {
       return res.status(404).json({ message: 'Comment not found' });
     }
-    
-    // Check user
-    if (comment.user.toString() !== req.user.id) {
+
+    // Check user ownership or admin
+    if (comment.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'User not authorized' });
     }
-    
-    // Remove comment
-    post.comments = post.comments.filter(
-      comment => comment._id.toString() !== req.params.comment_id
-    );
-    
-    await post.save();
-    
-    res.json(post.comments);
+
+    await prisma.comment.delete({ where: { id: req.params.comment_id } });
+
+    res.json({ message: 'Comment removed' });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Resource not found' });
-    }
     res.status(500).send('Server error');
   }
 });

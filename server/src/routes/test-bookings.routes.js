@@ -1,22 +1,32 @@
 
 const express = require('express');
 const router = express.Router();
-const TestBooking = require('../models/TestBooking');
-const Lab = require('../models/Lab');
-const Test = require('../models/Test');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
+
+// Helper to map statuses
+const mapStatus = (status) => status.toUpperCase();
 
 // @route   GET /api/test-bookings
 // @desc    Get all test bookings (admin only)
 // @access  Private (Admin)
-router.get('/', auth, async (req, res) => {
+router.get('/', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
-    const testBookings = await TestBooking.find()
-      .populate('user', 'name email')
-      .populate('lab', 'name address')
-      .populate('tests.test', 'name category');
-    
+    const testBookings = await prisma.testBooking.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        lab: { select: { id: true, name: true, address: true } },
+        tests: {
+          include: {
+            test: { select: { id: true, name: true, category: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     res.json(testBookings);
   } catch (err) {
     console.error(err.message);
@@ -29,11 +39,19 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/user', auth, async (req, res) => {
   try {
-    const testBookings = await TestBooking.find({ user: req.user.id })
-      .populate('lab', 'name address image')
-      .populate('tests.test', 'name category')
-      .sort({ bookingDate: -1 });
-    
+    const testBookings = await prisma.testBooking.findMany({
+      where: { userId: req.user.id },
+      include: {
+        lab: { select: { id: true, name: true, address: true, image: true } },
+        tests: {
+          include: {
+            test: { select: { id: true, name: true, category: true } }
+          }
+        }
+      },
+      orderBy: { bookingDate: 'desc' }
+    });
+
     res.json(testBookings);
   } catch (err) {
     console.error(err.message);
@@ -46,26 +64,31 @@ router.get('/user', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const testBooking = await TestBooking.findById(req.params.id)
-      .populate('user', 'name email phone')
-      .populate('lab', 'name address contactInfo')
-      .populate('tests.test', 'name description category price');
-    
+    const testBooking = await prisma.testBooking.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        lab: { select: { id: true, name: true, address: true, contactInfo: true } },
+        tests: {
+          include: {
+            test: true
+          }
+        }
+      }
+    });
+
     if (!testBooking) {
       return res.status(404).json({ message: 'Test booking not found' });
     }
-    
+
     // Make sure user owns the test booking or is admin
-    if (testBooking.user._id.toString() !== req.user.id) {
+    if (testBooking.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
+
     res.json(testBooking);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Test booking not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -90,48 +113,49 @@ router.post('/', [
   }
 
   try {
-    const { 
-      lab, tests, sampleCollectionDate, sampleCollectionTime, 
-      homeCollection, patientDetails, prescriptionImage, totalAmount 
+    const {
+      lab, tests, sampleCollectionDate, sampleCollectionTime,
+      homeCollection, patientDetails, prescriptionImage, totalAmount
     } = req.body;
-    
+
     // Check if lab exists
-    const labExists = await Lab.findById(lab);
+    const labExists = await prisma.lab.findUnique({ where: { id: lab } });
     if (!labExists) {
       return res.status(404).json({ message: 'Lab not found' });
     }
-    
-    // Validate all tests exist
-    for (const testItem of tests) {
-      const testExists = await Test.findById(testItem.test);
-      if (!testExists) {
-        return res.status(404).json({ message: `Test with ID ${testItem.test} not found` });
+
+    // Create new test booking using transaction
+    const testBooking = await prisma.testBooking.create({
+      data: {
+        userId: req.user.id,
+        labId: lab,
+        bookingDate: new Date(),
+        sampleCollectionDate: new Date(sampleCollectionDate),
+        sampleCollectionTime,
+        homeCollection: homeCollection === true,
+        status: 'BOOKED',
+        patientDetails: patientDetails || null,
+        prescriptionImage: prescriptionImage || null,
+        paymentStatus: 'PENDING',
+        totalAmount: parseFloat(totalAmount),
+        tests: {
+          create: tests.map(t => ({
+            testId: t.test,
+            price: parseFloat(t.price)
+          }))
+        }
+      },
+      include: {
+        lab: { select: { id: true, name: true, address: true, image: true } },
+        tests: {
+          include: {
+            test: { select: { id: true, name: true, category: true } }
+          }
+        }
       }
-    }
-    
-    // Create new test booking
-    const testBooking = new TestBooking({
-      user: req.user.id,
-      lab,
-      tests,
-      bookingDate: new Date(),
-      sampleCollectionDate,
-      sampleCollectionTime,
-      homeCollection,
-      status: 'booked',
-      patientDetails,
-      prescriptionImage,
-      paymentStatus: 'pending',
-      totalAmount
     });
 
-    await testBooking.save();
-    
-    const populatedTestBooking = await TestBooking.findById(testBooking._id)
-      .populate('lab', 'name address image')
-      .populate('tests.test', 'name category');
-    
-    res.json(populatedTestBooking);
+    res.json(testBooking);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -144,68 +168,62 @@ router.post('/', [
 router.put('/:id', auth, async (req, res) => {
   try {
     const { status, paymentStatus } = req.body;
-    
-    let testBooking = await TestBooking.findById(req.params.id);
-    
+
+    let testBooking = await prisma.testBooking.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!testBooking) {
       return res.status(404).json({ message: 'Test booking not found' });
     }
-    
-    // Make sure user owns the test booking or is admin
-    if (testBooking.user.toString() !== req.user.id) {
+
+    // Make sure user owns the test booking or is admin/lab_owner
+    if (testBooking.userId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'LAB_OWNER') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    // Build test booking object
-    const testBookingFields = {};
-    if (status) testBookingFields.status = status;
-    if (paymentStatus) testBookingFields.paymentStatus = paymentStatus;
-    
-    testBooking = await TestBooking.findByIdAndUpdate(
-      req.params.id,
-      { $set: testBookingFields },
-      { new: true }
-    ).populate('lab', 'name address image')
-      .populate('tests.test', 'name category');
-    
+
+    testBooking = await prisma.testBooking.update({
+      where: { id: req.params.id },
+      data: {
+        status: status ? mapStatus(status) : undefined,
+        paymentStatus: paymentStatus ? mapStatus(paymentStatus) : undefined
+      },
+      include: {
+        lab: { select: { id: true, name: true, address: true, image: true } },
+        tests: {
+          include: {
+            test: { select: { id: true, name: true, category: true } }
+          }
+        }
+      }
+    });
+
     res.json(testBooking);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Test booking not found' });
-    }
     res.status(500).send('Server error');
   }
 });
 
 // @route   PUT /api/test-bookings/:id/report
 // @desc    Upload test report
-// @access  Private (Admin)
-router.put('/:id/report', auth, async (req, res) => {
+// @access  Private (Lab Owner or Admin)
+router.put('/:id/report', [auth, roleAuth(['LAB_OWNER', 'ADMIN'])], async (req, res) => {
   try {
     const { url } = req.body;
-    
-    let testBooking = await TestBooking.findById(req.params.id);
-    
-    if (!testBooking) {
-      return res.status(404).json({ message: 'Test booking not found' });
-    }
-    
-    testBooking.report = {
-      url,
-      uploadedAt: Date.now()
-    };
-    
-    testBooking.status = 'completed';
-    
-    await testBooking.save();
-    
+
+    const testBooking = await prisma.testBooking.update({
+      where: { id: req.params.id },
+      data: {
+        reportUrl: url,
+        reportUploadedAt: new Date(),
+        status: 'COMPLETED'
+      }
+    });
+
     res.json(testBooking);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Test booking not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -215,27 +233,27 @@ router.put('/:id/report', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const testBooking = await TestBooking.findById(req.params.id);
-    
+    const testBooking = await prisma.testBooking.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!testBooking) {
       return res.status(404).json({ message: 'Test booking not found' });
     }
-    
+
     // Make sure user owns the test booking
-    if (testBooking.user.toString() !== req.user.id) {
+    if (testBooking.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    // Instead of deleting, set status to cancelled
-    testBooking.status = 'cancelled';
-    await testBooking.save();
-    
-    res.json({ message: 'Test booking cancelled' });
+
+    const updatedBooking = await prisma.testBooking.update({
+      where: { id: req.params.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    res.json({ message: 'Test booking cancelled', booking: updatedBooking });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Test booking not found' });
-    }
     res.status(500).send('Server error');
   }
 });

@@ -154,7 +154,7 @@ const Blog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-16">
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="bg-primary/5 py-12">
@@ -430,13 +430,7 @@ const Blog = () => {
       </main>
       
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12">
-        <div className="container mx-auto px-4">
-          <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center">
-            <p> 2023 Ekitsa. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+
     </div>
   );
 };

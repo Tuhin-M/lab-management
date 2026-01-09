@@ -1,8 +1,9 @@
 
 const express = require('express');
 const router = express.Router();
-const Specialty = require('../models/Specialty');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
 
 // @route   GET /api/specialties
@@ -10,7 +11,9 @@ const { check, validationResult } = require('express-validator');
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const specialties = await Specialty.find().sort({ name: 1 });
+    const specialties = await prisma.specialty.findMany({
+      orderBy: { name: 'asc' }
+    });
     res.json(specialties);
   } catch (err) {
     console.error(err.message);
@@ -23,18 +26,17 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const specialty = await Specialty.findById(req.params.id);
-    
+    const specialty = await prisma.specialty.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!specialty) {
       return res.status(404).json({ message: 'Specialty not found' });
     }
-    
+
     res.json(specialty);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Specialty not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -44,6 +46,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private (Admin)
 router.post('/', [
   auth,
+  roleAuth(['ADMIN']),
   [
     check('name', 'Name is required').not().isEmpty(),
     check('description', 'Description is required').not().isEmpty()
@@ -57,20 +60,24 @@ router.post('/', [
   try {
     const { name, description, icon } = req.body;
 
+    // Check if name exists
+    const existing = await prisma.specialty.findUnique({ where: { name } });
+    if (existing) {
+      return res.status(400).json({ message: 'Specialty with this name already exists' });
+    }
+
     // Create new specialty
-    const specialty = new Specialty({
-      name,
-      description,
-      icon: icon || 'default-specialty.png'
+    const specialty = await prisma.specialty.create({
+      data: {
+        name,
+        description,
+        icon: icon || 'default-specialty.png'
+      }
     });
 
-    await specialty.save();
     res.json(specialty);
   } catch (err) {
     console.error(err.message);
-    if (err.code === 11000) {
-      return res.status(400).json({ message: 'Specialty with this name already exists' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -78,37 +85,22 @@ router.post('/', [
 // @route   PUT /api/specialties/:id
 // @desc    Update a specialty
 // @access  Private (Admin)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
     const { name, description, icon } = req.body;
-    
-    // Build specialty object
-    const specialtyFields = {};
-    if (name) specialtyFields.name = name;
-    if (description) specialtyFields.description = description;
-    if (icon) specialtyFields.icon = icon;
-    
-    let specialty = await Specialty.findById(req.params.id);
-    
-    if (!specialty) {
-      return res.status(404).json({ message: 'Specialty not found' });
-    }
-    
-    specialty = await Specialty.findByIdAndUpdate(
-      req.params.id,
-      { $set: specialtyFields },
-      { new: true }
-    );
-    
+
+    const specialty = await prisma.specialty.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        description: description || undefined,
+        icon: icon || undefined
+      }
+    });
+
     res.json(specialty);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Specialty not found' });
-    }
-    if (err.code === 11000) {
-      return res.status(400).json({ message: 'Specialty with this name already exists' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -116,24 +108,19 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/specialties/:id
 // @desc    Delete a specialty
 // @access  Private (Admin)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
-    const specialty = await Specialty.findById(req.params.id);
-    
-    if (!specialty) {
-      return res.status(404).json({ message: 'Specialty not found' });
-    }
-    
-    await specialty.deleteOne();
-    
+    await prisma.specialty.delete({
+      where: { id: req.params.id }
+    });
+
     res.json({ message: 'Specialty removed' });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Specialty not found' });
-    }
     res.status(500).send('Server error');
   }
 });
+
+module.exports = router;
 
 module.exports = router;
