@@ -1,8 +1,9 @@
 
 const express = require('express');
 const router = express.Router();
-const Doctor = require('../models/Doctor');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
 
 // @route   GET /api/doctors
@@ -10,35 +11,46 @@ const { check, validationResult } = require('express-validator');
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    // Handle query parameters for filtering
     const { specialty, experience, rating, city, search } = req.query;
-    
-    let query = {};
-    
+
+    let whereClause = {};
+
     if (specialty) {
-      query.specialty = specialty;
+      whereClause.specialty = {
+        name: specialty
+      };
     }
-    
+
     if (experience) {
-      query.experience = { $gte: parseInt(experience) };
+      whereClause.experience = { gte: parseInt(experience) };
     }
-    
+
     if (rating) {
-      query.rating = { $gte: parseFloat(rating) };
+      whereClause.rating = { gte: parseFloat(rating) };
     }
-    
+
     if (city) {
-      query['address.city'] = city;
+      whereClause.address = {
+        path: ['city'],
+        equals: city
+      };
     }
-    
+
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { hospital: { $regex: search, $options: 'i' } }
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { hospital: { contains: search, mode: 'insensitive' } }
       ];
     }
-    
-    const doctors = await Doctor.find(query).sort({ rating: -1 });
+
+    const doctors = await prisma.doctor.findMany({
+      where: whereClause,
+      orderBy: { rating: 'desc' },
+      include: {
+        specialty: true
+      }
+    });
+
     res.json(doctors);
   } catch (err) {
     console.error(err.message);
@@ -51,18 +63,27 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
-    
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: req.params.id },
+      include: {
+        specialty: true,
+        reviews: {
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
+
     res.json(doctor);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -72,6 +93,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private (Admin)
 router.post('/', [
   auth,
+  roleAuth(['ADMIN']),
   [
     check('name', 'Name is required').not().isEmpty(),
     check('specialty', 'Specialty is required').not().isEmpty(),
@@ -86,25 +108,35 @@ router.post('/', [
   }
 
   try {
-    const { 
+    const {
       name, specialty, qualifications, experience, hospital,
-      address, consultationFee, availableSlots, image 
+      address, consultationFee, availableSlots, image
     } = req.body;
 
-    // Create new doctor
-    const doctor = new Doctor({
-      name,
-      specialty,
-      qualifications,
-      experience,
-      hospital,
-      address,
-      consultationFee,
-      availableSlots,
-      image: image || 'default-doctor.jpg'
+    // Find specialty or error
+    const specialtyEntity = await prisma.specialty.findUnique({
+      where: { name: specialty }
     });
 
-    await doctor.save();
+    if (!specialtyEntity) {
+      return res.status(400).json({ message: 'Invalid specialty' });
+    }
+
+    // Create new doctor
+    const doctor = await prisma.doctor.create({
+      data: {
+        name,
+        specialtyId: specialtyEntity.id,
+        qualifications: qualifications || [],
+        experience: parseInt(experience),
+        hospital,
+        address: address || null,
+        consultationFee: parseFloat(consultationFee),
+        availableSlots: availableSlots || null,
+        image: image || 'default-doctor.jpg'
+      }
+    });
+
     res.json(doctor);
   } catch (err) {
     console.error(err.message);
@@ -115,44 +147,42 @@ router.post('/', [
 // @route   PUT /api/doctors/:id
 // @desc    Update a doctor
 // @access  Private (Admin)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
-    const { 
+    const {
       name, specialty, qualifications, experience, hospital,
       address, consultationFee, availableSlots, image, rating
     } = req.body;
-    
-    // Build doctor object
-    const doctorFields = {};
-    if (name) doctorFields.name = name;
-    if (specialty) doctorFields.specialty = specialty;
-    if (qualifications) doctorFields.qualifications = qualifications;
-    if (experience) doctorFields.experience = experience;
-    if (hospital) doctorFields.hospital = hospital;
-    if (address) doctorFields.address = address;
-    if (consultationFee) doctorFields.consultationFee = consultationFee;
-    if (availableSlots) doctorFields.availableSlots = availableSlots;
-    if (image) doctorFields.image = image;
-    if (rating !== undefined) doctorFields.rating = rating;
-    
-    let doctor = await Doctor.findById(req.params.id);
-    
-    if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+
+    let specialtyId = undefined;
+    if (specialty) {
+      const specialtyEntity = await prisma.specialty.findUnique({
+        where: { name: specialty }
+      });
+      if (specialtyEntity) {
+        specialtyId = specialtyEntity.id;
+      }
     }
-    
-    doctor = await Doctor.findByIdAndUpdate(
-      req.params.id,
-      { $set: doctorFields },
-      { new: true }
-    );
-    
+
+    const doctor = await prisma.doctor.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        specialtyId: specialtyId || undefined,
+        qualifications: qualifications || undefined,
+        experience: experience ? parseInt(experience) : undefined,
+        hospital: hospital || undefined,
+        address: address || undefined,
+        consultationFee: consultationFee ? parseFloat(consultationFee) : undefined,
+        availableSlots: availableSlots || undefined,
+        image: image || undefined,
+        rating: rating !== undefined ? parseFloat(rating) : undefined
+      }
+    });
+
     res.json(doctor);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -160,22 +190,15 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/doctors/:id
 // @desc    Delete a doctor
 // @access  Private (Admin)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
-    
-    if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
-    
-    await doctor.deleteOne();
-    
+    await prisma.doctor.delete({
+      where: { id: req.params.id }
+    });
+
     res.json({ message: 'Doctor removed' });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -197,31 +220,43 @@ router.post('/:id/reviews', [
 
   try {
     const { text, rating } = req.body;
-    const doctor = await Doctor.findById(req.params.id);
-    
+    const doctorId = req.params.id;
+
+    // Check if doctor exists
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      include: { reviews: true }
+    });
+
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
-    const review = {
-      user: req.user.id,
-      text,
-      rating: parseFloat(rating)
-    };
-    
-    doctor.reviews.unshift(review);
-    
-    // Calculate new average rating
-    const totalRating = doctor.reviews.reduce((sum, review) => sum + review.rating, 0);
-    doctor.rating = totalRating / doctor.reviews.length;
-    
-    await doctor.save();
-    res.json(doctor);
+
+    // Create review
+    const review = await prisma.review.create({
+      data: {
+        userId: req.user.id,
+        doctorId: doctorId,
+        text,
+        rating: parseInt(rating)
+      }
+    });
+
+    // Recalculate average rating
+    const allReviews = await prisma.review.findMany({
+      where: { doctorId }
+    });
+    const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+    const avgRating = totalRating / allReviews.length;
+
+    await prisma.doctor.update({
+      where: { id: doctorId },
+      data: { rating: avgRating }
+    });
+
+    res.json(review);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -231,18 +266,18 @@ router.post('/:id/reviews', [
 // @access  Public
 router.get('/available-slots/:id', async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id).select('availableSlots');
-    
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: req.params.id },
+      select: { availableSlots: true }
+    });
+
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
+
     res.json(doctor.availableSlots);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Doctor not found' });
-    }
     res.status(500).send('Server error');
   }
 });

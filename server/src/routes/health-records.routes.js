@@ -1,7 +1,7 @@
 
 const express = require('express');
 const router = express.Router();
-const HealthRecord = require('../models/HealthRecord');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 
 // @route   GET /api/health-records
@@ -9,9 +9,11 @@ const auth = require('../middleware/auth');
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const healthRecords = await HealthRecord.find({ user: req.user.id })
-      .sort({ date: -1 });
-    
+    const healthRecords = await prisma.healthRecord.findMany({
+      where: { userId: req.user.id },
+      orderBy: { date: 'desc' }
+    });
+
     res.json(healthRecords);
   } catch (err) {
     console.error(err.message);
@@ -24,33 +26,33 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
   try {
-    const { 
-      recordType, 
-      title, 
-      date, 
-      doctorName, 
-      hospitalName,
-      description,
-      fileUrl,
-      metrics,
-      tags
-    } = req.body;
-    
-    const newHealthRecord = new HealthRecord({
-      user: req.user.id,
+    const {
       recordType,
       title,
-      date: date || Date.now(),
+      date,
       doctorName,
       hospitalName,
       description,
       fileUrl,
       metrics,
       tags
+    } = req.body;
+
+    const healthRecord = await prisma.healthRecord.create({
+      data: {
+        userId: req.user.id,
+        recordType: recordType || 'other',
+        title,
+        date: date ? new Date(date) : new Date(),
+        doctorName: doctorName || null,
+        hospitalName: hospitalName || null,
+        description: description || null,
+        fileUrl: fileUrl || null,
+        metrics: metrics || null,
+        tags: tags || []
+      }
     });
-    
-    const healthRecord = await newHealthRecord.save();
-    
+
     res.json(healthRecord);
   } catch (err) {
     console.error(err.message);
@@ -63,17 +65,19 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const healthRecord = await HealthRecord.findById(req.params.id);
-    
+    const healthRecord = await prisma.healthRecord.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!healthRecord) {
       return res.status(404).json({ message: 'Health record not found' });
     }
-    
+
     // Check user owns the health record
-    if (healthRecord.user.toString() !== req.user.id) {
+    if (healthRecord.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'User not authorized' });
     }
-    
+
     res.json(healthRecord);
   } catch (err) {
     console.error(err.message);
@@ -86,24 +90,30 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const healthRecord = await HealthRecord.findById(req.params.id);
-    
+    const healthRecord = await prisma.healthRecord.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!healthRecord) {
       return res.status(404).json({ message: 'Health record not found' });
     }
-    
+
     // Check user owns the health record
-    if (healthRecord.user.toString() !== req.user.id) {
+    if (healthRecord.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'User not authorized' });
     }
-    
-    await healthRecord.remove();
-    
+
+    await prisma.healthRecord.delete({
+      where: { id: req.params.id }
+    });
+
     res.json({ message: 'Health record removed' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
+
+module.exports = router;
 
 module.exports = router;

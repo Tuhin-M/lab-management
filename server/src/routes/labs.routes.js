@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Lab = require('../models/Lab');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
 
 // @route   GET /api/labs
@@ -9,27 +10,37 @@ const { check, validationResult } = require('express-validator');
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    // Handle query parameters for filtering
     const { city, rating, search } = req.query;
-    
-    let query = {};
-    
+
+    let whereClause = {};
+
     if (city) {
-      query['address.city'] = city;
+      // Filtering JSON field in PostgreSQL
+      whereClause.address = {
+        path: ['city'],
+        equals: city
+      };
     }
-    
+
     if (rating) {
-      query.rating = { $gte: parseFloat(rating) };
+      whereClause.rating = { gte: parseFloat(rating) };
     }
-    
+
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
       ];
     }
-    
-    const labs = await Lab.find(query).sort({ rating: -1 });
+
+    const labs = await prisma.lab.findMany({
+      where: whereClause,
+      orderBy: { rating: 'desc' },
+      include: {
+        tests: true
+      }
+    });
+
     res.json(labs);
   } catch (err) {
     console.error(err.message);
@@ -42,18 +53,30 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const lab = await Lab.findById(req.params.id).populate('tests');
-    
+    const lab = await prisma.lab.findUnique({
+      where: { id: req.params.id },
+      include: {
+        tests: true,
+        reviews: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
     if (!lab) {
       return res.status(404).json({ message: 'Lab not found' });
     }
-    
+
     res.json(lab);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Lab not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -63,6 +86,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private (Admin)
 router.post('/', [
   auth,
+  roleAuth(['ADMIN']),
   [
     check('name', 'Name is required').not().isEmpty(),
     check('description', 'Description is required').not().isEmpty(),
@@ -75,24 +99,30 @@ router.post('/', [
   }
 
   try {
-    const { 
+    const {
       name, description, address, contactInfo, certifications,
       operatingHours, tests, image
     } = req.body;
 
-    // Create new lab
-    const lab = new Lab({
-      name,
-      description,
-      address,
-      contactInfo,
-      certifications,
-      operatingHours,
-      tests,
-      image: image || 'default-lab.jpg'
+    // Create new lab with potential test connections
+    const lab = await prisma.lab.create({
+      data: {
+        name,
+        description,
+        address: address || null,
+        contactInfo: contactInfo || null,
+        certifications: certifications || [],
+        operatingHours: operatingHours || null,
+        image: image || 'default-lab.jpg',
+        tests: tests ? {
+          connect: tests.map(id => ({ id }))
+        } : undefined
+      },
+      include: {
+        tests: true
+      }
     });
 
-    await lab.save();
     res.json(lab);
   } catch (err) {
     console.error(err.message);
@@ -102,44 +132,53 @@ router.post('/', [
 
 // @route   PUT /api/labs/:id
 // @desc    Update a lab
-// @access  Private (Admin)
+// @access  Private (Admin or Lab Owner)
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { 
+    const {
       name, description, address, contactInfo, certifications,
       operatingHours, tests, image, rating
     } = req.body;
-    
-    // Build lab object
-    const labFields = {};
-    if (name) labFields.name = name;
-    if (description) labFields.description = description;
-    if (address) labFields.address = address;
-    if (contactInfo) labFields.contactInfo = contactInfo;
-    if (certifications) labFields.certifications = certifications;
-    if (operatingHours) labFields.operatingHours = operatingHours;
-    if (tests) labFields.tests = tests;
-    if (image) labFields.image = image;
-    if (rating !== undefined) labFields.rating = rating;
-    
-    let lab = await Lab.findById(req.params.id);
-    
+
+    // Check if lab exists
+    let lab = await prisma.lab.findUnique({
+      where: { id: req.params.id },
+      include: { owners: true }
+    });
+
     if (!lab) {
       return res.status(404).json({ message: 'Lab not found' });
     }
-    
-    lab = await Lab.findByIdAndUpdate(
-      req.params.id,
-      { $set: labFields },
-      { new: true }
-    );
-    
+
+    // Authorization check
+    const isOwner = lab.owners.some(owner => owner.id === req.user.id);
+    if (req.user.role !== 'ADMIN' && !isOwner) {
+      return res.status(403).json({ message: 'Not authorized to update this lab' });
+    }
+
+    lab = await prisma.lab.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        description: description || undefined,
+        address: address || undefined,
+        contactInfo: contactInfo || undefined,
+        certifications: certifications || undefined,
+        operatingHours: operatingHours || undefined,
+        image: image || undefined,
+        rating: rating !== undefined ? parseFloat(rating) : undefined,
+        tests: tests ? {
+          set: tests.map(id => ({ id }))
+        } : undefined
+      },
+      include: {
+        tests: true
+      }
+    });
+
     res.json(lab);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Lab not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -147,22 +186,23 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/labs/:id
 // @desc    Delete a lab
 // @access  Private (Admin)
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, roleAuth(['ADMIN']), async (req, res) => {
   try {
-    const lab = await Lab.findById(req.params.id);
-    
+    const lab = await prisma.lab.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!lab) {
       return res.status(404).json({ message: 'Lab not found' });
     }
-    
-    await lab.deleteOne();
-    
+
+    await prisma.lab.delete({
+      where: { id: req.params.id }
+    });
+
     res.json({ message: 'Lab removed' });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Lab not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -184,31 +224,43 @@ router.post('/:id/reviews', [
 
   try {
     const { text, rating } = req.body;
-    const lab = await Lab.findById(req.params.id);
-    
+    const labId = req.params.id;
+
+    // Check if lab exists
+    const lab = await prisma.lab.findUnique({
+      where: { id: labId },
+      include: { reviews: true }
+    });
+
     if (!lab) {
       return res.status(404).json({ message: 'Lab not found' });
     }
-    
-    const review = {
-      user: req.user.id,
-      text,
-      rating: parseFloat(rating)
-    };
-    
-    lab.reviews.unshift(review);
-    
-    // Calculate new average rating
-    const totalRating = lab.reviews.reduce((sum, review) => sum + review.rating, 0);
-    lab.rating = totalRating / lab.reviews.length;
-    
-    await lab.save();
-    res.json(lab);
+
+    // Create review
+    const review = await prisma.review.create({
+      data: {
+        userId: req.user.id,
+        labId: labId,
+        text,
+        rating: parseInt(rating)
+      }
+    });
+
+    // Recalculate average rating
+    const allReviews = await prisma.review.findMany({
+      where: { labId }
+    });
+    const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+    const avgRating = totalRating / allReviews.length;
+
+    await prisma.lab.update({
+      where: { id: labId },
+      data: { rating: avgRating }
+    });
+
+    res.json(review);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Lab not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -216,18 +268,20 @@ router.post('/:id/reviews', [
 // @route   GET /api/lab-owner/labs
 // @desc    Get labs owned by current user
 // @access  Private (Lab Owner)
-router.get('/labs', auth, async (req, res) => {
+router.get('/my-labs', auth, roleAuth(['LAB_OWNER']), async (req, res) => {
   try {
-    // Check if user is lab owner
-    if (req.user.role !== 'lab_owner') {
-      return res.status(403).json({ msg: 'Access denied' });
-    }
-    
-    // Get labs owned by this user
-    const labs = await Lab.find({ owner: req.user.id })
-      .populate('tests')
-      .sort({ createdAt: -1 });
-    
+    const labs = await prisma.lab.findMany({
+      where: {
+        owners: {
+          some: { id: req.user.id }
+        }
+      },
+      include: {
+        tests: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     res.json(labs);
   } catch (err) {
     console.error(err.message);
@@ -236,16 +290,17 @@ router.get('/labs', auth, async (req, res) => {
 });
 
 // @route   POST /api/lab-owner/labs
-// @desc    Create new lab
+// @desc    Create new lab for owner
 // @access  Private (Lab Owner)
-router.post('/labs', 
+router.post('/my-labs',
   [
     auth,
+    roleAuth(['LAB_OWNER']),
     [
       check('name', 'Name is required').not().isEmpty(),
       check('address', 'Address is required').not().isEmpty()
     ]
-  ], 
+  ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -253,22 +308,25 @@ router.post('/labs',
     }
 
     try {
-      const { name, description, address, contact } = req.body;
-      
-      const newLab = new Lab({
-        owner: req.user.id,
-        name,
-        description,
-        address,
-        contact
+      const { name, description, address, contactInfo } = req.body;
+
+      const lab = await prisma.lab.create({
+        data: {
+          name,
+          description,
+          address,
+          contactInfo,
+          owners: {
+            connect: { id: req.user.id }
+          }
+        }
       });
 
-      const lab = await newLab.save();
       res.json(lab);
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
     }
-});
+  });
 
 module.exports = router;

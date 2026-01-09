@@ -1,20 +1,27 @@
 
 const express = require('express');
 const router = express.Router();
-const Appointment = require('../models/Appointment');
-const Doctor = require('../models/Doctor');
+const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
+
+// Helper to map statuses
+const mapStatus = (status) => status.toUpperCase();
 
 // @route   GET /api/appointments
 // @desc    Get all appointments (admin only)
 // @access  Private (Admin)
-router.get('/', auth, async (req, res) => {
+router.get('/', [auth, roleAuth(['ADMIN'])], async (req, res) => {
   try {
-    const appointments = await Appointment.find()
-      .populate('user', 'name email')
-      .populate('doctor', 'name specialty hospital');
-    
+    const appointments = await prisma.appointment.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        doctor: { select: { id: true, name: true, specialty: true, hospital: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     res.json(appointments);
   } catch (err) {
     console.error(err.message);
@@ -27,10 +34,14 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/user', auth, async (req, res) => {
   try {
-    const appointments = await Appointment.find({ user: req.user.id })
-      .populate('doctor', 'name specialty hospital image')
-      .sort({ date: -1 });
-    
+    const appointments = await prisma.appointment.findMany({
+      where: { userId: req.user.id },
+      include: {
+        doctor: { select: { id: true, name: true, specialty: true, hospital: true, image: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
     res.json(appointments);
   } catch (err) {
     console.error(err.message);
@@ -43,25 +54,26 @@ router.get('/user', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const appointment = await Appointment.findById(req.params.id)
-      .populate('user', 'name email phone')
-      .populate('doctor', 'name specialty hospital address consultationFee image');
-    
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        doctor: { select: { id: true, name: true, specialty: true, hospital: true, address: true, consultationFee: true, image: true } }
+      }
+    });
+
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
-    
+
     // Make sure user owns the appointment or is admin
-    if (appointment.user._id.toString() !== req.user.id) {
+    if (appointment.userId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
+
     res.json(appointment);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -86,31 +98,32 @@ router.post('/', [
 
   try {
     const { doctor, date, timeSlot, reasonForVisit, notes, paymentAmount } = req.body;
-    
+
     // Check if doctor exists
-    const doctorExists = await Doctor.findById(doctor);
+    const doctorExists = await prisma.doctor.findUnique({ where: { id: doctor } });
     if (!doctorExists) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
+
     // Create new appointment
-    const appointment = new Appointment({
-      user: req.user.id,
-      doctor,
-      date,
-      timeSlot,
-      reasonForVisit,
-      notes,
-      paymentStatus: 'pending',
-      paymentAmount
+    const appointment = await prisma.appointment.create({
+      data: {
+        userId: req.user.id,
+        doctorId: doctor,
+        date: new Date(date),
+        timeSlot,
+        reasonForVisit,
+        notes: notes || null,
+        paymentStatus: 'PENDING',
+        paymentAmount: parseFloat(paymentAmount),
+        status: 'BOOKED'
+      },
+      include: {
+        doctor: { select: { id: true, name: true, specialty: true, hospital: true, image: true } }
+      }
     });
 
-    await appointment.save();
-    
-    const populatedAppointment = await Appointment.findById(appointment._id)
-      .populate('doctor', 'name specialty hospital image');
-    
-    res.json(populatedAppointment);
+    res.json(appointment);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -123,36 +136,35 @@ router.post('/', [
 router.put('/:id', auth, async (req, res) => {
   try {
     const { status, notes, paymentStatus } = req.body;
-    
-    let appointment = await Appointment.findById(req.params.id);
-    
+
+    let appointment = await prisma.appointment.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
-    
-    // Make sure user owns the appointment or is admin
-    if (appointment.user.toString() !== req.user.id) {
+
+    // Make sure user owns the appointment or is admin/doctor
+    if (appointment.userId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'DOCTOR') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    // Build appointment object
-    const appointmentFields = {};
-    if (status) appointmentFields.status = status;
-    if (notes) appointmentFields.notes = notes;
-    if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
-    
-    appointment = await Appointment.findByIdAndUpdate(
-      req.params.id,
-      { $set: appointmentFields },
-      { new: true }
-    ).populate('doctor', 'name specialty hospital image');
-    
+
+    appointment = await prisma.appointment.update({
+      where: { id: req.params.id },
+      data: {
+        status: status ? mapStatus(status) : undefined,
+        notes: notes || undefined,
+        paymentStatus: paymentStatus ? mapStatus(paymentStatus) : undefined
+      },
+      include: {
+        doctor: { select: { id: true, name: true, specialty: true, hospital: true, image: true } }
+      }
+    });
+
     res.json(appointment);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
     res.status(500).send('Server error');
   }
 });
@@ -162,27 +174,27 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const appointment = await Appointment.findById(req.params.id);
-    
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: req.params.id }
+    });
+
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
-    
+
     // Make sure user owns the appointment
-    if (appointment.user.toString() !== req.user.id) {
+    if (appointment.userId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'DOCTOR') {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    
-    // Instead of deleting, set status to cancelled
-    appointment.status = 'cancelled';
-    await appointment.save();
-    
-    res.json({ message: 'Appointment cancelled' });
+
+    const updatedAppointment = await prisma.appointment.update({
+      where: { id: req.params.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    res.json({ message: 'Appointment cancelled', appointment: updatedAppointment });
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
     res.status(500).send('Server error');
   }
 });

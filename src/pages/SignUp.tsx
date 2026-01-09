@@ -10,9 +10,9 @@ import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { authAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { CardContent } from "@/components/ui/card";
-import { CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/store/slices/authSlice";
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -30,21 +30,24 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    if (authAPI.isAuthenticated()) {
-      const userRole = authAPI.getCurrentUserRole();
-      if (userRole === "lab_owner") {
-        navigate("/lab-dashboard");
-      } else {
-        navigate("/profile");
+    const checkAuth = async () => {
+      if (await authAPI.isAuthenticated()) {
+        const userRole = authAPI.getCurrentUserRole();
+        if (userRole === "lab_owner") {
+          navigate("/lab-dashboard");
+        } else {
+          navigate("/profile");
+        }
       }
-    }
+    };
+    checkAuth();
   }, [navigate]);
 
   const form = useForm<SignUpFormValues>({
@@ -72,33 +75,21 @@ const SignUp = () => {
         role: data.role
       });
 
-      toast.success("Account created successfully! Welcome to Ekitsa.");
+      if (response) {
+        dispatch(setCredentials({ user: response.user, role: response.role }));
+        toast.success("Account created successfully! Welcome to Ekitsa.");
 
-      // Navigate based on user role
-      if (response.role === "lab_owner") {
-        navigate("/lab-dashboard");
-      } else {
-        navigate("/profile");
+        // Navigate based on user role
+        if (response.role === "lab_owner") {
+          navigate("/lab-dashboard");
+        } else {
+          navigate("/profile");
+        }
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Sign up error:", error);
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        (error as any).response &&
-        typeof (error as any).response === "object" &&
-        "data" in (error as any).response &&
-        (error as any).response.data &&
-        typeof (error as any).response.data === "object" &&
-        "message" in (error as any).response.data
-      ) {
-        setError((error as any).response.data.message || "Registration failed. Please try again.");
-        toast.error((error as any).response.data.message || "Registration failed. Please try again.");
-      } else {
-        setError("Registration failed. Please try again.");
-        toast.error("Registration failed. Please try again.");
-      }
+      setError(error.message || "Registration failed. Please try again.");
+      toast.error(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

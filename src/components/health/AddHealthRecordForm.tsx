@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
+import { storageService } from '@/services/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, X } from "lucide-react";
@@ -45,6 +46,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
   const [tagInput, setTagInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -73,7 +75,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      
+
       // Create a preview for images
       if (selectedFile.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -87,32 +89,30 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
     }
   };
 
-  const handleFormSubmit = (data: FormValues) => {
-    // Combine form data with tags and file
-    const formData = new FormData();
-    
-    // Add the form data
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (key === 'date') {
-          formData.append(key, (value as Date).toISOString());
-        } else {
-          formData.append(key, value as string);
-        }
+  const handleFormSubmit = async (data: FormValues) => {
+    try {
+      setIsUploading(true);
+      let fileUrl = null;
+
+      if (file) {
+        const fileName = `${Date.now()}-${file.name}`;
+        fileUrl = await storageService.uploadImage('health-records', fileName, file);
       }
-    });
-    
-    // Add tags as a JSON string
-    if (tags.length > 0) {
-      formData.append('tags', JSON.stringify(tags));
+
+      // Combine form data with tags and file URL
+      const finalData = {
+        ...data,
+        tags,
+        fileUrl
+      };
+
+      onSubmit(finalData);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
+    } finally {
+      setIsUploading(false);
     }
-    
-    // Add the file if present
-    if (file) {
-      formData.append('file', file);
-    }
-    
-    onSubmit(formData);
   };
 
   return (
@@ -129,8 +129,8 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Record Type</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -149,7 +149,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="title"
@@ -163,7 +163,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="date"
@@ -202,7 +202,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
@@ -217,7 +217,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="hospitalName"
@@ -232,7 +232,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -240,30 +240,30 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Add a description or notes (optional)" 
+                    <Textarea
+                      placeholder="Add a description or notes (optional)"
                       className="min-h-[100px]"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <div>
               <FormLabel className="block mb-2">Tags</FormLabel>
               <div className="flex flex-wrap gap-2 mb-2">
                 {tags.map((tag, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex items-center bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm"
                   >
                     {tag}
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       className="h-5 w-5 p-0 ml-1"
                       onClick={() => handleRemoveTag(tag)}
                     >
@@ -285,16 +285,16 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                     }
                   }}
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleAddTag}
                 >
                   Add
                 </Button>
               </div>
             </div>
-            
+
             <div>
               <FormLabel className="block mb-2">Upload File</FormLabel>
               <Input
@@ -304,10 +304,10 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
               />
               {filePreview && (
                 <div className="mt-2 relative w-32 h-32 border rounded overflow-hidden">
-                  <img 
-                    src={filePreview} 
-                    alt="Preview" 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={filePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
                   />
                   <Button
                     type="button"
@@ -324,13 +324,13 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-end space-x-4">
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="submit">
-                Save Record
+              <Button type="submit" disabled={isUploading}>
+                {isUploading ? 'Uploading...' : 'Save Record'}
               </Button>
             </div>
           </form>

@@ -21,7 +21,7 @@ const labOwnerRoutes = require('./routes/lab-owner.routes');
 // Initialize express app
 const app = express();
 
-// Connect to MongoDB
+// Connect to PostgreSQL via Prisma
 connectDB();
 
 // Middleware

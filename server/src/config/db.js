@@ -1,26 +1,14 @@
 
-const mongoose = require('mongoose');
+const prisma = require('../lib/prisma');
 
 const connectDB = async () => {
   try {
-    // Use the MongoDB connection string from environment variables
-    // Fall back to local MongoDB if not provided
-    const connectionString = process.env.MONGO_URI || 'mongodb://localhost:27017/healthcare-app';
-    
-    const conn = await mongoose.connect(connectionString, {
-      // These options are no longer needed in Mongoose 7+, but kept for compatibility
-      // with older versions just in case
-    });
-    
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    
-    // Log database name for verification
-    console.log(`Database Name: ${conn.connection.name}`);
-    
-    return conn;
+    await prisma.$connect();
+    console.log('PostgreSQL Connected via Prisma');
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    console.error(`Error connecting to PostgreSQL: ${error.message}`);
+    // Don't exit process here if we want to allow the server to start (optional)
+    // process.exit(1);
   }
 };
 

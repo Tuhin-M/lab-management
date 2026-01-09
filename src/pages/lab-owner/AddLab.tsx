@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Upload } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
+import { storageService } from "@/services/storage";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,10 +72,21 @@ const AddLab = () => {
 
   const onSubmit = async (data: LabFormValues) => {
     try {
+      let imageUrl = null;
+      if (imageFile) {
+        const fileName = `${Date.now()}-${imageFile.name}`;
+        imageUrl = await storageService.uploadImage('labs', fileName, imageFile);
+      }
+
+      const payload = {
+        ...data,
+        image: imageUrl || 'default-lab.jpg'
+      };
+
       const res = await fetch('/api/labs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Failed to add lab');
       toast.success('Lab added successfully');
@@ -88,8 +100,8 @@ const AddLab = () => {
   return (
     <div className="min-h-screen bg-background pt-16 pb-12">
       <div className="container max-w-3xl mx-auto p-4">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="mb-6"
           onClick={() => navigate("/lab-dashboard")}
         >
@@ -105,7 +117,7 @@ const AddLab = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Basic Information</h3>
-                  
+
                   <FormField
                     control={form.control}
                     name="name"
@@ -127,10 +139,10 @@ const AddLab = () => {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Describe your lab, specialties, etc." 
+                          <Textarea
+                            placeholder="Describe your lab, specialties, etc."
                             rows={4}
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -141,14 +153,14 @@ const AddLab = () => {
                   <div>
                     <FormLabel>Lab Image</FormLabel>
                     <div className="mt-2 flex items-center gap-4">
-                      <div 
+                      <div
                         className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors"
                         onClick={() => document.getElementById('lab-image')?.click()}
                       >
                         <Upload className="h-8 w-8 text-gray-400" />
                         <p className="mt-2 text-sm text-gray-600">Click to upload image</p>
-                        <input placeholder="Enter value" title="Enter value" 
-                          type="file" 
+                        <input placeholder="Enter value" title="Enter value"
+                          type="file"
                           id="lab-image"
                           accept="image/*"
                           className="hidden"
@@ -157,9 +169,9 @@ const AddLab = () => {
                       </div>
                       {imagePreview && (
                         <div className="h-24 w-24 relative rounded-md overflow-hidden">
-                          <img 
-                            src={imagePreview} 
-                            alt="Preview" 
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
                             className="h-full w-full object-cover"
                           />
                         </div>
@@ -170,7 +182,7 @@ const AddLab = () => {
 
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="text-lg font-medium">Address</h3>
-                  
+
                   <FormField
                     control={form.control}
                     name="address.street"
@@ -232,7 +244,7 @@ const AddLab = () => {
 
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="text-lg font-medium">Contact Information</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -280,7 +292,7 @@ const AddLab = () => {
 
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="text-lg font-medium">Certifications</h3>
-                  
+
                   <FormField
                     control={form.control}
                     name="certifications"
@@ -297,8 +309,8 @@ const AddLab = () => {
                 </div>
 
                 <div className="pt-6 border-t flex justify-end space-x-4">
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => navigate("/lab-dashboard")}
                   >

@@ -12,167 +12,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import RecommendedFilters from "@/components/RecommendedFilters";
 import { Button } from "@/components/ui/button";
 
-// Sample data for tests with Indian context
-const mockTests: Test[] = [
-  {
-    id: "1",
-    name: "Complete Blood Count (CBC)",
-    description:
-      "Measures red and white blood cells, platelets, and hemoglobin levels",
-    category: "Hematology",
-    price: 499,
-    discount: 10,
-    isPopular: true,
-  },
-  {
-    id: "2",
-    name: "Thyroid Profile",
-    description: "Checks thyroid function with T3, T4, and TSH tests",
-    category: "Endocrinology",
-    price: 899,
-    discount: 15,
-    isPopular: true,
-  },
-  {
-    id: "3",
-    name: "Lipid Profile",
-    description: "Measures cholesterol and triglyceride levels in your blood",
-    category: "Chemistry",
-    price: 699,
-    discount: 5,
-  },
-  {
-    id: "4",
-    name: "Vitamin D Test",
-    description: "Measures the level of vitamin D in your blood",
-    category: "Nutrition",
-    price: 1299,
-    discount: 20,
-  },
-  {
-    id: "5",
-    name: "HbA1c",
-    description:
-      "Monitors blood sugar levels over time for diabetes management",
-    category: "Endocrinology",
-    price: 599,
-  },
-  {
-    id: "6",
-    name: "Liver Function Test",
-    description: "Assesses how well your liver is functioning",
-    category: "Chemistry",
-    price: 799,
-    discount: 10,
-  },
-];
+// Data fetching handled by API services
 
-// Sample data for labs with Indian context
-const mockLabs: Lab[] = [
-  {
-    id: "1",
-    name: "Apollo Diagnostics",
-    address: "Koramangala, Bengaluru, Karnataka 560034",
-    distance: 1.2,
-    rating: 4.7,
-    reviewCount: 142,
-    price: 449,
-    discount: 10,
-    waitTime: "10-15 min",
-    openNow: true,
-    facilities: [
-      "Home Collection",
-      "Digital Reports",
-      "NABL Accredited",
-      "Insurance Accepted",
-    ],
-    imageUrl:
-      "https://images.unsplash.com/photo-1587370560942-ad2a04eabb6d?q=80&w=2070&auto=format&fit=crop",
-    accreditation: "NABL Accredited Lab",
-    yearEstablished: 2005,
-  },
-  {
-    id: "2",
-    name: "Thyrocare Technologies",
-    address: "Indiranagar, Bengaluru, Karnataka 560038",
-    distance: 3.5,
-    rating: 4.2,
-    reviewCount: 98,
-    price: 399,
-    discount: 15,
-    waitTime: "5-10 min",
-    openNow: true,
-    facilities: ["Digital Reports", "Open 24x7", "Home Collection"],
-    imageUrl:
-      "https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=2070&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Metropolis Healthcare",
-    address: "HSR Layout, Bengaluru, Karnataka 560102",
-    distance: 5.8,
-    rating: 4.8,
-    reviewCount: 215,
-    price: 499,
-    discount: 5,
-    waitTime: "20-30 min",
-    openNow: false,
-    facilities: [
-      "Home Collection",
-      "Digital Reports",
-      "NABL Accredited",
-      "Free Home Delivery",
-    ],
-    imageUrl:
-      "https://images.unsplash.com/photo-1581595219315-a187dd40c322?q=80&w=1974&auto=format&fit=crop",
-    accreditation: "NABL and CAP Accredited",
-  },
-  {
-    id: "4",
-    name: "Dr. Lal PathLabs",
-    address: "Jayanagar, Bengaluru, Karnataka 560069",
-    distance: 2.3,
-    rating: 3.9,
-    reviewCount: 67,
-    price: 375,
-    waitTime: "15-20 min",
-    openNow: true,
-    facilities: ["Insurance Accepted", "Digital Reports"],
-    imageUrl:
-      "https://images.unsplash.com/photo-1504439468489-c8920d796a29?q=80&w=2071&auto=format&fit=crop",
-  },
-  {
-    id: "5",
-    name: "SRL Diagnostics",
-    address: "Whitefield, Bengaluru, Karnataka 560066",
-    distance: 7.1,
-    rating: 4.5,
-    reviewCount: 183,
-    price: 459,
-    discount: 12,
-    waitTime: "10-15 min",
-    openNow: true,
-    facilities: ["Home Collection", "Open 24x7", "NABL Accredited"],
-    imageUrl:
-      "https://images.unsplash.com/photo-1666214276372-24e621c10046?q=80&w=2070&auto=format&fit=crop",
-    accreditation: "NABL Accredited Lab",
-  },
-  {
-    id: "6",
-    name: "Neuberg Diagnostics",
-    address: "BTM Layout, Bengaluru, Karnataka 560076",
-    distance: 0.8,
-    rating: 4.4,
-    reviewCount: 112,
-    price: 425,
-    discount: 10,
-    waitTime: "5-10 min",
-    openNow: false,
-    facilities: ["Digital Reports", "Insurance Accepted", "Free Home Delivery"],
-    imageUrl:
-      "https://images.unsplash.com/photo-1581093196277-9f6070b4a8bb?q=80&w=2070&auto=format&fit=crop",
-  },
-];
+import { labsAPI } from "@/services/api";
+import { Loader2 } from "lucide-react";
 
 const LabTests = () => {
   const { toast } = useToast();
@@ -180,6 +23,9 @@ const LabTests = () => {
   const [selectedCity, setSelectedCity] = useState("Bengaluru");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Test[]>([]);
+  const [allTests, setAllTests] = useState<Test[]>([]);
+  const [allLabs, setAllLabs] = useState<Lab[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
   const [filteredLabs, setFilteredLabs] = useState<Lab[]>([]);
@@ -198,6 +44,56 @@ const LabTests = () => {
     },
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Fetch initial data
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        // Fetch all tests
+        const testsData = await labsAPI.getAllTests();
+        const mappedTests: Test[] = testsData.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          category: t.category?.name || "General",
+          price: t.price,
+          isPopular: t.popularity > 80,
+        }));
+        setAllTests(mappedTests);
+
+        // Fetch all labs
+        const labsData = await labsAPI.getAllLabs({ city: selectedCity });
+        const mappedLabs: Lab[] = labsData.map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          address: l.address ? `${l.address.street}, ${l.address.city}` : "Address not available",
+          distance: Math.random() * 5, // Simulated distance for now as backend doesn't have lat/long
+          rating: l.rating || 0,
+          reviewCount: l.reviews?.length || 0,
+          price: l.tests?.[0]?.price || 0, // Simplified price for listing
+          waitTime: "15-20 min", // Simulated
+          openNow: true, // Simulated
+          facilities: l.certifications || [], // Mapping certifications to facilities for now
+          imageUrl: l.image || "/placeholder.svg",
+          accreditation: l.certifications?.[0],
+        }));
+        setAllLabs(mappedLabs);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load tests and labs. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialData();
+  }, [selectedCity, toast]);
+
 
   // Handle city change
   const handleCityChange = (city: string) => {
@@ -221,7 +117,7 @@ const LabTests = () => {
     setSelectedLab(null);
 
     // Filter tests based on query
-    const filtered = mockTests.filter(
+    const filtered = allTests.filter(
       (test) =>
         test.name.toLowerCase().includes(query.toLowerCase()) ||
         test.description.toLowerCase().includes(query.toLowerCase()) ||
@@ -230,7 +126,7 @@ const LabTests = () => {
 
     setSearchResults(filtered);
 
-    if (filtered.length === 0) {
+    if (filtered.length === 0 && query !== "") {
       toast({
         title: "No tests found",
         description: "Try a different search term",
@@ -273,7 +169,7 @@ const LabTests = () => {
     if (!selectedTest) return;
 
     // Filter labs
-    let filtered = [...mockLabs];
+    let filtered = [...allLabs];
 
     if (filters.openNow) {
       filtered = filtered.filter((lab) => lab.openNow);
@@ -322,7 +218,7 @@ const LabTests = () => {
     }
 
     setFilteredLabs(filtered);
-  }, [selectedTest, filters, sortOption]);
+  }, [selectedTest, filters, sortOption, allLabs]);
 
   // Function to view lab details
   const handleViewLabDetails = (lab: Lab) => {
@@ -406,7 +302,7 @@ const LabTests = () => {
                 onClick={() => {
                   setSelectedTest(null);
                   setSearchResults(
-                    mockTests.filter((test) =>
+                    allTests.filter((test) =>
                       test.name
                         .toLowerCase()
                         .includes(searchQuery.toLowerCase())
@@ -541,9 +437,8 @@ const LabTests = () => {
                 <div
                   className="h-32 bg-cover bg-center w-full"
                   style={{
-                    backgroundImage: `url(${
-                      selectedLab.imageUrl || "/placeholder.svg"
-                    })`,
+                    backgroundImage: `url(${selectedLab.imageUrl || "/placeholder.svg"
+                      })`,
                   }}
                 />
                 <Button
@@ -572,7 +467,7 @@ const LabTests = () => {
                             ₹
                             {Math.round(
                               selectedLab.price -
-                                (selectedLab.price * selectedLab.discount) / 100
+                              (selectedLab.price * selectedLab.discount) / 100
                             )}
                           </span>
                           <span className="text-xs line-through text-muted-foreground">
@@ -613,6 +508,12 @@ const LabTests = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {loading && (
+          <div className="fixed inset-0 bg-background/20 backdrop-blur-[1px] flex items-center justify-center z-[60]">
+            <Loader2 className="h-10 w-10 text-primary animate-spin" />
           </div>
         )}
       </main>

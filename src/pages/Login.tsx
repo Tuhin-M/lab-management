@@ -10,9 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { authAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { CardContent } from "@/components/ui/card";
-import { CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/store/slices/authSlice";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -24,20 +24,23 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    if (authAPI.isAuthenticated()) {
-      const userRole = authAPI.getCurrentUserRole();
-      if (userRole === "lab_owner") {
-        navigate("/lab-dashboard");
-      } else {
-        navigate("/profile");
+    const checkAuth = async () => {
+      if (await authAPI.isAuthenticated()) {
+        const userRole = authAPI.getCurrentUserRole();
+        if (userRole === "lab_owner") {
+          navigate("/lab-dashboard");
+        } else {
+          navigate("/profile");
+        }
       }
-    }
+    };
+    checkAuth();
   }, [navigate]);
 
   const form = useForm<LoginFormValues>({
@@ -53,28 +56,25 @@ const Login = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await authAPI.login(values.email, values.password);
-      
-      // Store token based on remember me choice
-      if (values.rememberMe) {
-        localStorage.setItem('token', response.token);
-      } else {
-        sessionStorage.setItem('token', response.token);
+
+      if (response) {
+        dispatch(setCredentials({ user: response.user, role: response.role }));
+
+        // Redirect based on role
+        if (response.role === 'lab_owner') {
+          navigate('/lab-dashboard');
+        } else {
+          navigate('/profile');
+        }
+        toast.success('Successfully logged in!');
       }
-      
-      // Redirect based on role
-      const userRole = authAPI.getCurrentUserRole();
-      if (userRole === 'lab_owner') {
-        navigate('/lab-dashboard');
-      } else {
-        navigate('/profile');
-      }
-      
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Login failed:', error);
-      setError('Invalid email or password');
-      toast.error('Login failed');
+      setError(error.message || 'Invalid email or password');
+      toast.error(error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
