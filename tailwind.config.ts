@@ -73,6 +73,10 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			fontFamily: {
+				sans: ['Open Sans', 'system-ui', 'sans-serif'],
+				heading: ['Montserrat', 'system-ui', 'sans-serif'],
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {
@@ -91,11 +95,11 @@ export default {
 					}
 				},
 				'fade-in': {
-					'0%': { 
+					'0%': {
 						opacity: '0',
 						transform: 'translateY(10px)'
 					},
-					'100%': { 
+					'100%': {
 						opacity: '1',
 						transform: 'translateY(0)'
 					}
@@ -105,11 +109,11 @@ export default {
 					to: { opacity: '0' }
 				},
 				'slide-in': {
-					'0%': { 
-						transform: 'translateX(-100%)' 
+					'0%': {
+						transform: 'translateX(-100%)'
 					},
-					'100%': { 
-						transform: 'translateX(0)' 
+					'100%': {
+						transform: 'translateX(0)'
 					}
 				},
 				'slide-out': {
@@ -117,23 +121,23 @@ export default {
 					to: { transform: 'translateX(-100%)' }
 				},
 				'scale-in': {
-					from: { 
-						opacity: '0', 
-						transform: 'scale(0.95)' 
+					from: {
+						opacity: '0',
+						transform: 'scale(0.95)'
 					},
-					to: { 
-						opacity: '1', 
-						transform: 'scale(1)' 
+					to: {
+						opacity: '1',
+						transform: 'scale(1)'
 					}
 				},
 				'scale-out': {
-					from: { 
-						opacity: '1', 
-						transform: 'scale(1)' 
+					from: {
+						opacity: '1',
+						transform: 'scale(1)'
 					},
-					to: { 
-						opacity: '0', 
-						transform: 'scale(0.95)' 
+					to: {
+						opacity: '0',
+						transform: 'scale(0.95)'
 					}
 				},
 				pulse: {

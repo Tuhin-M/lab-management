@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -10,7 +10,8 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Filter
+  Filter,
+  RotateCcw
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 export interface LabFiltersProps {
   onSortChange: (sortOption: string) => void;
   onFilterChange: (filters: LabFiltersState) => void;
+  initialFilters?: LabFiltersState;
+  initialSortOption?: string;
   isMobile?: boolean;
   onClose?: () => void;
 }
@@ -30,33 +33,47 @@ export interface LabFiltersState {
   facilities: Record<string, boolean>;
 }
 
+const defaultFilters: LabFiltersState = {
+  rating: 0,
+  maxDistance: 10,
+  openNow: false,
+  facilities: {
+    "Home Collection": false,
+    "Digital Reports": false,
+    "NABL Accredited": false,
+    "Open 24x7": false,
+    "Free Home Delivery": false,
+    "Insurance Accepted": false,
+  },
+};
+
 const LabFilters = ({ 
   onSortChange, 
   onFilterChange,
+  initialFilters,
+  initialSortOption = "relevance",
   isMobile = false,
   onClose 
 }: LabFiltersProps) => {
-  const [filters, setFilters] = useState<LabFiltersState>({
-    rating: 0,
-    maxDistance: 10,
-    openNow: false,
-    facilities: {
-      "Home Collection": false,
-      "Digital Reports": false,
-      "NABL Accredited": false,
-      "Open 24x7": false,
-      "Free Home Delivery": false,
-      "Insurance Accepted": false,
-    },
-  });
-
-  const [sortOption, setSortOption] = useState("relevance");
+  const [filters, setFilters] = useState<LabFiltersState>(initialFilters || defaultFilters);
+  const [sortOption, setSortOption] = useState(initialSortOption);
   const [expandedSections, setExpandedSections] = useState({
     sort: true,
     rating: true,
     distance: true,
     facilities: true,
   });
+
+  // Sync with parent's initial values when they change
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
+
+  useEffect(() => {
+    setSortOption(initialSortOption);
+  }, [initialSortOption]);
   
   const handleSortChange = (value: string) => {
     setSortOption(value);
@@ -92,151 +109,145 @@ const LabFilters = ({
     Object.values(filters.facilities).filter(Boolean).length;
 
   return (
-    <div className={`${isMobile ? 'w-full p-4 bg-white' : 'w-full max-w-xs sticky top-20'}`}>
-      {isMobile && (
-        <div className="flex items-center justify-between mb-4 pb-2 border-b">
-          <div className="flex items-center">
-            <Filter className="h-4 w-4 mr-2" />
-            <h2 className="font-semibold">Filters</h2>
-            {activeFiltersCount > 0 && (
-              <Badge className="ml-2 bg-primary text-white">{activeFiltersCount}</Badge>
-            )}
-          </div>
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Close
-            </Button>
-          )}
-        </div>
-      )}
-
+    <div className={`${isMobile ? 'w-full p-6 bg-background' : 'w-full max-w-xs sticky top-32'}`}>
       {!isMobile && (
-        <div className="flex items-center mb-4">
-          <Filter className="h-4 w-4 mr-2" />
-          <h2 className="font-semibold">Filters</h2>
-          {activeFiltersCount > 0 && (
-            <Badge className="ml-2 bg-primary text-white">{activeFiltersCount}</Badge>
-          )}
+        <div className="flex items-center justify-between mb-6 px-1">
+           <div className="flex items-center gap-3">
+             <div className="bg-primary/10 p-2.5 rounded-xl text-primary">
+               <Filter className="h-5 w-5" />
+             </div>
+             <div>
+               <h2 className="font-bold text-lg leading-none">Filters</h2>
+               {activeFiltersCount > 0 && (
+                 <p className="text-xs text-muted-foreground mt-1">{activeFiltersCount} active</p>
+               )}
+             </div>
+           </div>
+           {activeFiltersCount > 0 && (
+             <Button 
+               variant="ghost" 
+               size="sm" 
+               className="h-8 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors rounded-lg"
+               onClick={() => {
+                 const resetFilters = {
+                   rating: 0,
+                   maxDistance: 10,
+                   openNow: false,
+                   facilities: Object.keys(filters.facilities).reduce(
+                     (acc, facility) => ({ ...acc, [facility]: false }),
+                     {} as Record<string, boolean>
+                   ),
+                 };
+                 setFilters(resetFilters);
+                 setSortOption("relevance");
+                 onFilterChange(resetFilters);
+                 onSortChange("relevance");
+               }}
+             >
+               Clear all
+             </Button>
+           )}
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Sort Options */}
-        <Collapsible open={expandedSections.sort} className="border rounded-md overflow-hidden">
+        <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
+        <Collapsible open={expandedSections.sort} className="">
           <CollapsibleTrigger asChild onClick={() => toggleSection("sort")}>
-            <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 hover:bg-secondary">
-              <div className="flex items-center">
-                <h3 className="font-medium text-sm">Sort By</h3>
-              </div>
-              {expandedSections.sort ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <div className="flex items-center justify-between p-4 cursor-pointer">
+              <span className="font-semibold text-sm">Sort By</span>
+              {expandedSections.sort ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="p-3">
-            <RadioGroup value={sortOption} onValueChange={handleSortChange} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="relevance" id="relevance" />
-                <label htmlFor="relevance" className="text-sm cursor-pointer">Relevance</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="rating" id="rating" />
-                <label htmlFor="rating" className="text-sm cursor-pointer flex items-center">
-                  Rating <Star className="h-3 w-3 ml-1 text-primary" fill="currentColor" />
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="distance" id="distance" />
-                <label htmlFor="distance" className="text-sm cursor-pointer flex items-center">
-                  Distance <MapPin className="h-3 w-3 ml-1 text-primary" />
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="price-low" id="price-low" />
-                <label htmlFor="price-low" className="text-sm cursor-pointer flex items-center">
-                  Price: Low to High <BadgeIndianRupee className="h-3 w-3 ml-1 text-primary" />
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="price-high" id="price-high" />
-                <label htmlFor="price-high" className="text-sm cursor-pointer flex items-center">
-                  Price: High to Low <BadgeIndianRupee className="h-3 w-3 ml-1 text-primary" />
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="wait-time" id="wait-time" />
-                <label htmlFor="wait-time" className="text-sm cursor-pointer flex items-center">
-                  Wait Time <Clock className="h-3 w-3 ml-1 text-primary" />
-                </label>
-              </div>
+          <CollapsibleContent className="px-4 pb-4">
+            <RadioGroup value={sortOption} onValueChange={handleSortChange} className="space-y-3">
+              {[
+                { id: "relevance", label: "Relevance", icon: null },
+                { id: "rating", label: "Rating", icon: <Star className="h-3.5 w-3.5 ml-1.5 text-yellow-500 fill-yellow-500" /> },
+                { id: "distance", label: "Distance", icon: <MapPin className="h-3.5 w-3.5 ml-1.5 text-blue-500" /> },
+                { id: "price-low", label: "Price: Low to High", icon: <BadgeIndianRupee className="h-3.5 w-3.5 ml-1.5 text-green-600" /> },
+                { id: "price-high", label: "Price: High to Low", icon: <BadgeIndianRupee className="h-3.5 w-3.5 ml-1.5 text-green-600" /> },
+                { id: "wait-time", label: "Wait Time", icon: <Clock className="h-3.5 w-3.5 ml-1.5 text-orange-500" /> },
+              ].map((opt) => (
+                <div key={opt.id} className="flex items-center justify-between group/item cursor-pointer p-2 rounded-lg hover:bg-primary/5 transition-colors">
+                  <label htmlFor={opt.id} className="text-sm cursor-pointer flex items-center flex-1 text-muted-foreground group-hover/item:text-foreground">
+                    {opt.label} {opt.icon}
+                  </label>
+                  <RadioGroupItem value={opt.id} id={opt.id} className="scale-90 border-muted-foreground/30 data-[state=checked]:border-primary" />
+                </div>
+              ))}
             </RadioGroup>
           </CollapsibleContent>
         </Collapsible>
+        </div>
 
         {/* Rating Filter */}
-        <Collapsible open={expandedSections.rating} className="border rounded-md overflow-hidden">
+        <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
+        <Collapsible open={expandedSections.rating} className="">
           <CollapsibleTrigger asChild onClick={() => toggleSection("rating")}>
-            <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 hover:bg-secondary">
+            <div className="flex items-center justify-between p-4 cursor-pointer">
               <div className="flex items-center">
-                <h3 className="font-medium text-sm">Minimum Rating</h3>
+                <span className="font-semibold text-sm">Minimum Rating</span>
                 {filters.rating > 0 && (
-                  <Badge className="ml-2 bg-primary text-white">{filters.rating}+</Badge>
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] bg-yellow-500/10 text-yellow-600 border-yellow-200">{filters.rating}+</Badge>
                 )}
               </div>
-              {expandedSections.rating ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expandedSections.rating ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="p-3">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Slider
-                  value={[filters.rating]}
-                  min={0}
-                  max={5}
-                  step={0.5}
-                  onValueChange={(value) => handleFilterChange({ rating: value[0] })}
-                  className="flex-grow"
-                />
-                <span className="w-10 text-sm font-medium">{filters.rating} ⭐</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs">Any</span>
-                <span className="text-xs">5.0</span>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="space-y-6 pt-2">
+              <Slider
+                value={[filters.rating]}
+                min={0}
+                max={5}
+                step={0.5}
+                onValueChange={(value) => handleFilterChange({ rating: value[0] })}
+                className="py-2"
+              />
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span className="text-xs font-medium">Any</span>
+                <span className="text-sm font-bold text-foreground bg-secondary px-2 py-0.5 rounded-md">{filters.rating} Stars</span>
+                <span className="text-xs font-medium">5.0</span>
               </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
+        </div>
 
         {/* Distance Filter */}
-        <Collapsible open={expandedSections.distance} className="border rounded-md overflow-hidden">
+        <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
+        <Collapsible open={expandedSections.distance} className="">
           <CollapsibleTrigger asChild onClick={() => toggleSection("distance")}>
-            <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 hover:bg-secondary">
+            <div className="flex items-center justify-between p-4 cursor-pointer">
               <div className="flex items-center">
-                <h3 className="font-medium text-sm">Maximum Distance</h3>
+                <span className="font-semibold text-sm">Distance</span>
                 {filters.maxDistance < 10 && (
-                  <Badge className="ml-2 bg-primary text-white">{filters.maxDistance} km</Badge>
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] bg-blue-500/10 text-blue-600 border-blue-200">{filters.maxDistance} km</Badge>
                 )}
               </div>
-              {expandedSections.distance ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expandedSections.distance ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="p-3">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Slider
-                  value={[filters.maxDistance]}
-                  min={1}
-                  max={10}
-                  step={1}
-                  onValueChange={(value) => handleFilterChange({ maxDistance: value[0] })}
-                  className="flex-grow"
-                />
-                <span className="w-16 text-sm font-medium">{filters.maxDistance} km</span>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="space-y-6 pt-2">
+              <Slider
+                value={[filters.maxDistance]}
+                min={1}
+                max={10}
+                step={1}
+                onValueChange={(value) => handleFilterChange({ maxDistance: value[0] })}
+                className="py-2"
+              />
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span className="text-xs font-medium">1 km</span>
+                <span className="text-sm font-bold text-foreground bg-secondary px-2 py-0.5 rounded-md">{filters.maxDistance} km</span>
+                <span className="text-xs font-medium">10 km</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs">1 km</span>
-                <span className="text-xs">10 km</span>
-              </div>
-              <div className="mt-2">
-                <div className="flex items-center space-x-2 mt-2">
+              
+              <div className="pt-4 border-t border-border/50">
+                <div className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
                   <Checkbox
                     id="open-now"
                     checked={filters.openNow}
@@ -244,43 +255,46 @@ const LabFilters = ({
                   />
                   <label
                     htmlFor="open-now"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    className="text-sm font-medium leading-none cursor-pointer flex items-center flex-1"
                   >
-                    Open Now
+                    Open Now <span className="ml-auto inline-block h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]"></span>
                   </label>
                 </div>
               </div>
             </div>
           </CollapsibleContent>
         </Collapsible>
+        </div>
 
         {/* Facilities */}
-        <Collapsible open={expandedSections.facilities} className="border rounded-md overflow-hidden">
+        <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
+        <Collapsible open={expandedSections.facilities} className="">
           <CollapsibleTrigger asChild onClick={() => toggleSection("facilities")}>
-            <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 hover:bg-secondary">
+            <div className="flex items-center justify-between p-4 cursor-pointer">
               <div className="flex items-center">
-                <h3 className="font-medium text-sm">Facilities</h3>
+                <span className="font-semibold text-sm">Facilities</span>
                 {Object.values(filters.facilities).filter(Boolean).length > 0 && (
-                  <Badge className="ml-2 bg-primary text-white">
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] bg-purple-500/10 text-purple-600 border-purple-200">
                     {Object.values(filters.facilities).filter(Boolean).length}
                   </Badge>
                 )}
               </div>
-              {expandedSections.facilities ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expandedSections.facilities ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="p-3">
-            <div className="space-y-2">
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="space-y-1 pt-1">
               {Object.keys(filters.facilities).map((facility) => (
-                <div key={facility} className="flex items-center space-x-2">
+                <div key={facility} className="flex items-center space-x-3 group/item p-2 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
                   <Checkbox
                     id={facility}
                     checked={filters.facilities[facility]}
                     onCheckedChange={(checked) => handleFacilityChange(facility, checked as boolean)}
+                    className="data-[state=checked]:bg-primary"
                   />
                   <label
                     htmlFor={facility}
-                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    className="text-sm leading-none cursor-pointer flex-1 text-muted-foreground group-hover/item:text-foreground transition-colors"
                   >
                     {facility}
                   </label>
@@ -289,26 +303,7 @@ const LabFilters = ({
             </div>
           </CollapsibleContent>
         </Collapsible>
-
-        <Button
-          variant="outline"
-          className="w-full mt-4 border-primary text-primary hover:bg-primary hover:text-white"
-          onClick={() => {
-            const resetFilters = {
-              rating: 0,
-              maxDistance: 10,
-              openNow: false,
-              facilities: Object.keys(filters.facilities).reduce(
-                (acc, facility) => ({ ...acc, [facility]: false }),
-                {} as Record<string, boolean>
-              ),
-            };
-            setFilters(resetFilters);
-            onFilterChange(resetFilters);
-          }}
-        >
-          Clear All Filters
-        </Button>
+        </div>
       </div>
     </div>
   );

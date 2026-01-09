@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import TopNavigation from "@/components/TopNavigation";
 import { healthRecordsAPI } from "@/services/api";
 import HealthRecordsList from "@/components/health/HealthRecordsList";
 import HealthAnalytics from "@/components/health/HealthAnalytics";
@@ -136,8 +135,7 @@ const HealthRecords = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <TopNavigation activeModule="doctors" />
+    <div className="min-h-screen bg-background flex flex-col pt-16">
       
       <main className="flex-grow container mx-auto py-6 px-4">
         <div className="mb-6 flex justify-between items-center">

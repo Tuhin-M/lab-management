@@ -17,6 +17,11 @@ const specialtiesRoutes = require("./routes/specialties.routes");
 const testsRoutes = require("./routes/tests.routes");
 const healthRecordsRoutes = require("./routes/health-records.routes");
 const labOwnerRoutes = require('./routes/lab-owner.routes');
+const couponsRoutes = require('./routes/coupons.routes');
+const paymentsRoutes = require('./routes/payments.routes');
+const teleconsultRoutes = require('./routes/teleconsult.routes');
+const prescriptionsRoutes = require('./routes/prescriptions.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Initialize express app
 const app = express();
@@ -29,7 +34,7 @@ connectDB();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:8080"],
+  origin: true, // Allow all origins in development
   credentials: true
 }));
 app.use(cookieParser());
@@ -49,6 +54,11 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/specialties", specialtiesRoutes);
 app.use("/api/tests", testsRoutes);
 app.use("/api/health-records", healthRecordsRoutes);
+app.use("/api/coupons", couponsRoutes);
+app.use("/api/payments", paymentsRoutes);
+app.use("/api/teleconsult", teleconsultRoutes);
+app.use("/api/prescriptions", prescriptionsRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Root route
 app.get("/", (req, res) => {

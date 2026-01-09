@@ -111,7 +111,7 @@ const BookAppointment = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pt-14">
       <main className="flex-grow container mx-auto py-6 px-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Book Your Appointment</h1>

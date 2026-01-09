@@ -5,14 +5,15 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, Sparkles, ArrowRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { authAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
+import { motion } from "framer-motion";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -81,43 +82,79 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex flex-col justify-center items-center p-4 overflow-hidden bg-slate-50/50">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="absolute left-0 top-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 opacity-50"></div>
+      <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2 opacity-50"></div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative z-10"
+      >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mt-6">Welcome back</h1>
-          <p className="text-muted-foreground mt-2">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4"
+          >
+            <Sparkles className="w-6 h-6" />
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold tracking-tight"
+          >
+            Welcome back
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-muted-foreground mt-2 text-lg"
+          >
             Log in to continue with Ekitsa
-          </p>
+          </motion.p>
         </div>
 
-        <Card className="shadow-lg border-2 border-primary/10">
-          <CardContent className="pt-6">
+        <Card className="shadow-2xl border-white/20 bg-white/80 backdrop-blur-md overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/0 pointer-events-none" />
+          <CardContent className="pt-8 relative z-10">
             {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm animate-shake" role="alert">
-                <span className="font-semibold">Error:</span> {error}
-              </div>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mb-6 p-4 bg-red-50/50 backdrop-blur-sm border border-red-200 text-red-700 rounded-lg text-sm flex items-center"
+                role="alert"
+              >
+                <div className="w-2 h-2 rounded-full bg-red-500 mr-2 flex-shrink-0" />
+                <span className="font-semibold mr-1">Error:</span> {error}
+              </motion.div>
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-5">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-foreground/80">Email</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="email"
                           placeholder="you@example.com"
                           autoComplete="email"
-                          className={fieldState.invalid ? "border-red-500 focus:border-red-500" : ""}
+                          className={`bg-white/50 backdrop-blur-sm border-slate-200 focus:border-primary focus:ring-primary/20 transition-all ${fieldState.invalid ? "border-red-500 focus:border-red-500" : ""}`}
                           aria-invalid={fieldState.invalid}
-                          aria-describedby="email-error"
                         />
                       </FormControl>
-                      <FormMessage id="email-error" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -127,7 +164,12 @@ const Login = () => {
                   name="password"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-foreground/80">Password</FormLabel>
+                        <Link to="#" className="text-xs text-primary hover:underline font-medium">
+                          Forgot password?
+                        </Link>
+                      </div>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -135,23 +177,20 @@ const Login = () => {
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
                             autoComplete="current-password"
-                            className={fieldState.invalid ? "border-red-500 focus:border-red-500 pr-10" : "pr-10"}
+                            className={`bg-white/50 backdrop-blur-sm border-slate-200 focus:border-primary focus:ring-primary/20 transition-all pr-10 ${fieldState.invalid ? "border-red-500 focus:border-red-500" : ""}`}
                             aria-invalid={fieldState.invalid}
-                            aria-describedby="password-error"
                           />
                           <button
                             type="button"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary focus:outline-none transition-colors"
                             onClick={() => setShowPassword((v) => !v)}
                             tabIndex={-1}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
                           >
                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                           </button>
                         </div>
                       </FormControl>
-                      <div className="text-xs text-muted-foreground mt-1">Password is case sensitive.</div>
-                      <FormMessage id="password-error" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -160,40 +199,45 @@ const Login = () => {
                   control={form.control}
                   name="rememberMe"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
+                    <FormItem className="flex items-center gap-2 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} id="rememberMe" />
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange} 
+                          id="rememberMe" 
+                          className="data-[state=checked]:bg-primary border-slate-300"
+                        />
                       </FormControl>
-                      <FormLabel htmlFor="rememberMe" className="font-normal cursor-pointer">Remember me</FormLabel>
+                      <FormLabel htmlFor="rememberMe" className="font-normal cursor-pointer text-muted-foreground select-none">Remember me</FormLabel>
                     </FormItem>
                   )}
                 />
 
                 <Button
                   type="submit"
-                  className="w-full font-semibold text-base py-2 transition-transform duration-100 active:scale-95"
+                  className="w-full font-semibold text-base py-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-0.5"
                   disabled={isLoading}
-                  aria-busy={isLoading}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <LogIn className="animate-spin h-5 w-5" /> Logging in...
+                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                       Logging in...
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
-                      <LogIn className="h-5 w-5" /> Log In
+                      Log In <ArrowRight className="h-5 w-5" />
                     </span>
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="justify-center bg-muted rounded-b-lg py-4">
+          <CardFooter className="justify-center bg-slate-50/50 border-t border-slate-100 py-6 relative z-10">
             <span className="text-sm text-muted-foreground">Don&apos;t have an account?</span>
-            <Link to="/signup" className="ml-2 text-primary font-medium hover:underline">Sign up</Link>
+            <Link to="/signup" className="ml-2 text-primary font-semibold hover:underline">Sign up</Link>
           </CardFooter>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 };

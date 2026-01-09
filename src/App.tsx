@@ -6,6 +6,7 @@ import GlobalNavbar from "./components/GlobalNavbar";
 import LoadingFallback from "@/utils/LoadingFallback";
 import { isLabOwnerRoute } from "@/utils/routeUtils";
 import SingleLabDashboard from "./components/lab-owner/SingleLabDashboard";
+import Footer from "./components/Footer";
 const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 
 // All pages are now lazy-loaded for consistency and performance
@@ -26,6 +27,8 @@ const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
 const AddTest = lazy(() => import("./pages/lab-owner/AddTest"));
 const DoctorChat = lazy(() => import("./pages/DoctorChat"));
 const HealthRecords = lazy(() => import("./pages/HealthRecords"));
+const LabComparison = lazy(() => import("./pages/LabComparison"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
@@ -50,6 +53,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/lab-tests" element={<LabTests />} />
+          <Route path="/compare-labs" element={<LabComparison />} />
           <Route path="/orders" element={<Orders />} />
 
           {/* Lab Owner Routes */}
@@ -65,14 +69,20 @@ function App() {
 
           {/* Add redirects for potential path mismatches */}
           <Route path="/labs" element={<Navigate to="/lab-tests" replace />} />
-          <Route path="/lab/:id" element={<Navigate to="/labs/:id" replace />} />
+          <Route path="/lab/:id" element={<LabDetail />} />
           <Route path="/labs/:id" element={<LabDetail />} />
           <Route path="/test-booking/:id" element={<TestBooking />} />
           <Route path="/health-records" element={<HealthRecords />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
       <Toaster />
+      <Footer />
     </QueryClientProvider>
   );
 }

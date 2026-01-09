@@ -242,6 +242,64 @@ export const labsAPI = {
   }
 };
 
+// Coupon related API calls
+export const couponsAPI = {
+  getAll: async () => {
+    const response = await apiClient.get('/coupons');
+    return response.data;
+  },
+
+  validate: async (data: { code: string; orderTotal: number; labId?: string; testIds?: string[] }) => {
+    const response = await apiClient.post('/coupons/validate', data);
+    return response.data;
+  },
+
+  create: async (couponData: any) => {
+    const response = await apiClient.post('/coupons', couponData);
+    return response.data;
+  },
+
+  update: async (id: string, couponData: any) => {
+    const response = await apiClient.put(`/coupons/${id}`, couponData);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await apiClient.delete(`/coupons/${id}`);
+    return response.data;
+  }
+};
+
+// Payment related API calls
+export const paymentsAPI = {
+  createOrder: async (data: {
+    amount: number;
+    testBookingId?: string;
+    appointmentId?: string;
+    paymentMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'COD' | 'WALLET';
+    couponCode?: string;
+    userId?: string;
+  }) => {
+    const response = await apiClient.post('/payments/create-order', data);
+    return response.data;
+  },
+
+  verify: async (data: { transactionId: string; gatewayPaymentId: string; gatewaySignature?: string }) => {
+    const response = await apiClient.post('/payments/verify', data);
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await apiClient.get(`/payments/${id}`);
+    return response.data;
+  },
+
+  requestRefund: async (id: string, reason: string) => {
+    const response = await apiClient.post(`/payments/${id}/refund`, { reason });
+    return response.data;
+  }
+};
+
 interface LabAddress {
   street: string;
   city: string;

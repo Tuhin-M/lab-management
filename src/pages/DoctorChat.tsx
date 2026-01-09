@@ -74,7 +74,8 @@ const DoctorChatPage = () => {
   }
   
   return (
-    <div className="container mx-auto p-4 md:p-6">
+    <div className="min-h-screen bg-background pt-16">
+      <div className="container mx-auto p-4 md:p-6">
       <div className="mb-6">
         <Button 
           variant="ghost" 
@@ -100,6 +101,7 @@ const DoctorChatPage = () => {
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>Need help? Contact our support team at support@ekitsa.com</p>
         </div>
+      </div>
       </div>
     </div>
   );

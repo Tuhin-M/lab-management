@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, TestTube, LayoutDashboard, User, CalendarCheck, FileText } from "lucide-react";
+import { Home, LayoutDashboard, FileText, TestTube, Stethoscope, Info } from "lucide-react";
 
 interface NavLinksProps {
   isAuthenticated: boolean;
@@ -12,71 +12,44 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
   const isActive = (path: string) => 
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  // For lab owners, remove 'Tests' from commonLinks
-  const commonLinks = userRole === 'lab_owner'
-    ? [
-        { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
-        { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
-      ]
-    : [
-        { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
-        { path: "/tests", label: "Tests", icon: <TestTube className="h-4 w-4" /> },
-        { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
-      ];
-
-  const authenticatedUserLinks = [
-    { path: "/appointments", label: "Appointments", icon: <CalendarCheck className="h-4 w-4" /> },
-    { path: "/profile", label: "Profile", icon: <User className="h-4 w-4" /> }
+  // Clean navigation - removed Tests and Appointments for regular users
+  const commonLinks = [
+    { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
+    { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-4 w-4" /> },
+    { path: "/doctors", label: "Doctors", icon: <Stethoscope className="h-4 w-4" /> },
+    { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> },
+    { path: "/about", label: "About", icon: <Info className="h-4 w-4" /> }
   ];
 
+  // Lab owner specific links
   const labOwnerLinks = [
+    { path: "/", label: "Home", icon: <Home className="h-4 w-4" /> },
     { path: "/lab-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-4 w-4" /> }
+    { path: "/blog", label: "Blog", icon: <FileText className="h-4 w-4" /> }
   ];
+
+  const links = userRole === 'lab_owner' ? labOwnerLinks : commonLinks;
 
   return (
-    <nav className="flex items-center space-x-6">
-      {/* Common links for all users */}
-      {commonLinks.map((link) => (
+    <nav className="flex items-center space-x-1.5 p-1 bg-muted/30 rounded-full border border-white/10">
+      {links.map((link) => (
         <Link
           key={link.path}
           to={link.path}
-          className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? "text-primary" : "text-muted-foreground"}`}
+          className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 group ${
+            isActive(link.path) 
+              ? "bg-primary text-black shadow-[0_2px_10px_-3px_rgba(var(--primary),0.3)]" 
+              : "text-muted-foreground hover:text-foreground hover:bg-white/10"
+          }`}
         >
-          {link.icon}
-          {link.label}
+          <span className="relative z-10 flex items-center gap-2">
+            {React.cloneElement(link.icon as React.ReactElement, { 
+              className: `h-4 w-4 transition-transform duration-300 ${isActive(link.path) ? "" : "group-hover:scale-110"}` 
+            })}
+            {link.label}
+          </span>
         </Link>
       ))}
-
-      {/* Regular user links (not shown to lab owners) */}
-      {isAuthenticated && userRole !== 'lab_owner' && 
-        authenticatedUserLinks.map((link) => (
-          <Link
-            key={link.path}
-            to={link.path}
-            className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? "text-primary" : "text-muted-foreground"}`}
-          >
-            {link.icon}
-            {link.label}
-          </Link>
-        ))
-      }
-
-      {/* Lab owner sees ONLY lab-specific links */}
-      {isAuthenticated && userRole === 'lab_owner' && (
-        <>
-          {labOwnerLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? "text-primary" : "text-muted-foreground"}`}
-            >
-              {link.icon}
-              {link.label}
-            </Link>
-          ))}
-        </>
-      )}
     </nav>
   );
 };
