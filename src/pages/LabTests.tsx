@@ -80,7 +80,7 @@ const LabTests = () => {
           waitTime: "15-20 min", // Simulated
           openNow: true, // Simulated
           facilities: l.certifications || [], // Mapping certifications to facilities for now
-          imageUrl: l.image || "/placeholder.svg",
+          imageUrl: l.image_url || "/placeholder.svg",
           accreditation: l.certifications?.[0],
         }));
         setAllLabs(mappedLabs);
@@ -102,7 +102,7 @@ const LabTests = () => {
 
   // Handle city change
   const handleCityChange = (city: string) => {
-    setSelectedCity(city);
+    setSelectedCity(city === "All Locations" ? "" : city);
     // Reset search and results when city changes
     setSearchQuery("");
     setSearchResults([]);
@@ -180,6 +180,18 @@ const LabTests = () => {
   // Handle filter change
   const handleFilterChange = (newFilters: LabFiltersState) => {
     setFilters(newFilters);
+  };
+
+  // Handle reset filters
+  const handleResetFilters = () => {
+    setSelectedCity("");
+    setSearchQuery("");
+    setSelectedTest(null);
+    setSelectedLab(null);
+    toast({
+      title: "Filters Reset",
+      description: "Showing all labs across all locations",
+    });
   };
 
   // Apply filters and sorting to labs
@@ -317,7 +329,7 @@ const LabTests = () => {
             `}>
               <div className={`w-full md:w-auto min-w-[220px] border-b md:border-b-0 md:border-r md:pr-2 transition-colors ${selectedTest ? 'border-gray-200' : 'border-white/10'}`}>
                 <CitySelection
-                  selectedCity={selectedCity}
+                  selectedCity={selectedCity || "All Locations"}
                   onCityChange={handleCityChange}
                   className={selectedTest ? "text-foreground" : "text-white placeholder:text-white/70"}
                 />
@@ -446,6 +458,8 @@ const LabTests = () => {
                             initialSortOption={sortOption}
                             isMobile={true}
                             onClose={() => setIsMobileFilterOpen(false)}
+                            onReset={handleResetFilters}
+                            isExternalFilterActive={!!selectedCity}
                           />
                         </div>
                       </SheetContent>
@@ -476,6 +490,8 @@ const LabTests = () => {
                       onFilterChange={handleFilterChange}
                       initialFilters={filters}
                       initialSortOption={sortOption}
+                      onReset={handleResetFilters}
+                      isExternalFilterActive={!!selectedCity}
                     />
                   </div>
                 </div>
@@ -518,13 +534,18 @@ const LabTests = () => {
                             rating: 0,
                             maxDistance: 10,
                             openNow: false,
-                            facilities: Object.keys(filters.facilities).reduce(
-                              (acc, facility) => ({ ...acc, [facility]: false }),
-                              {} as Record<string, boolean>
-                            ),
+                            facilities: {
+                              "Home Collection": false,
+                              "Digital Reports": false,
+                              "NABL Accredited": false,
+                              "Open 24x7": false,
+                              "Free Home Delivery": false,
+                              "Insurance Accepted": false,
+                            },
                           };
                           setFilters(resetFilters);
                           setSortOption("relevance");
+                          handleResetFilters();
                         }}
                       >
                         Reset All Filters

@@ -1,0 +1,101 @@
+{
+    "common": {
+        "home": "Home",
+        "labTests": "Lab Tests",
+        "doctors": "Doctors",
+        "blog": "Blog",
+        "about": "About",
+        "login": "Login",
+        "signup": "Sign Up",
+        "logout": "Logout",
+        "profile": "Profile",
+        "settings": "Settings",
+        "orders": "My Orders",
+        "search": "Search",
+        "loading": "Loading...",
+        "save": "Save",
+        "cancel": "Cancel",
+        "submit": "Submit"
+    },
+    "settings": {
+        "title": "Platform Settings",
+        "subtitle": "Manage your preferences and account settings",
+        "notifications": {
+            "title": "Notifications",
+            "preferences": "Notification Preferences",
+            "description": "Choose how you want to be notified about updates and activities",
+            "email": "Email Notifications",
+            "emailDesc": "Receive updates about your orders via email",
+            "sms": "SMS Notifications",
+            "smsDesc": "Get text messages for important updates",
+            "push": "Push Notifications",
+            "pushDesc": "Receive real-time browser notifications",
+            "promotional": "Promotional Emails",
+            "promotionalDesc": "Receive offers, discounts, and health tips"
+        },
+        "appearance": {
+            "title": "Appearance",
+            "theme": "Theme Settings",
+            "themeDesc": "Customize the appearance of the platform",
+            "light": "Light",
+            "dark": "Dark",
+            "system": "System",
+            "language": "Language & Region",
+            "languageDesc": "Set your preferred language",
+            "displayLanguage": "Display Language",
+            "displayLanguageDesc": "Choose the language for the interface"
+        },
+        "privacy": {
+            "title": "Privacy",
+            "settings": "Privacy & Security",
+            "settingsDesc": "Control your data and privacy preferences",
+            "profileVisibility": "Profile Visibility",
+            "profileVisibilityDesc": "Control who can see your profile",
+            "public": "Public",
+            "private": "Private",
+            "doctorsOnly": "Doctors Only",
+            "dataSharing": "Data Sharing",
+            "dataSharingDesc": "Share anonymized data to improve services",
+            "marketingComms": "Marketing Communications",
+            "marketingCommsDesc": "Receive marketing and promotional content"
+        },
+        "account": {
+            "title": "Account",
+            "connected": "Connected Accounts",
+            "connectedDesc": "Manage your linked services and accounts",
+            "connect": "Connect",
+            "notConnected": "Not connected",
+            "dangerZone": "Danger Zone",
+            "dangerZoneDesc": "Irreversible and destructive actions",
+            "deleteAccount": "Delete Account",
+            "deleteAccountDesc": "Permanently delete your account and all data"
+        }
+    },
+    "doctors": {
+        "title": "Find Doctors",
+        "subtitle": "Book appointments with top specialists near you",
+        "change": "Change",
+        "searchPlaceholder": "Search doctors, specialties...",
+        "stats": {
+            "doctors": "Doctors",
+            "specialties": "Specialties",
+            "avgRating": "Avg Rating",
+            "available": "Available"
+        }
+    },
+    "blog": {
+        "title": "Ekitsa Health Blog",
+        "subtitle": "Insights, tips, and information about healthcare, lab tests, and wellness",
+        "searchPlaceholder": "Search for articles...",
+        "featured": "Featured Article",
+        "readMore": "Read Full Article",
+        "loadMore": "Load More Articles",
+        "popularTags": "Popular Tags",
+        "popularPosts": "Popular Posts",
+        "subscribe": "Subscribe",
+        "subscribeDesc": "Get the latest health articles and updates delivered to your inbox",
+        "emailPlaceholder": "Your email address",
+        "noResults": "No articles found matching your search criteria.",
+        "clearSearch": "Clear Search"
+    }
+}

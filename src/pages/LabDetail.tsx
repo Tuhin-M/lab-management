@@ -114,7 +114,9 @@ const LabDetail = () => {
 
   const labAddress = typeof lab.address === 'string'
     ? lab.address
-    : `${lab.address?.street || ''}, ${lab.address?.city || ''}, ${lab.address?.state || ''} ${lab.address?.zipCode || ''}`;
+    : lab.address
+      ? `${lab.address.street || ''}, ${lab.address.city || ''}, ${lab.address.state || ''} ${lab.address.zipCode || ''}`
+      : `${lab.address_street || ''}, ${lab.address_city || ''}, ${lab.address_state || ''} ${lab.address_zip || ''}`;
 
   // Calculate total price for all selected tests
   const totalPrice = selectedTests.reduce((sum, t) => sum + (t.price || 0), 0);
@@ -402,7 +404,11 @@ const LabDetail = () => {
               {!isLabOwner && (
                 <TabsContent value="testSearch" className="mt-6 focus-visible:outline-none">
                   <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-sm">
-                    <LabTestSearch />
+                    <LabTestSearch 
+                      tests={lab.tests || []}
+                      onSelect={handleTestSelect}
+                      selectedTests={selectedTests}
+                    />
                   </div>
                 </TabsContent>
               )}

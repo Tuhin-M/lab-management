@@ -43,18 +43,19 @@ const DoctorCard: React.FC<DoctorCardProps> = ({
   };
 
   return (
-    <Card key={doctor.id} className="overflow-hidden">
+    <Card key={doctor.id} className="overflow-hidden border-0 bg-white/90 backdrop-blur-md shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.15)] transition-all duration-300 group rounded-2xl ring-1 ring-gray-200/50">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">
-          <div className="relative w-full md:w-1/4 h-48 md:h-auto">
+          <div className="relative w-full md:w-1/4 h-52 md:h-auto overflow-hidden">
             <div
-              className="w-full h-full bg-cover bg-center" 
+              className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" 
               style={{ backgroundImage: `url(${doctor.imageUrl})` }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent md:bg-gradient-to-r md:from-transparent md:to-white/10"></div>
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`absolute top-2 right-2 rounded-full ${favorite ? 'text-red-500' : 'text-gray-400'}`}
+              className={`absolute top-3 right-3 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white ${favorite ? 'text-red-500' : 'text-gray-500'} hover:scale-110 transition-all`}
               onClick={handleFavorite}
             >
               <Heart className={`h-5 w-5 ${favorite ? 'fill-current' : ''}`} />
@@ -205,12 +206,18 @@ const DoctorCard: React.FC<DoctorCardProps> = ({
                 <>
                   <Button
                     variant="outline"
-                    className="border-primary text-primary hover:bg-primary hover:text-white flex-grow"
+                    className="border-primary/50 text-primary hover:bg-primary hover:text-white flex-grow rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-primary/20"
+                    onClick={() => {
+                      toast({
+                        title: doctor.name,
+                        description: `${doctor.specialty} • ${doctor.experience} years experience • ${doctor.hospital}`,
+                      });
+                    }}
                   >
                     View Profile
                   </Button>
                   <Button 
-                    className="bg-primary hover:bg-primary/90 flex-grow"
+                    className="bg-gradient-to-r from-primary to-emerald-500 hover:opacity-90 flex-grow rounded-xl shadow-lg shadow-primary/30 transition-all duration-200"
                     onClick={() => setSelectedDoctor(doctor.id)}
                   >
                     Book Appointment

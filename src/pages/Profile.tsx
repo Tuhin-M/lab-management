@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileInformationTab from "@/components/profile/ProfileInformationTab";
 import SecurityTab from "@/components/profile/SecurityTab";
@@ -7,11 +7,33 @@ import HealthOverviewTab from "@/components/profile/HealthOverviewTab";
 import KycVerificationTab from "@/components/profile/KycVerificationTab";
 import DependentsTab from "@/components/profile/DependentsTab";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { User, ShieldCheck } from "lucide-react";
+import { authAPI } from "@/services/api";
 import { motion } from "framer-motion";
+import LoadingFallback from "@/utils/LoadingFallback";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await authAPI.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 pt-24 pb-12 relative overflow-hidden">
@@ -32,7 +54,7 @@ const Profile = () => {
           </motion.div>
 
           <div className="flex flex-col md:flex-row gap-8">
-            <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <ProfileSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
             
             <div className="flex-1">
               <motion.div
@@ -43,7 +65,7 @@ const Profile = () => {
               >
                 <Tabs value={activeTab} className="w-full">
                   <TabsContent value="profile" className="mt-0">
-                    <ProfileInformationTab />
+                    <ProfileInformationTab user={user} />
                   </TabsContent>
                   <TabsContent value="security" className="mt-0">
                     <SecurityTab />

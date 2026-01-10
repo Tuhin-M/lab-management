@@ -24,6 +24,8 @@ export interface LabFiltersProps {
   initialSortOption?: string;
   isMobile?: boolean;
   onClose?: () => void;
+  onReset?: () => void;
+  isExternalFilterActive?: boolean;
 }
 
 export interface LabFiltersState {
@@ -53,7 +55,9 @@ const LabFilters = ({
   initialFilters,
   initialSortOption = "relevance",
   isMobile = false,
-  onClose 
+  onClose,
+  onReset,
+  isExternalFilterActive = false
 }: LabFiltersProps) => {
   const [filters, setFilters] = useState<LabFiltersState>(initialFilters || defaultFilters);
   const [sortOption, setSortOption] = useState(initialSortOption);
@@ -108,6 +112,8 @@ const LabFilters = ({
     (filters.openNow ? 1 : 0) + 
     Object.values(filters.facilities).filter(Boolean).length;
 
+  const showResetButton = activeFiltersCount > 0 || isExternalFilterActive;
+
   return (
     <div className={`${isMobile ? 'w-full p-6 bg-background' : 'w-full max-w-xs sticky top-32'}`}>
       {!isMobile && (
@@ -123,7 +129,7 @@ const LabFilters = ({
                )}
              </div>
            </div>
-           {activeFiltersCount > 0 && (
+           {showResetButton && (
              <Button 
                variant="ghost" 
                size="sm" 
@@ -142,6 +148,7 @@ const LabFilters = ({
                  setSortOption("relevance");
                  onFilterChange(resetFilters);
                  onSortChange("relevance");
+                 onReset?.();
                }}
              >
                Clear all

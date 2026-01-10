@@ -1,15 +1,15 @@
-
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { FileUp, CheckCircle, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { FileUp, CheckCircle, ShieldCheck, AlertCircle, Loader2, Upload, Camera, CreditCard, IdCard } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { storageService } from "@/services/storage";
+import { motion } from "framer-motion";
 
 const KycVerificationTab = () => {
   const [kycStatus, setKycStatus] = useState<"not_started" | "pending" | "verified">("not_started");
@@ -86,193 +86,224 @@ const KycVerificationTab = () => {
 
   if (kycStatus === "verified") {
     return (
-      <Card>
-        <CardHeader className="text-center">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-          </div>
-          <CardTitle>KYC Verification Complete</CardTitle>
-          <CardDescription>
-            Your identity has been verified successfully.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <div className="flex items-center justify-center py-6">
-            <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full inline-flex items-center">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Verified
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl overflow-hidden">
+          <CardContent className="py-16 text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">KYC Verification Complete</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Your identity has been verified successfully. You now have full access to all features.
+            </p>
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Verified Account
             </span>
-          </div>
-          <p className="text-muted-foreground">
-            Your account has been fully verified and you have access to all features.
-          </p>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   if (kycStatus === "pending") {
     return (
-      <Card>
-        <CardHeader className="text-center">
-          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <AlertCircle className="h-6 w-6 text-yellow-600" />
-          </div>
-          <CardTitle>KYC Verification Pending</CardTitle>
-          <CardDescription>
-            Your verification is currently being processed.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <div className="flex items-center justify-center py-6">
-            <span className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full inline-flex items-center">
-              <svg className="h-4 w-4 mr-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl overflow-hidden">
+          <CardContent className="py-16 text-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <Loader2 className="h-10 w-10 text-amber-600" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification In Progress</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Your documents are being reviewed. This typically takes 24-48 hours. We'll notify you once complete.
+            </p>
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Pending Review
             </span>
-          </div>
-          <p className="text-muted-foreground">
-            This usually takes 24-48 hours. We'll notify you once your verification is complete.
-          </p>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
-          KYC Verification
-        </CardTitle>
-        <CardDescription>
-          Complete your KYC verification to unlock all features and enhance account security.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="document-type">Document Type</Label>
-            <Select value={documentType} onValueChange={setDocumentType}>
-              <SelectTrigger id="document-type">
-                <SelectValue placeholder="Select ID document" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="aadhar">Aadhar Card</SelectItem>
-                <SelectItem value="pan">PAN Card</SelectItem>
-                <SelectItem value="voter">Voter ID</SelectItem>
-                <SelectItem value="passport">Passport</SelectItem>
-                <SelectItem value="driving">Driving License</SelectItem>
-              </SelectContent>
-            </Select>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl overflow-hidden">
+        <CardHeader className="pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">KYC Verification</CardTitle>
+              <CardDescription>
+                Complete verification to unlock all features
+              </CardDescription>
+            </div>
           </div>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="pt-6 space-y-6">
+            {/* Document Type Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <IdCard className="h-4 w-4 text-muted-foreground" />
+                Document Type
+              </Label>
+              <Select value={documentType} onValueChange={setDocumentType}>
+                <SelectTrigger className="h-11 rounded-xl bg-white/50 border-slate-200">
+                  <SelectValue placeholder="Select ID document" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aadhar">Aadhar Card</SelectItem>
+                  <SelectItem value="pan">PAN Card</SelectItem>
+                  <SelectItem value="voter">Voter ID</SelectItem>
+                  <SelectItem value="passport">Passport</SelectItem>
+                  <SelectItem value="driving">Driving License</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="document-number">Document Number</Label>
-            <Input
-              id="document-number"
-              placeholder="Enter document number"
-              value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Document Images</h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="front-image">Front Side of Document</Label>
-              <div
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => document.getElementById('front-image')?.click()}
-              >
-                <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground text-center">
-                  {frontImage ? frontImage.name : "Click to upload front side"}
-                </p>
-              </div>
+            {/* Document Number */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                Document Number
+              </Label>
               <Input
-                id="front-image"
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                className="hidden"
-                onChange={handleFrontImageChange}
+                placeholder="Enter document number"
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                className="h-11 rounded-xl bg-white/50 border-slate-200"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="back-image">Back Side of Document</Label>
-              <div
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => document.getElementById('back-image')?.click()}
-              >
-                <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground text-center">
-                  {backImage ? backImage.name : "Click to upload back side"}
-                </p>
+            <Separator />
+
+            {/* Upload Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Upload className="h-4 w-4 text-primary" />
+                Document Images
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Front Image */}
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5 ${frontImage ? 'border-green-300 bg-green-50/50' : 'border-slate-200'}`}
+                  onClick={() => document.getElementById('front-image')?.click()}
+                >
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-3 ${frontImage ? 'bg-green-100' : 'bg-slate-100'}`}>
+                    {frontImage ? <CheckCircle className="h-6 w-6 text-green-600" /> : <FileUp className="h-6 w-6 text-muted-foreground" />}
+                  </div>
+                  <p className="text-sm font-medium text-center">{frontImage ? frontImage.name : "Front Side"}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                  <Input
+                    id="front-image"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="hidden"
+                    onChange={handleFrontImageChange}
+                  />
+                </div>
+
+                {/* Back Image */}
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5 ${backImage ? 'border-green-300 bg-green-50/50' : 'border-slate-200'}`}
+                  onClick={() => document.getElementById('back-image')?.click()}
+                >
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-3 ${backImage ? 'bg-green-100' : 'bg-slate-100'}`}>
+                    {backImage ? <CheckCircle className="h-6 w-6 text-green-600" /> : <FileUp className="h-6 w-6 text-muted-foreground" />}
+                  </div>
+                  <p className="text-sm font-medium text-center">{backImage ? backImage.name : "Back Side"}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click to upload</p>
+                  <Input
+                    id="back-image"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="hidden"
+                    onChange={handleBackImageChange}
+                  />
+                </div>
+
+                {/* Selfie with Document */}
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5 ${selfieImage ? 'border-green-300 bg-green-50/50' : 'border-slate-200'}`}
+                  onClick={() => document.getElementById('selfie-image')?.click()}
+                >
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-3 ${selfieImage ? 'bg-green-100' : 'bg-slate-100'}`}>
+                    {selfieImage ? <CheckCircle className="h-6 w-6 text-green-600" /> : <Camera className="h-6 w-6 text-muted-foreground" />}
+                  </div>
+                  <p className="text-sm font-medium text-center">{selfieImage ? selfieImage.name : "Selfie"}</p>
+                  <p className="text-xs text-muted-foreground mt-1 text-center">Hold your ID</p>
+                  <Input
+                    id="selfie-image"
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={handleSelfieImageChange}
+                  />
+                </div>
               </div>
-              <Input
-                id="back-image"
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                className="hidden"
-                onChange={handleBackImageChange}
-              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="selfie-image">Selfie with Document</Label>
-              <div
-                className="border-2 border-dashed rounded-md p-6 flex flex-col items-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => document.getElementById('selfie-image')?.click()}
-              >
-                <FileUp className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground text-center">
-                  {selfieImage ? selfieImage.name : "Click to upload selfie with document"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Take a photo of yourself holding your ID document
-                </p>
-              </div>
-              <Input
-                id="selfie-image"
-                type="file"
-                accept=".jpg,.jpeg,.png"
-                className="hidden"
-                onChange={handleSelfieImageChange}
-              />
+            {/* Declaration */}
+            <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100">
+              <RadioGroup defaultValue="agree">
+                <div className="flex items-start space-x-3">
+                  <RadioGroupItem value="agree" id="agree" className="mt-1" />
+                  <Label htmlFor="agree" className="font-normal text-sm text-muted-foreground leading-relaxed">
+                    I hereby declare that all the information provided is true and accurate. I understand that providing false information may result in account termination and legal consequences.
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Declaration</h3>
-            <RadioGroup defaultValue="agree">
-              <div className="flex items-start space-x-2">
-                <RadioGroupItem value="agree" id="agree" />
-                <Label htmlFor="agree" className="font-normal text-sm">
-                  I hereby declare that all the information provided is true and accurate. I understand that providing false information may result in account termination and legal consequences.
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={isUploading}>
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading Documents...
-              </>
-            ) : "Submit Verification"}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+          </CardContent>
+          <CardFooter className="border-t border-slate-100 pt-6">
+            <Button 
+              type="submit" 
+              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-base font-medium transition-all hover:scale-[1.02]" 
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Uploading Documents...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="mr-2 h-5 w-5" />
+                  Submit Verification
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </motion.div>
   );
 };
 
