@@ -157,19 +157,11 @@ const LabTests = () => {
   const handleTestSelect = (test: Test) => {
     setSelectedTest(test);
     setSelectedLab(null);
-    toast({
-      title: "Test Selected",
-      description: `You selected ${test.name}`,
-    });
   };
 
   // Handle lab selection
   const handleLabSelect = (lab: Lab) => {
     setSelectedLab(lab);
-    toast({
-      title: "Lab Selected",
-      description: `You selected ${lab.name} for your test`,
-    });
   };
 
   // Handle sort change

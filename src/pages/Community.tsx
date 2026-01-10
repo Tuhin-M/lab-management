@@ -114,26 +114,20 @@ const Community = () => {
           id: p.id,
           author: {
              id: p.user_id,
-             name: p.profiles?.name || "Unknown",
-             avatar: p.profiles?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${p.user_id}`,
-             title: p.profiles?.role === 'doctor' ? 'Doctor' : 'Community Member',
-             isVerified: p.profiles?.role === 'doctor' || p.profiles?.role === 'lab_owner',
+             name: p.author?.name || "Community Member",
+             avatar: p.author?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${p.user_id}`,
+             title: 'Community Member',
+             isVerified: false,
              followers: 0
           },
           content: p.content,
           image: p.image_url,
           createdAt: new Date(p.created_at).toLocaleDateString(),
           views: p.view_count || 0,
-          reactions: { like: 0, love: 0, celebrate: 0 }, // Would need separate count query or derived
+          reactions: { like: p.likes || 0, love: 0, celebrate: 0 },
           userReaction: null,
           saved: false,
-          comments: p.post_comments ? p.post_comments.map((c: any) => ({
-             id: c.id,
-             author: { name: c.profiles?.name || "User", avatar: c.profiles?.avatar_url || "" },
-             text: c.content,
-             createdAt: new Date(c.created_at).toLocaleDateString(),
-             likes: 0
-          })) : [],
+          comments: [],
           tags: p.tags || []
         }));
         setPosts(mappedPosts);

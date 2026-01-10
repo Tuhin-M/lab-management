@@ -82,9 +82,9 @@ const GlobalNavbar: React.FC = () => {
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         {/* Logo & Brand */}
         <Link to="/" className="flex items-center space-x-2 group">
-          <div className="bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all duration-300 p-1">
+            <div className="bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all duration-300 p-1">
             <img 
-              src="src/assets/ekitsa_logo.png"
+              src="/images/ekitsa_logo.png"
               alt="Ekitsa Logo" 
               className="h-10 md:h-16 w-auto" 
             />
@@ -123,7 +123,7 @@ const GlobalNavbar: React.FC = () => {
                   <div className="flex items-center justify-between p-6 border-b border-white/10">
                     <Link to="/" onClick={() => document.dispatchEvent(new CustomEvent('close-sheet'))}>
                       <img 
-                        src="src/assets/ekitsa_logo.png" 
+                        src="/images/ekitsa_logo.png" 
                         alt="Ekitsa Logo" 
                         className="h-14 w-auto"
                       />
