@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,43 +11,48 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { TestTube, Calendar as CalendarIcon, MapPin, CreditCard, Clock, User, Home, Building2, CheckCircle, Info, ShieldCheck, Star } from "lucide-react";
-import CitySelection from "@/components/CitySelection";
+import { TestTube, Calendar as CalendarIcon, MapPin, CreditCard, Clock, User, Home, Building2, CheckCircle, Info, ShieldCheck, Star, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
-import { CardContent } from "@/components/ui/card";
-import { CardFooter } from "@/components/ui/card";
-import { CardHeader } from "@/components/ui/card";
+import { Card, CardTitle, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
 
-const labData = {
-  id: "lab123",
+// Types for booking data
+interface SelectedTest {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  price: number;
+}
+
+interface LabInfo {
+  id: string;
+  name: string;
+  address?: string;
+  rating?: number;
+  reviews?: number;
+  image?: string;
+  imageUrl?: string;
+  homeCollectionCharges?: number;
+}
+
+// Default fallback data
+const defaultLab: LabInfo = {
+  id: "lab-default",
   name: "HealthPlus Diagnostics",
   address: "123 Healthcare Avenue, Koramangala, Bangalore",
   rating: 4.7,
   reviews: 243,
-  nabl: true,
-  images: ["https://images.unsplash.com/photo-1581595219315-a187dd40c322?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1632&q=80"],
-  openHours: "7:00 AM - 8:00 PM",
-  daysOpen: "Monday - Sunday",
-  homeCollection: true,
   homeCollectionCharges: 100,
 };
 
-const testData = {
-  id: "test456",
+const defaultTest: SelectedTest = {
+  id: "test-default",
   name: "Complete Blood Count (CBC)",
-  description: "A CBC is used to evaluate your overall health and detect a wide range of disorders, including anemia, infection and leukemia.",
-  price: 899,
-  discountPrice: 599,
-  turnaroundTime: "12-24 hours",
-  parameters: [
-    "RBC Count", "Hemoglobin", "Hematocrit", "WBC Count", 
-    "Platelet Count", "MCV", "MCH", "MCHC", "RDW"
-  ],
-  preparation: "Fasting required for 8 hours before the test. Water consumption is allowed.",
-  sampleType: "Blood",
+  description: "A comprehensive blood test to evaluate overall health.",
+  category: "Blood",
+  price: 599,
 };
 
 const bookingFormSchema = z.object({
@@ -59,7 +64,7 @@ const bookingFormSchema = z.object({
     required_error: "Please select a gender",
   }),
   patientPhone: z.string().min(10, { message: "Phone number must be at least 10 digits" }),
-  patientEmail: z.string().email({ message: "Invalid email address" }).optional(),
+  patientEmail: z.string().email({ message: "Invalid email address" }).optional().or(z.literal("")),
   collectionType: z.enum(["home", "lab"], {
     required_error: "Please select a collection type",
   }),
@@ -70,16 +75,59 @@ const bookingFormSchema = z.object({
   timeSlot: z.string({
     required_error: "Please select a time slot",
   }),
-  // Payment is always on collection - no online payment option
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 const TestBooking = () => {
   const navigate = useNavigate();
-  const [selectedCity, setSelectedCity] = useState("Bengaluru");
+  const location = useLocation();
+  const params = useParams<{ id: string }>();
+  
+  // Get lab and tests from route state (passed from LabDetail page)
+  const labFromState = location.state?.lab;
+  const testsFromState = location.state?.tests as SelectedTest[] | undefined;
+  const priceFromState = location.state?.price as number | undefined;
+  
+  // Sanitize lab object - only extract primitive values we need (avoid rendering objects like reviews)
+  const sanitizeLab = (rawLab: any): LabInfo => {
+    if (!rawLab) return defaultLab;
+    
+    // Construct address string from either address field or address_* fields
+    let address = rawLab.address;
+    if (typeof address === 'object' || !address) {
+      const parts = [
+        rawLab.address_street,
+        rawLab.address_city,
+        rawLab.address_state,
+        rawLab.address_pincode
+      ].filter(Boolean);
+      address = parts.length > 0 ? parts.join(', ') : 'Lab Location';
+    }
+    
+    return {
+      id: rawLab.id || 'lab-default',
+      name: rawLab.name || 'Lab',
+      address: address,
+      rating: rawLab.rating || rawLab.avgRating,
+      reviews: typeof rawLab.reviews === 'number' ? rawLab.reviews : rawLab.reviewCount,
+      image: rawLab.image || rawLab.imageUrl,
+      imageUrl: rawLab.imageUrl || rawLab.image,
+      homeCollectionCharges: rawLab.homeCollectionCharges || 100,
+    };
+  };
+  
+  // Use passed data or fallback to defaults
+  const [lab] = useState<LabInfo>(() => sanitizeLab(labFromState));
+  const [selectedTests] = useState<SelectedTest[]>(
+    testsFromState && testsFromState.length > 0 ? testsFromState : [defaultTest]
+  );
+  
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<BookingFormValues | null>(null);
+
+  
+  const homeCollectionCharges = lab.homeCollectionCharges || 100;
   
   const timeSlots = [
     "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM",
@@ -98,22 +146,57 @@ const TestBooking = () => {
       patientEmail: "",
       collectionType: "lab",
       address: "",
-      // Payment on collection is the only option
     },
   });
 
   const collectionType = form.watch("collectionType");
+  
+  // Calculate total price
+  const testTotal = priceFromState || selectedTests.reduce((sum, test) => sum + (test.price || 0), 0);
+  const totalAmount = testTotal + (collectionType === "home" ? homeCollectionCharges : 0);
 
   const onSubmit = (data: BookingFormValues) => {
-    console.log("Booking data:", data);
     setBookingDetails(data);
     setIsConfirmationOpen(true);
   };
 
   const confirmBooking = () => {
+    if (!bookingDetails) return;
+    
+    // Create new order and save to localStorage
+    const newOrder = {
+      id: `LAB-${Date.now()}`,
+      type: "lab" as const,
+      status: "processing",
+      lab: lab.name,
+      tests: selectedTests.map(t => t.name),
+      date: format(bookingDetails.testDate, "yyyy-MM-dd"),
+      time: bookingDetails.timeSlot.split(" - ")[0],
+      paymentStatus: "pending",
+      amount: totalAmount,
+      address: bookingDetails.collectionType === "home" 
+        ? bookingDetails.address || lab.address || "Home Collection"
+        : lab.address || "Lab Visit",
+      trackingSteps: [
+        { id: 1, label: "Order Placed", completed: true, date: format(new Date(), "yyyy-MM-dd") },
+        { id: 2, label: "Sample Collection", completed: false },
+        { id: 3, label: "Testing in Progress", completed: false },
+        { id: 4, label: "Results Processing", completed: false },
+        { id: 5, label: "Report Ready", completed: false },
+      ],
+      patientName: bookingDetails.patientName,
+      patientPhone: bookingDetails.patientPhone,
+    };
+    
+    // Save to localStorage
+    const existingOrders = localStorage.getItem('ekitsa_lab_orders');
+    const orders = existingOrders ? JSON.parse(existingOrders) : [];
+    orders.unshift(newOrder); // Add new order at the beginning
+    localStorage.setItem('ekitsa_lab_orders', JSON.stringify(orders));
+    
     setIsConfirmationOpen(false);
     toast.success("Test booking confirmed! You will receive a confirmation on your phone.");
-    navigate("/profile");
+    navigate("/orders");
   };
 
   return (
@@ -127,9 +210,14 @@ const TestBooking = () => {
 
       <main className="flex-grow container mx-auto py-8 px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
+          <Link to={labFromState ? `/lab/${lab.id}` : "/lab-tests"} className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to {labFromState ? "Lab Details" : "Lab Tests"}
+          </Link>
+          
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight mb-2">Book Your Test</h1>
-            <p className="text-muted-foreground">Complete the form below to schedule your appointment</p>
+            <p className="text-muted-foreground">Complete the form below to schedule your appointment at {lab.name}</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -275,7 +363,7 @@ const TestBooking = () => {
                                       <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Recommended</div>
                                       <Home className="mb-3 h-8 w-8 text-gray-400 peer-data-[state=checked]:text-primary" />
                                       <span className="font-bold text-lg">Home Collection</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Get samples collected at your home (+₹100)</span>
+                                      <span className="text-xs text-muted-foreground mt-1">Get samples collected at your home (+₹{homeCollectionCharges})</span>
                                     </FormLabel>
                                   </FormItem>
                                 </RadioGroup>
@@ -400,42 +488,41 @@ const TestBooking = () => {
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">Selected Test</h4>
-                      <div className="bg-white p-4 rounded-xl shadow-sm border border-primary/10">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-gray-900">{testData.name}</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{testData.description}</p>
-                        <div className="mt-3 flex items-center justify-between">
-                           <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
-                             {testData.sampleType}
-                           </Badge>
-                           <span className="font-bold text-primary">₹{testData.discountPrice}</span>
-                        </div>
+                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
+                        Selected Tests ({selectedTests.length})
+                      </h4>
+                      <div className="space-y-3">
+                        {selectedTests.map((test, index) => (
+                          <div key={test.id || index} className="bg-white p-4 rounded-xl shadow-sm border border-primary/10">
+                            <div className="flex justify-between items-start mb-1">
+                              <h3 className="font-bold text-gray-900 text-sm">{test.name}</h3>
+                              <span className="font-bold text-primary text-sm">₹{test.price}</span>
+                            </div>
+                            {test.category && (
+                              <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 mt-1">
+                                {test.category}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
                       </div>
                    </div>
 
                    <div className="space-y-3 pt-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Test Price</span>
-                        <span>₹{testData.discountPrice}</span>
+                        <span>₹{testTotal}</span>
                       </div>
                       {collectionType === "home" && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Home Collection</span>
-                          <span>₹{labData.homeCollectionCharges}</span>
+                          <span>₹{homeCollectionCharges}</span>
                         </div>
-                      )}
-                      {collectionType === "home" && (
-                         <div className="flex justify-between text-green-600 text-xs">
-                           <span>Convenience Fee</span>
-                           <span>FREE</span>
-                         </div>
                       )}
                       <div className="border-t border-dashed pt-3 mt-2">
                         <div className="flex justify-between items-end">
                           <span className="font-bold text-lg">Total</span>
-                          <span className="font-black text-2xl text-primary">₹{testData.discountPrice + (collectionType === "home" ? labData.homeCollectionCharges : 0)}</span>
+                          <span className="font-black text-2xl text-primary">₹{totalAmount}</span>
                         </div>
                       </div>
                    </div>
@@ -443,7 +530,7 @@ const TestBooking = () => {
                 <CardFooter className="bg-primary/5 border-t border-primary/10 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ShieldCheck className="h-4 w-4 text-green-500" />
-                    <span>Safe & Secure Payment</span>
+                    <span>Pay at Sample Collection</span>
                   </div>
                 </CardFooter>
               </Card>
@@ -453,21 +540,29 @@ const TestBooking = () => {
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                      <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                       <img src={labData.images[0]} alt={labData.name} className="w-full h-full object-cover" />
+                       <img 
+                         src={lab.image || lab.imageUrl || "https://images.unsplash.com/photo-1581595219315-a187dd40c322?auto=format&fit=crop&w=100&q=80"} 
+                         alt={lab.name} 
+                         className="w-full h-full object-cover" 
+                       />
                      </div>
                      <div>
-                       <h4 className="font-bold text-sm">{labData.name}</h4>
+                       <h4 className="font-bold text-sm">{lab.name}</h4>
                        <div className="flex items-center text-xs text-muted-foreground mt-1">
                           <MapPin className="h-3 w-3 mr-1" />
-                          <span className="line-clamp-1">{labData.address}</span>
+                          <span className="line-clamp-1">{lab.address}</span>
                        </div>
-                       <div className="flex items-center gap-1 mt-2">
-                          <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center">
-                            <Star className="h-3 w-3 mr-0.5" fill="currentColor" />
-                            {labData.rating}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">({labData.reviews} reviews)</span>
-                       </div>
+                       {lab.rating && (
+                         <div className="flex items-center gap-1 mt-2">
+                            <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center">
+                              <Star className="h-3 w-3 mr-0.5" fill="currentColor" />
+                              {lab.rating}
+                            </span>
+                            {lab.reviews && (
+                              <span className="text-[10px] text-muted-foreground">({lab.reviews} reviews)</span>
+                            )}
+                         </div>
+                       )}
                      </div>
                   </div>
                 </CardContent>
@@ -503,15 +598,21 @@ const TestBooking = () => {
                  </div>
                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Lab</span>
-                    <span className="font-semibold truncate max-w-[150px]">{labData.name}</span>
+                    <span className="font-semibold truncate max-w-[150px]">{lab.name}</span>
+                 </div>
+                 <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tests</span>
+                    <span className="font-semibold text-right max-w-[150px] line-clamp-2">
+                      {selectedTests.map(t => t.name).join(", ")}
+                    </span>
                  </div>
                  <div className="border-t pt-2 flex justify-between items-center">
                     <span className="font-bold">Total Amount</span>
-                    <span className="font-bold text-lg text-primary">₹{testData.discountPrice + (bookingDetails.collectionType === "home" ? labData.homeCollectionCharges : 0)}</span>
+                    <span className="font-bold text-lg text-primary">₹{totalAmount}</span>
                  </div>
               </div>
 
-                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-green-50 p-3 rounded-lg text-green-700">
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-green-50 p-3 rounded-lg text-green-700">
                 <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <p>Payment will be collected at the time of sample collection. Please keep cash or UPI ready.</p>
               </div>

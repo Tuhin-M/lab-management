@@ -25,7 +25,11 @@ import {
   Clock,
   X,
   Flame,
-  Zap
+  Zap,
+  Edit,
+  Trash2,
+  Link as LinkIcon,
+  AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -37,7 +41,25 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Types for our data
 interface Post {
@@ -98,8 +120,21 @@ const Community = () => {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [showImageInput, setShowImageInput] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [deletePostId, setDeletePostId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const currentUser = authAPI.getCurrentUser();
+  // Load current user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await authAPI.getCurrentUser();
+      setCurrentUser(user);
+    };
+    loadUser();
+  }, []);
 
   const fetchPosts = async () => {
     try {
@@ -110,26 +145,35 @@ const Community = () => {
         // Warning: This is a simplification. Real implementation would need careful mapping
         // of join results. 
         // For now, assuming standard struct, or we can use the any type if needed temporarily
-        const mappedPosts: Post[] = data.map((p: any) => ({
-          id: p.id,
-          author: {
-             id: p.user_id,
-             name: p.author?.name || "Community Member",
-             avatar: p.author?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${p.user_id}`,
-             title: 'Community Member',
-             isVerified: false,
-             followers: 0
-          },
-          content: p.content,
-          image: p.image_url,
-          createdAt: new Date(p.created_at).toLocaleDateString(),
-          views: p.view_count || 0,
-          reactions: { like: p.likes || 0, love: 0, celebrate: 0 },
-          userReaction: null,
-          saved: false,
-          comments: [],
-          tags: p.tags || []
-        }));
+        const mappedPosts: Post[] = data.map((p: any) => {
+          // Try to get name from author, or derive from email/user_id
+          let authorName = p.author?.name;
+          if (!authorName || authorName === 'Community Member') {
+            // Use part of user_id as fallback to make names more identifiable
+            authorName = p.user_id ? `User ${p.user_id.substring(0, 8)}` : 'Anonymous';
+          }
+          
+          return {
+            id: p.id,
+            author: {
+              id: p.user_id,
+              name: authorName,
+              avatar: p.author?.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${p.user_id}`,
+              title: 'Community Member',
+              isVerified: false,
+              followers: 0
+            },
+            content: p.content,
+            image: p.image_url,
+            createdAt: new Date(p.created_at).toLocaleDateString(),
+            views: p.view_count || 0,
+            reactions: { like: p.likes || 0, love: 0, celebrate: 0 },
+            userReaction: null,
+            saved: false,
+            comments: [],
+            tags: p.tags || []
+          };
+        });
         setPosts(mappedPosts);
       }
     } catch (error) {
@@ -252,7 +296,7 @@ const Community = () => {
     );
   };
 
-  const openPostDetail = (post: typeof initialPosts[0]) => {
+  const openPostDetail = (post: Post) => {
     setSelectedPost(post);
     navigate(`/community/post/${post.id}`, { replace: true });
   };
@@ -262,20 +306,78 @@ const Community = () => {
     navigate("/community", { replace: true });
   };
 
-  const handleShare = (post: typeof initialPosts[0]) => {
+  const handleShare = (post: Post) => {
     navigator.clipboard.writeText(`${window.location.origin}/community/post/${post.id}`);
     toast.success("Link copied to clipboard!");
+  };
+
+  const handleEditPost = async () => {
+    if (!editingPost || !editContent.trim()) return;
+    
+    const tags = editContent.match(/#\w+/g)?.map(tag => tag.slice(1)) || [];
+    
+    try {
+      const { error } = await blogAPI.editPost(editingPost.id, { 
+        content: editContent,
+        tags 
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Post updated!");
+      setEditingPost(null);
+      setEditContent("");
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update post");
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!deletePostId) return;
+    
+    try {
+      const { error } = await blogAPI.deletePost(deletePostId);
+      
+      if (error) throw error;
+      
+      toast.success("Post deleted!");
+      setDeletePostId(null);
+      fetchPosts();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete post");
+    }
+  };
+
+  const handlePoll = () => {
+    toast("🗳️ Poll feature coming soon!", { description: "Stay tuned for updates!" });
+  };
+
+  const startEditPost = (post: Post) => {
+    setEditingPost(post);
+    setEditContent(post.content);
+  };
+
+  const isPostOwner = (post: Post) => {
+    if (!currentUser) {
+      console.log("isPostOwner: No currentUser");
+      return false;
+    }
+    console.log("isPostOwner check:", { currentUserId: currentUser.id, postAuthorId: post.author.id, match: currentUser.id === post.author.id });
+    return currentUser.id === post.author.id;
   };
 
   const filteredPosts = filterTag 
     ? posts.filter(post => post.tags.includes(filterTag))
     : posts;
 
-  const totalReactions = (post: typeof initialPosts[0]) => 
+  const totalReactions = (post: Post) => 
     post.reactions.like + post.reactions.love + post.reactions.celebrate;
 
   // Post Card Component
-  const PostCard = ({ post, isDetail = false }: { post: typeof initialPosts[0], isDetail?: boolean }) => (
+  const PostCard = ({ post, isDetail = false }: { post: Post, isDetail?: boolean }) => (
     <Card className="bg-white/90 backdrop-blur-md border-0 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden group transition-all duration-300">
       <CardHeader className="p-5 pb-3">
         <div className="flex items-start justify-between">
@@ -308,9 +410,35 @@ const Community = () => {
               <Eye className="h-3.5 w-3.5" />
               <span>{post.views.toLocaleString()}</span>
             </div>
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {isPostOwner(post) ? (
+                  <>
+                    <DropdownMenuItem onClick={() => startEditPost(post)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Post
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setDeletePostId(post.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Post
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => handleShare(post)}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>
@@ -569,30 +697,106 @@ const Community = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-4">
-                      <Textarea
-                        placeholder="Share something about health, wellness, or your medical insights... Use #hashtags!"
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[120px] resize-none border-gray-200 focus:ring-2 focus:ring-primary/20 rounded-xl text-base"
-                      />
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" className="text-muted-foreground rounded-full">
-                            <ImageIcon className="h-5 w-5 mr-2" />
+                      {/* Enhanced Textarea */}
+                      <div className="relative">
+                        <Textarea
+                          placeholder="Share something about health, wellness, or your medical insights... ✨"
+                          value={newPostContent}
+                          onChange={(e) => setNewPostContent(e.target.value)}
+                          className="min-h-[140px] resize-none border-gray-200 focus:ring-2 focus:ring-primary/20 rounded-xl text-base bg-gradient-to-br from-white to-slate-50 placeholder:text-muted-foreground/60"
+                        />
+                        {/* Character Counter */}
+                        <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
+                          <span className={newPostContent.length > 500 ? "text-red-500 font-semibold" : ""}>{newPostContent.length}</span>/500
+                        </div>
+                      </div>
+                      
+                      {/* Quick Tags */}
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-muted-foreground">Quick tags:</span>
+                        {["#HealthTip", "#Wellness", "#MentalHealth", "#Fitness", "#Nutrition"].map(tag => (
+                          <button
+                            key={tag}
+                            onClick={() => setNewPostContent(prev => prev + " " + tag)}
+                            className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Image URL Input */}
+                      {showImageInput && (
+                        <div className="flex gap-2 animate-in fade-in slide-in-from-top-2">
+                          <div className="flex-1 relative">
+                            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Paste image URL here..."
+                              value={imageUrl}
+                              onChange={(e) => setImageUrl(e.target.value)}
+                              className="pl-9 rounded-xl border-gray-200"
+                            />
+                          </div>
+                          {imageUrl && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setImageUrl("")}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {/* Image Preview */}
+                      {imageUrl && (
+                        <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                          <img 
+                            src={imageUrl} 
+                            alt="Preview" 
+                            className="w-full max-h-[200px] object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              toast.error("Invalid image URL");
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Action Bar */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={`rounded-xl hover:bg-blue-50 hover:text-blue-600 ${showImageInput ? 'bg-blue-50 text-blue-600' : 'text-muted-foreground'}`}
+                            onClick={() => setShowImageInput(!showImageInput)}
+                          >
+                            <ImageIcon className="h-5 w-5 mr-1.5" />
                             Photo
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-muted-foreground rounded-full">
-                            <Zap className="h-5 w-5 mr-2" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-muted-foreground rounded-xl hover:bg-purple-50 hover:text-purple-600"
+                            onClick={handlePoll}
+                          >
+                            <Zap className="h-5 w-5 mr-1.5" />
                             Poll
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-muted-foreground rounded-xl hover:bg-orange-50 hover:text-orange-600">
+                            <Sparkles className="h-5 w-5 mr-1.5" />
+                            Tips
                           </Button>
                         </div>
                         <Button 
                           onClick={handleCreatePost} 
-                          className="rounded-full shadow-lg px-6 bg-gradient-to-r from-primary to-purple-500 hover:opacity-90"
-                          disabled={!newPostContent.trim()}
+                          className="rounded-xl shadow-lg px-6 bg-gradient-to-r from-primary to-purple-500 hover:opacity-90 hover:scale-105 transition-all"
+                          disabled={!newPostContent.trim() || newPostContent.length > 500}
                         >
                           <Send className="h-4 w-4 mr-2" />
-                          Post
+                          Publish
                         </Button>
                       </div>
                     </div>
@@ -723,6 +927,67 @@ const Community = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-primary" />
+              Edit Post
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[150px] resize-none"
+              placeholder="Edit your post..."
+            />
+            <div className="flex justify-between items-center">
+              <span className={`text-xs ${editContent.length > 500 ? "text-red-500" : "text-muted-foreground"}`}>
+                {editContent.length}/500
+              </span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditingPost(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEditPost}
+              disabled={!editContent.trim() || editContent.length > 500}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletePostId} onOpenChange={() => setDeletePostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Post?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your post
+              and remove it from the community feed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePost}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

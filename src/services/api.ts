@@ -121,14 +121,25 @@ export const authAPI = {
       if (error) throw error;
 
       if (data.user) {
-        // We don't need to manually insert into 'profiles' here because 
-        // the 'on_auth_user_created' trigger in SQL schema handles it.
+        // Explicitly upsert into profiles to ensure name is saved
+        // (the trigger may not copy user_metadata)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            name: userData.name,
+            role: userData.role || 'user',
+          }, { onConflict: 'id' });
+
+        if (profileError) {
+          console.warn('Could not save profile name:', profileError);
+        }
 
         const role = userData.role || 'user';
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
-        localStorage.setItem('userData', JSON.stringify(data.user));
-        return { user: data.user, role, token: data.session?.access_token };
+        localStorage.setItem('userData', JSON.stringify({ ...data.user, name: userData.name }));
+        return { user: { ...data.user, name: userData.name }, role, token: data.session?.access_token };
       }
       return null;
     } catch (error) {
@@ -541,12 +552,21 @@ export const blogAPI = {
     }
 
     // Transform to frontend format
-    const posts = data.map(post => ({
-      ...post,
-      author: profilesMap[post.user_id] || { name: 'Community Member', avatar_url: null },
-      likes: 0,
-      commentsCount: 0
-    }));
+    const posts = data.map(post => {
+      const profile = profilesMap[post.user_id];
+      console.log('Profile lookup:', { user_id: post.user_id, profile, profilesMap });
+      const authorName = profile?.name || 'Community Member';
+      return {
+        ...post,
+        author: {
+          id: post.user_id,
+          name: authorName,
+          avatar_url: profile?.avatar_url || null
+        },
+        likes: 0,
+        commentsCount: 0
+      };
+    });
 
     return { data: posts };
   },
@@ -564,6 +584,104 @@ export const blogAPI = {
 
   getCategories: async () => {
     return { data: ["Health Tips", "Nutrition", "Mental Health", "Fitness", "Medical News"] };
+  },
+
+  createPost: async (postData: { content: string; tags?: string[]; user_id: string }) => {
+    const { data, error } = await supabase
+      .from('posts')
+      .insert({
+        content: postData.content,
+        tags: postData.tags || [],
+        user_id: postData.user_id,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating post:', error);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  },
+
+  addComment: async (postId: string, text: string, userId: string) => {
+    const { data, error } = await supabase
+      .from('post_comments')
+      .insert({
+        post_id: postId,
+        content: text,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding comment:', error);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  },
+
+  likePost: async (postId: string, userId: string) => {
+    const { data, error } = await supabase
+      .from('post_likes')
+      .insert({
+        post_id: postId,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error liking post:', error);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  },
+
+  unlikePost: async (postId: string, userId: string) => {
+    const { error } = await supabase
+      .from('post_likes')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error unliking post:', error);
+      return { success: false, error };
+    }
+    return { success: true, error: null };
+  },
+
+  editPost: async (postId: string, updates: { content?: string; tags?: string[] }) => {
+    const { data, error } = await supabase
+      .from('posts')
+      .update(updates)
+      .eq('id', postId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error editing post:', error);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  },
+
+  deletePost: async (postId: string) => {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+
+    if (error) {
+      console.error('Error deleting post:', error);
+      return { success: false, error };
+    }
+    return { success: true, error: null };
   }
 };
 
