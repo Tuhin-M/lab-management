@@ -354,22 +354,51 @@ export const labsAPI = {
   },
 
   getLabById: async (id: string) => {
+    // First: Fetch lab with tests (no reviews join - that's broken)
     const { data, error } = await supabase
       .from('labs')
-      .select('*, lab_tests(*, tests(*))') // Join to get tests offered by this lab
+      .select('*, lab_tests(*, tests(*))')
       .eq('id', id)
       .single();
 
     if (error) throw error;
 
-    // Transform data to match frontend expectation if necessary
-    // Frontend expects 'tests' array inside lab object
+    // Transform tests
     if (data && data.lab_tests) {
       data.tests = data.lab_tests.map((lt: any) => ({
         ...lt.tests,
         price: lt.price,
         discountPrice: lt.discounted_price
       }));
+    }
+
+    // Second: Fetch reviews separately
+    const { data: reviews } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('lab_id', id);
+
+    // Third: Fetch author profiles for reviews
+    if (reviews && reviews.length > 0) {
+      const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))];
+      let profilesMap: Record<string, any> = {};
+
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', userIds);
+
+        profiles?.forEach(p => { profilesMap[p.id] = p; });
+      }
+
+      data.reviews = reviews.map(r => ({
+        ...r,
+        user: profilesMap[r.user_id] || { name: 'Verified User' },
+        createdAt: r.created_at
+      }));
+    } else {
+      data.reviews = [];
     }
 
     return data;
@@ -489,22 +518,34 @@ export const healthRecordsAPI = {
 // Blog related API calls
 export const blogAPI = {
   getAllPosts: async (params?: any) => {
-    let query = supabase.from('posts').select('*, profiles(name, avatar_url), post_likes(count), post_comments(count)');
+    let query = supabase.from('posts').select('*').order('created_at', { ascending: false });
 
     if (params?.category) {
-      // Tag filtering
       query = query.contains('tags', [params.category]);
     }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // Transform to frontend format if needed
+    // Fetch author profiles separately to avoid FK join issues
+    const userIds = [...new Set(data.map(p => p.user_id).filter(Boolean))];
+    let profilesMap: Record<string, any> = {};
+
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', userIds);
+
+      profiles?.forEach(p => { profilesMap[p.id] = p; });
+    }
+
+    // Transform to frontend format
     const posts = data.map(post => ({
       ...post,
-      author: post.profiles,
-      likes: post.post_likes?.[0]?.count || 0,
-      commentsCount: post.post_comments?.[0]?.count || 0
+      author: profilesMap[post.user_id] || { name: 'Community Member', avatar_url: null },
+      likes: 0,
+      commentsCount: 0
     }));
 
     return { data: posts };
@@ -513,12 +554,12 @@ export const blogAPI = {
   getPostById: async (id: string) => {
     const { data, error } = await supabase
       .from('posts')
-      .select('*, profiles(name, avatar_url)')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (error) throw error;
-    return { data: { ...data, author: data.profiles } };
+    return { data: { ...data, author: { name: 'Community Member' } } };
   },
 
   getCategories: async () => {

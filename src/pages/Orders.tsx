@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Accordion,
@@ -6,6 +6,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Calendar,
   Clock,
@@ -21,13 +29,18 @@ import {
   Filter,
   Search,
   CheckCircle2,
-  Clock3
+  Clock3,
+  X,
+  Phone,
+  CreditCard,
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // Define types for different order types
 interface BaseOrder {
@@ -65,7 +78,7 @@ interface LabOrder extends BaseOrder {
 type Order = DoctorOrder | LabOrder;
 
 // Sample data for orders
-const appointmentOrders: DoctorOrder[] = [
+const initialAppointmentOrders: DoctorOrder[] = [
   {
     id: "APT-001",
     type: "doctor",
@@ -95,7 +108,7 @@ const appointmentOrders: DoctorOrder[] = [
   },
 ];
 
-const labOrders: LabOrder[] = [
+const initialLabOrders: LabOrder[] = [
   {
     id: "LAB-001",
     type: "lab",
@@ -137,32 +150,24 @@ const labOrders: LabOrder[] = [
   },
 ];
 
-// Combine all orders
-const allOrders: Order[] = [...appointmentOrders, ...labOrders];
-
 const StatusBadge = ({ status }: { status: string }) => {
-  let variant = "secondary";
   let className = "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200";
   let icon = null;
 
   switch (status) {
     case "completed":
     case "paid":
-      variant = "default";
       className = "bg-green-100 text-green-700 hover:bg-green-200 border-green-200";
       icon = <CheckCircle2 className="w-3 h-3 mr-1" />;
       break;
     case "upcoming":
     case "processing":
-      variant = "outline";
       className = "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200";
       icon = <Clock3 className="w-3 h-3 mr-1" />;
       break;
-    case "destructive":
     case "cancelled":
-      variant = "destructive";
       className = "bg-red-100 text-red-700 hover:bg-red-200 border-red-200";
-      icon = <AlertCircle className="w-3 h-3 mr-1" />;
+      icon = <X className="w-3 h-3 mr-1" />;
       break;
   }
 
@@ -174,7 +179,17 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 }
 
-const OrderCard = ({ order, index }: { order: Order; index: number }) => {
+const OrderCard = ({ 
+  order, 
+  index,
+  onCancel,
+  onViewDetails
+}: { 
+  order: Order; 
+  index: number;
+  onCancel: (order: Order) => void;
+  onViewDetails: (order: Order) => void;
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -250,7 +265,6 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                   </AccordionTrigger>
                   <AccordionContent className="px-2 pt-6">
                     <div className="relative">
-                      {/* Progress line */}
                       <div className="absolute left-[18px] top-2 bottom-2 w-1 bg-gray-200 rounded-full"></div>
                       <div 
                         className="absolute left-[18px] top-2 w-1 bg-gradient-to-b from-primary to-green-500 rounded-full transition-all duration-500"
@@ -258,7 +272,7 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                       ></div>
                       
                       <ol className="relative space-y-5">
-                        {order.trackingSteps.map((step, stepIndex) => (
+                        {order.trackingSteps.map((step) => (
                           <li key={step.id} className="relative pl-10">
                             <div className={`absolute w-5 h-5 rounded-full left-[7px] flex items-center justify-center transition-all duration-300 ${
                               step.completed 
@@ -286,16 +300,63 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
+                
+                <AccordionItem value="description" className="border-b-0 mt-2">
+                  <AccordionTrigger className="text-sm py-3 hover:no-underline px-5 rounded-xl hover:bg-white/80 transition-colors bg-white/50 shadow-sm">
+                    <span className="font-semibold flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      View Test Description
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 pt-4">
+                    <div className="bg-white/60 rounded-xl p-4 space-y-3">
+                      {order.tests.map((test, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <TestTube className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm">{test}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              A comprehensive test to evaluate your health status. Results typically available within 6-24 hours.
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
               
-              {order.status === "completed" && order.reportUrl && (
-                <div className="mt-5 flex justify-end">
+              {/* Action Buttons */}
+              <div className="mt-4 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
+                {order.status === "processing" && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => onCancel(order)}
+                  >
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                    Cancel Order
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white hover:bg-gray-50"
+                  onClick={() => onViewDetails(order)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Details
+                </Button>
+                {order.status === "completed" && order.reportUrl && (
                   <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all rounded-xl">
                     <Download className="mr-2 h-4 w-4" />
-                    Download Lab Report
+                    Download Report
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
           
@@ -308,13 +369,23 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                 </Button>
               )}
               {order.status === "upcoming" && (
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => onCancel(order)}
+                >
                   <AlertCircle className="mr-2 h-4 w-4" />
                   Cancel Appointment
                 </Button>
               )}
-               <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50">
-                  View Details
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 className="bg-white hover:bg-gray-50"
+                 onClick={() => onViewDetails(order)}
+               >
+                 View Details
                </Button>
             </div>
           )}
@@ -327,12 +398,66 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
 const Orders = () => {
   const [activeTab, setActiveTab] = useState("all");
   
+  // Load orders from localStorage or use initial data
+  const [appointmentOrders, setAppointmentOrders] = useState<DoctorOrder[]>(() => {
+    const saved = localStorage.getItem('ekitsa_appointment_orders');
+    return saved ? JSON.parse(saved) : initialAppointmentOrders;
+  });
+  
+  const [labOrders, setLabOrders] = useState<LabOrder[]>(() => {
+    const saved = localStorage.getItem('ekitsa_lab_orders');
+    return saved ? JSON.parse(saved) : initialLabOrders;
+  });
+  
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  
+  // Save orders to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('ekitsa_appointment_orders', JSON.stringify(appointmentOrders));
+  }, [appointmentOrders]);
+  
+  useEffect(() => {
+    localStorage.setItem('ekitsa_lab_orders', JSON.stringify(labOrders));
+  }, [labOrders]);
+  
+  const allOrders: Order[] = [...appointmentOrders, ...labOrders];
+  
   // Filter orders based on active tab
   const filteredOrders = activeTab === "all" 
     ? allOrders 
     : activeTab === "doctor" 
       ? appointmentOrders 
       : labOrders;
+
+  const handleCancelClick = (order: Order) => {
+    setSelectedOrder(order);
+    setCancelDialogOpen(true);
+  };
+
+  const handleViewDetailsClick = (order: Order) => {
+    setSelectedOrder(order);
+    setDetailsDialogOpen(true);
+  };
+
+  const confirmCancel = () => {
+    if (!selectedOrder) return;
+    
+    if (selectedOrder.type === "doctor") {
+      setAppointmentOrders(prev => 
+        prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
+      );
+    } else {
+      setLabOrders(prev => 
+        prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
+      );
+    }
+    
+    toast.success(`${selectedOrder.type === "doctor" ? "Appointment" : "Order"} cancelled successfully`);
+    setCancelDialogOpen(false);
+    setSelectedOrder(null);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 pt-24 pb-12 relative overflow-hidden">
@@ -350,7 +475,6 @@ const Orders = () => {
             className="mb-8"
           >
             <div className="bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 rounded-3xl p-8 border border-white/20 backdrop-blur-md shadow-xl relative overflow-hidden">
-              {/* Background decoration */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
               
@@ -453,7 +577,13 @@ const Orders = () => {
                     <div className="space-y-4">
                       {filteredOrders.length > 0 ? (
                         filteredOrders.map((order, index) => (
-                          <OrderCard key={order.id} order={order} index={index} />
+                          <OrderCard 
+                            key={order.id} 
+                            order={order} 
+                            index={index} 
+                            onCancel={handleCancelClick}
+                            onViewDetails={handleViewDetailsClick}
+                          />
                         ))
                       ) : (
                         <EmptyState />
@@ -465,7 +595,13 @@ const Orders = () => {
                     <div className="space-y-4">
                       {filteredOrders.length > 0 ? (
                         filteredOrders.map((order, index) => (
-                          <OrderCard key={order.id} order={order} index={index} />
+                          <OrderCard 
+                            key={order.id} 
+                            order={order} 
+                            index={index}
+                            onCancel={handleCancelClick}
+                            onViewDetails={handleViewDetailsClick}
+                          />
                         ))
                       ) : (
                         <EmptyState type="doctor" />
@@ -477,7 +613,13 @@ const Orders = () => {
                     <div className="space-y-4">
                       {filteredOrders.length > 0 ? (
                         filteredOrders.map((order, index) => (
-                          <OrderCard key={order.id} order={order} index={index} />
+                          <OrderCard 
+                            key={order.id} 
+                            order={order} 
+                            index={index}
+                            onCancel={handleCancelClick}
+                            onViewDetails={handleViewDetailsClick}
+                          />
                         ))
                       ) : (
                         <EmptyState type="lab" />
@@ -490,6 +632,143 @@ const Orders = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Cancel {selectedOrder?.type === "doctor" ? "Appointment" : "Order"}?
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to cancel this {selectedOrder?.type === "doctor" ? "appointment" : "order"}?
+              {selectedOrder?.type === "doctor" && " Your appointment slot will be released."}
+              {selectedOrder?.type === "lab" && " Your order will be cancelled and a refund will be initiated."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="bg-gray-50 rounded-xl p-4 my-2">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl ${selectedOrder.type === 'doctor' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                  {selectedOrder.type === 'doctor' ? <User className="h-5 w-5" /> : <TestTube className="h-5 w-5" />}
+                </div>
+                <div>
+                  <p className="font-semibold">{selectedOrder.type === "doctor" ? selectedOrder.doctor : selectedOrder.lab}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedOrder.date).toLocaleDateString()} at {selectedOrder.time}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              Keep {selectedOrder?.type === "doctor" ? "Appointment" : "Order"}
+            </Button>
+            <Button variant="destructive" onClick={confirmCancel}>
+              Yes, Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Order Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Order Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${selectedOrder.type === 'doctor' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                    {selectedOrder.type === 'doctor' ? <User className="h-6 w-6" /> : <TestTube className="h-6 w-6" />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">{selectedOrder.type === "doctor" ? selectedOrder.doctor : selectedOrder.lab}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedOrder.type === "doctor" ? selectedOrder.specialty : selectedOrder.tests.join(", ")}
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge status={selectedOrder.status} />
+              </div>
+              
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-xs">Date</span>
+                  </div>
+                  <p className="font-semibold">{new Date(selectedOrder.date).toLocaleDateString(undefined, { dateStyle: "long" })}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs">Time</span>
+                  </div>
+                  <p className="font-semibold">{selectedOrder.time}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 col-span-2">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-xs">Location</span>
+                  </div>
+                  <p className="font-semibold">{selectedOrder.address}</p>
+                </div>
+                {selectedOrder.type === "doctor" && (
+                  <div className="bg-gray-50 rounded-xl p-4 col-span-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <Building2 className="h-4 w-4" />
+                      <span className="text-xs">Hospital</span>
+                    </div>
+                    <p className="font-semibold">{selectedOrder.hospital}</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Payment Info */}
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Payment Details
+                </h4>
+                <div className="flex justify-between items-center bg-primary/5 rounded-xl p-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                    <p className="text-2xl font-bold text-primary">₹{selectedOrder.amount.toLocaleString()}</p>
+                  </div>
+                  <StatusBadge status={selectedOrder.paymentStatus} />
+                </div>
+              </div>
+              
+              {/* Order ID */}
+              <div className="border-t pt-4 flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Order ID</span>
+                <span className="font-mono font-semibold">{selectedOrder.id}</span>
+              </div>
+              
+              {/* Contact */}
+              <div className="border-t pt-4">
+                <Button variant="outline" className="w-full" asChild>
+                  <a href="tel:+919876543210">
+                    <Phone className="mr-2 h-4 w-4" />
+                    Contact Support
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

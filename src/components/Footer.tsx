@@ -9,10 +9,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="rounded-full bg-white w-8 h-8 flex items-center justify-center">
-                <span className="text-primary font-bold text-sm">E</span>
-              </div>
-              <span className="font-bold text-white text-lg">Ekitsa</span>
+              <img 
+                src="/images/ekitsa_logo.png" 
+                alt="Ekitsa" 
+                className="h-10 w-auto"
+              />
             </div>
             <p className="text-sm mb-4">
               Your one-stop healthcare platform for booking lab tests and doctor appointments

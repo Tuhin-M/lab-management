@@ -70,9 +70,7 @@ const bookingFormSchema = z.object({
   timeSlot: z.string({
     required_error: "Please select a time slot",
   }),
-  paymentMethod: z.enum(["online", "cash"], {
-    required_error: "Please select a payment method",
-  }),
+  // Payment is always on collection - no online payment option
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -100,7 +98,7 @@ const TestBooking = () => {
       patientEmail: "",
       collectionType: "lab",
       address: "",
-      paymentMethod: "online",
+      // Payment on collection is the only option
     },
   });
 
@@ -366,56 +364,24 @@ const TestBooking = () => {
                           </div>
                         </div>
 
+                        {/* Payment info - Pay on collection only */}
                         <div className="pt-6 border-t border-dashed">
-                          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                             <CreditCard className="h-5 w-5 text-primary" />
-                             Payment Method
-                          </h3>
-                          
-                          <FormField
-                            control={form.control}
-                            name="paymentMethod"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <RadioGroup
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    className="grid grid-cols-2 gap-6"
-                                  >
-                                    <FormItem>
-                                      <FormControl>
-                                        <RadioGroupItem value="online" className="sr-only peer" />
-                                      </FormControl>
-                                      <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm">
-                                        <CreditCard className="mb-3 h-6 w-6 text-gray-400 peer-data-[state=checked]:text-primary" />
-                                        <span className="font-bold">Online Payment</span>
-                                        <span className="text-xs text-center mt-1 text-muted-foreground">UPI, Card, Net Banking</span>
-                                      </FormLabel>
-                                    </FormItem>
-                                    <FormItem>
-                                      <FormControl>
-                                        <RadioGroupItem value="cash" className="sr-only peer" />
-                                      </FormControl>
-                                      <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm">
-                                        <svg className="mb-3 h-6 w-6 text-gray-400 peer-data-[state=checked]:text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        <span className="font-bold">Pay on Collection</span>
-                                        <span className="text-xs text-center mt-1 text-muted-foreground">Cash/QR at center</span>
-                                      </FormLabel>
-                                    </FormItem>
-                                  </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-green-100 rounded-lg">
+                                <CreditCard className="h-5 w-5 text-green-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-green-800">Pay on Sample Collection</h4>
+                                <p className="text-sm text-green-700">Payment will be collected at the time of sample collection (Cash/UPI)</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       <Button type="submit" className="w-full h-12 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform bg-gradient-to-r from-primary to-cyan-500 hover:from-primary/90 hover:to-cyan-600">
-                        Confirm & Pay
+                        Confirm Booking
                       </Button>
                     </form>
                   </Form>
@@ -545,13 +511,9 @@ const TestBooking = () => {
                  </div>
               </div>
 
-              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg text-blue-700">
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-green-50 p-3 rounded-lg text-green-700">
                 <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <p>
-                  {bookingDetails.paymentMethod === "online" 
-                    ? "You will be redirected to our secure payment gateway."
-                    : "Please pay cash/UPI at the lab counter."}
-                </p>
+                <p>Payment will be collected at the time of sample collection. Please keep cash or UPI ready.</p>
               </div>
             </div>
             
@@ -560,7 +522,7 @@ const TestBooking = () => {
                 Back
               </Button>
               <Button onClick={confirmBooking} className="rounded-xl h-11 bg-primary hover:bg-primary/90">
-                Confirm & Pay
+                Confirm Booking
               </Button>
             </DialogFooter>
           </DialogContent>
