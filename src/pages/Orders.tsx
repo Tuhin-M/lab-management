@@ -181,12 +181,12 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.4 }}
     >
-      <Card className="mb-4 overflow-hidden border-white/20 bg-white/80 backdrop-blur-md shadow-sm hover:shadow-xl transition-all duration-300 group">
+      <Card className="mb-4 overflow-hidden border-0 bg-white/90 backdrop-blur-md shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.15)] transition-all duration-300 group rounded-2xl ring-1 ring-gray-200/50">
         <CardContent className="p-0">
-          <div className="p-5 border-b border-gray-100">
+          <div className="p-6 border-b border-gray-100/50">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-start gap-4">
-                <div className={`p-3 rounded-xl ${order.type === 'doctor' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'} group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`p-3.5 rounded-2xl ${order.type === 'doctor' ? 'bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600' : 'bg-gradient-to-br from-purple-100 to-purple-50 text-purple-600'} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
                   {order.type === 'doctor' ? <User className="h-6 w-6" /> : <TestTube className="h-6 w-6" />}
                 </div>
                 <div>
@@ -202,52 +202,81 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
-                 <div className="text-lg font-bold text-primary">₹{order.amount}</div>
+                 <div className="text-xl font-bold text-primary">₹{order.amount.toLocaleString()}</div>
                  <StatusBadge status={order.paymentStatus} />
               </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 p-2 rounded-lg">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{new Date(order.date).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+              <div className="flex items-center gap-3 text-muted-foreground bg-gradient-to-r from-blue-50 to-blue-100/50 p-3.5 rounded-xl border border-blue-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Date</p>
+                  <span className="font-semibold text-foreground text-base">{new Date(order.date).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 p-2 rounded-lg">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{order.time}</span>
+              <div className="flex items-center gap-3 text-muted-foreground bg-gradient-to-r from-green-50 to-green-100/50 p-3.5 rounded-xl border border-green-100">
+                <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <Clock className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Time</p>
+                  <span className="font-semibold text-foreground text-base">{order.time}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 p-2 rounded-lg sm:col-span-2 md:col-span-1">
-                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="truncate font-medium text-foreground" title={order.address}>{order.address}</span>
+              <div className="flex items-center gap-3 text-muted-foreground bg-gradient-to-r from-orange-50 to-orange-100/50 p-3.5 rounded-xl border border-orange-100 sm:col-span-2 md:col-span-1">
+                <div className="p-2 bg-white rounded-lg shadow-sm">
+                  <MapPin className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Location</p>
+                  <span className="truncate font-semibold text-foreground text-base block" title={order.address}>{order.address}</span>
+                </div>
               </div>
             </div>
           </div>
-          
           {/* Order-specific content */}
           {order.type === "lab" && (
-            <div className="p-4 bg-gray-50/50">
+            <div className="p-5 bg-gradient-to-b from-gray-50/80 to-white/50">
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="tracking" className="border-b-0">
-                  <AccordionTrigger className="text-sm py-2 hover:no-underline px-4 rounded-lg hover:bg-white transition-colors">
-                    <span className="font-medium">Track Order Status</span>
+                  <AccordionTrigger className="text-sm py-3 hover:no-underline px-5 rounded-xl hover:bg-white/80 transition-colors bg-white/50 shadow-sm">
+                    <span className="font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" />
+                      Track Order Status
+                    </span>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pt-4">
-                    <div className="space-y-4 py-2 relative pl-2">
-                       <div className="absolute left-[20px] top-4 bottom-4 w-0.5 bg-gray-200"></div>
-                      <ol className="relative space-y-6">
-                        {order.trackingSteps.map((step) => (
-                          <li key={step.id} className="relative pl-8">
-                            <div className={`absolute w-4 h-4 rounded-full mt-0.5 left-1 border-2 border-white shadow-sm z-10 ${step.completed ? 'bg-primary' : 'bg-gray-300'}`}></div>
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <AccordionContent className="px-2 pt-6">
+                    <div className="relative">
+                      {/* Progress line */}
+                      <div className="absolute left-[18px] top-2 bottom-2 w-1 bg-gray-200 rounded-full"></div>
+                      <div 
+                        className="absolute left-[18px] top-2 w-1 bg-gradient-to-b from-primary to-green-500 rounded-full transition-all duration-500"
+                        style={{ height: `${(order.trackingSteps.filter(s => s.completed).length / order.trackingSteps.length) * 100}%` }}
+                      ></div>
+                      
+                      <ol className="relative space-y-5">
+                        {order.trackingSteps.map((step, stepIndex) => (
+                          <li key={step.id} className="relative pl-10">
+                            <div className={`absolute w-5 h-5 rounded-full left-[7px] flex items-center justify-center transition-all duration-300 ${
+                              step.completed 
+                                ? 'bg-gradient-to-br from-primary to-green-500 shadow-lg shadow-primary/30' 
+                                : 'bg-gray-200 border-2 border-gray-300'
+                            }`}>
+                              {step.completed && <CheckCircle className="h-3 w-3 text-white" />}
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-white/60 rounded-xl hover:bg-white transition-colors">
                               <div>
                                 <h3 className={`text-sm font-semibold ${step.completed ? 'text-gray-900' : 'text-gray-500'}`}>
                                   {step.label}
                                 </h3>
-                                {step.date && <time className="text-xs text-gray-400 font-medium">{step.date}</time>}
+                                {step.date && <time className="text-xs text-muted-foreground">{step.date}</time>}
                               </div>
                               {step.completed && (
-                                <span className="inline-flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit">
-                                  <CheckCircle className="mr-1 h-3 w-3" /> Completed
+                                <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full w-fit shadow-sm">
+                                  <CheckCircle className="mr-1 h-3 w-3" /> Done
                                 </span>
                               )}
                             </div>
@@ -260,8 +289,8 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
               </Accordion>
               
               {order.status === "completed" && order.reportUrl && (
-                <div className="mt-4 flex justify-end">
-                  <Button variant="default" size="sm" className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
+                <div className="mt-5 flex justify-end">
+                  <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all rounded-xl">
                     <Download className="mr-2 h-4 w-4" />
                     Download Lab Report
                   </Button>
@@ -314,26 +343,95 @@ const Orders = () => {
 
       <main className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Orders</h1>
-              <p className="text-muted-foreground mt-1">Track your past and upcoming appointments and lab tests</p>
-            </div>
-            
-            <div className="flex gap-2">
-               <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm">
-                  <Filter className="mr-2 h-4 w-4" /> Filter
-               </Button>
-                <div className="relative hidden sm:block">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <input 
-                    type="text" 
-                    placeholder="Search orders..." 
-                    className="h-9 w-full rounded-md border border-input bg-white/80 backdrop-blur-sm px-3 py-1 pl-9 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" 
-                  />
+          {/* Premium Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <div className="bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 rounded-3xl p-8 border border-white/20 backdrop-blur-md shadow-xl relative overflow-hidden">
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+              
+              <div className="relative z-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-primary/20 rounded-xl">
+                        <Package className="h-6 w-6 text-primary" />
+                      </div>
+                      <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Orders</h1>
+                    </div>
+                    <p className="text-muted-foreground">Track your past and upcoming appointments and lab tests</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filter
+                    </Button>
+                    <div className="relative hidden sm:block">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <input 
+                        type="text" 
+                        placeholder="Search orders..." 
+                        className="h-9 w-full rounded-xl border border-input bg-white/80 backdrop-blur-sm px-3 py-1 pl-9 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" 
+                      />
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Stats Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/30 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Package className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{allOrders.length}</p>
+                        <p className="text-xs text-muted-foreground">Total Orders</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/30 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{allOrders.filter(o => o.status === 'completed').length}</p>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/30 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <Clock className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{allOrders.filter(o => o.status === 'processing' || o.status === 'upcoming').length}</p>
+                        <p className="text-xs text-muted-foreground">In Progress</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/30 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <TestTube className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{labOrders.length}</p>
+                        <p className="text-xs text-muted-foreground">Lab Tests</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
           
           <Tabs defaultValue="all" className="mb-8" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-md border border-gray-200/50 p-1 rounded-xl shadow-sm">

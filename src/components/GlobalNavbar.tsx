@@ -42,7 +42,8 @@ const GlobalNavbar: React.FC = () => {
       
       if (authenticated) {
         setUserRole(authAPI.getCurrentUserRole());
-        setCurrentUser(authAPI.getCurrentUser());
+        const user = await authAPI.getCurrentUser();
+        setCurrentUser(user);
       } else {
         setUserRole(null);
         setCurrentUser(null);
@@ -81,11 +82,11 @@ const GlobalNavbar: React.FC = () => {
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         {/* Logo & Brand */}
         <Link to="/" className="flex items-center space-x-2 group">
-          <div className="bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+          <div className="bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all duration-300 p-1">
             <img 
               src="src/assets/ekitsa_logo.png"
               alt="Ekitsa Logo" 
-              className="h-10 md:h-14" 
+              className="h-10 md:h-16 w-auto" 
             />
           </div>
         </Link>
@@ -116,93 +117,119 @@ const GlobalNavbar: React.FC = () => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72 p-0">
+              <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 border-l border-white/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl shadow-2xl">
                 <div className="flex flex-col h-full">
                   {/* Header */}
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <img 
-                      src="/lovable-uploads/08ef7f9d-005e-4c81-a1b5-1420f8ce4d9b.png" 
-                      alt="Ekitsa Logo" 
-                      className="h-8"
-                    />
+                  <div className="flex items-center justify-between p-6 border-b border-white/10">
+                    <Link to="/" onClick={() => document.dispatchEvent(new CustomEvent('close-sheet'))}>
+                      <img 
+                        src="src/assets/ekitsa_logo.png" 
+                        alt="Ekitsa Logo" 
+                        className="h-14 w-auto"
+                      />
+                    </Link>
                   </div>
                   
                   {isAuthenticated && currentUser && (
-                    <div className="p-4 bg-muted/50 border-b">
-                      <p className="font-medium text-sm">{currentUser.name}</p>
-                      <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                    <div className="mx-4 mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-blue-500/10 border border-white/20 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-primary/20 flex items-center justify-center">
+                          <img 
+                            src={currentUser?.user_metadata?.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser?.email}`} 
+                            alt={currentUser?.user_metadata?.name} 
+                            className="h-full w-full object-cover" 
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.user_metadata?.name || "User"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{currentUser?.email}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
-                  <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+                  <nav className="flex-1 overflow-y-auto p-4 py-6 space-y-1.5">
                     {[
                       { path: "/", label: "Home", icon: <HomeIcon className="h-5 w-5" /> },
                       { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-5 w-5" /> },
                       { path: "/doctors", label: "Doctors", icon: <Stethoscope className="h-5 w-5" /> },
                       { path: "/blog", label: "Blog", icon: <FileText className="h-5 w-5" /> },
                       { path: "/about", label: "About Us", icon: <Info className="h-5 w-5" /> }
-                    ].map((link) => (
+                    ].map((link, idx) => (
                       <SheetClose key={link.path} asChild>
                         <Link 
                           to={link.path} 
-                          className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                          className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
                             isActive(link.path) && (link.path !== "/" || (!isActive("/lab-tests") && !isActive("/doctors")))
-                              ? 'bg-primary text-black font-semibold shadow-lg shadow-primary/20' 
-                              : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                              ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25 scale-[1.02]' 
+                              : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'
                           }`}
                         >
-                          {link.icon}
-                          <span className="text-base">{link.label}</span>
+                          <div className={`p-2 rounded-xl transition-colors ${
+                            isActive(link.path) && (link.path !== "/" || (!isActive("/lab-tests") && !isActive("/doctors")))
+                              ? 'bg-black/10' 
+                              : 'bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300'
+                          }`}>
+                            {link.icon}
+                          </div>
+                          <span className="text-base tracking-tight">{link.label}</span>
                         </Link>
                       </SheetClose>
                     ))}
                     
                     {isAuthenticated && (
-                      <>
-                        <div className="h-px bg-muted my-2 mx-4" />
+                      <div className="pt-4 space-y-1.5">
+                        <div className="px-5 mb-2">
+                          <div className="h-px bg-slate-200 dark:bg-slate-700 w-full" />
+                        </div>
+                        
                         {userRole === 'lab_owner' && (
                           <SheetClose asChild>
-                            <Link to="/lab-dashboard" className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${isActive("/lab-dashboard") ? 'bg-primary text-black font-semibold shadow-lg' : 'hover:bg-muted text-muted-foreground'}`}>
-                              <LayoutDashboard className="h-5 w-5" />
-                              <span className="text-base">Dashboard</span>
+                            <Link to="/lab-dashboard" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/lab-dashboard") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                              <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/lab-dashboard") ? 'bg-black/10' : ''}`}>
+                                <LayoutDashboard className="h-5 w-5" />
+                              </div>
+                              <span className="text-base tracking-tight">Dashboard</span>
                             </Link>
                           </SheetClose>
                         )}
                         <SheetClose asChild>
-                          <Link to="/profile" className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${isActive("/profile") ? 'bg-primary text-black font-semibold shadow-lg' : 'hover:bg-muted text-muted-foreground'}`}>
-                            <User className="h-5 w-5" />
-                            <span className="text-base">My Profile</span>
+                          <Link to="/profile" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/profile") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                            <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/profile") ? 'bg-black/10' : ''}`}>
+                              <User className="h-5 w-5" />
+                            </div>
+                            <span className="text-base tracking-tight">My Profile</span>
                           </Link>
                         </SheetClose>
-                      </>
+                      </div>
                     )}
                   </nav>
                   
-                  {/* Footer */}
-                  <div className="p-6 border-t bg-muted/30">
+                  {/* Footer Actions */}
+                  <div className="p-6 border-t border-white/10 bg-white/30 dark:bg-slate-900/30">
                     {isAuthenticated ? (
                       <Button 
-                        className="w-full h-12 rounded-xl font-bold shadow-lg" 
+                        className="w-full h-12 rounded-2xl font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-red-500/10" 
                         variant="destructive"
                         onClick={handleLogout}
                       >
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Logout
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Sign Out
                       </Button>
                     ) : (
                       <div className="flex flex-col gap-3">
                         <Button 
-                          className="w-full h-12 rounded-xl font-bold" 
+                          className="w-full h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" 
                           onClick={() => navigate("/login")}
                         >
-                          Login
+                          Login to Account
                         </Button>
                         <Button 
-                          className="w-full h-12 rounded-xl font-bold" 
+                          className="w-full h-12 rounded-2xl font-bold border-white/20 hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-95" 
                           variant="outline"
                           onClick={() => navigate("/signup")}
                         >
-                          Join Now
+                          Create Account
                         </Button>
                       </div>
                     )}

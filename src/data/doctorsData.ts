@@ -1,6 +1,6 @@
 
-// If this file exists, we'll just add to it; otherwise we'll create it
-// You would replace this with actual API data in a real application
+// Doctor data for Ekitsa healthcare platform
+// All doctors are based in Bangalore with AI-generated Indian images
 
 export interface Doctor {
   id: string;
@@ -14,16 +14,19 @@ export interface Doctor {
   discountedFee?: number;
   hospital: string;
   location: string;
+  city: string;
   distance: number;
   imageUrl: string;
   availableToday: boolean;
   verified?: boolean;
   languages?: string[];
   consultationOptions?: ('in-person' | 'video' | 'phone')[];
+  bio?: string;
+  gender: 'male' | 'female';
 }
 
 export const timeSlots = [
-  "9:00 AM", 
+  "9:00 AM",
   "9:30 AM",
   "10:00 AM",
   "10:30 AM",
@@ -41,10 +44,20 @@ export const timeSlots = [
   "5:30 PM"
 ];
 
+export const cities = [
+  "Bangalore, Karnataka",
+  "Mumbai, Maharashtra",
+  "Delhi, NCR",
+  "Chennai, Tamil Nadu",
+  "Hyderabad, Telangana",
+  "Pune, Maharashtra",
+  "Kolkata, West Bengal",
+];
+
 export const doctors: Doctor[] = [
   {
     id: "d1",
-    name: "Dr. Rahul Sharma",
+    name: "Dr. Rajesh Kumar",
     specialty: "Cardiologist",
     qualifications: "MBBS, MD, DM Cardiology",
     experience: 15,
@@ -52,36 +65,42 @@ export const doctors: Doctor[] = [
     reviewCount: 542,
     fee: 1200,
     discountedFee: 1500,
-    hospital: "Apollo Hospitals",
-    location: "Bandra, Mumbai",
+    hospital: "Manipal Hospital",
+    location: "Whitefield, Bangalore",
+    city: "Bangalore, Karnataka",
     distance: 3.2,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
+    imageUrl: "/doctors/doctor1.png",
     availableToday: true,
     verified: true,
-    languages: ["English", "Hindi", "Marathi"],
-    consultationOptions: ["in-person", "video", "phone"]
+    languages: ["English", "Hindi", "Kannada"],
+    consultationOptions: ["in-person", "video", "phone"],
+    bio: "Renowned cardiologist with expertise in interventional cardiology and heart failure management.",
+    gender: "male"
   },
   {
     id: "d2",
-    name: "Dr. Priya Patel",
+    name: "Dr. Priya Sharma",
     specialty: "Dermatologist",
     qualifications: "MBBS, MD Dermatology",
     experience: 10,
     rating: 4.9,
     reviewCount: 378,
     fee: 1500,
-    hospital: "Fortis Hospital",
-    location: "Malad, Mumbai",
-    distance: 7.5,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
-    availableToday: false,
+    hospital: "Apollo Hospital",
+    location: "Koramangala, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 5.5,
+    imageUrl: "/doctors/doctor2.png",
+    availableToday: true,
     verified: true,
-    languages: ["English", "Hindi", "Gujarati"],
-    consultationOptions: ["in-person", "video"]
+    languages: ["English", "Hindi", "Kannada"],
+    consultationOptions: ["in-person", "video"],
+    bio: "Expert in cosmetic dermatology, laser treatments, and skin rejuvenation procedures.",
+    gender: "female"
   },
   {
     id: "d3",
-    name: "Dr. Sanjay Gupta",
+    name: "Dr. Suresh Reddy",
     specialty: "Orthopedic Surgeon",
     qualifications: "MBBS, MS Orthopedics",
     experience: 18,
@@ -89,65 +108,122 @@ export const doctors: Doctor[] = [
     reviewCount: 623,
     fee: 1800,
     discountedFee: 2000,
-    hospital: "Lilavati Hospital",
-    location: "Dadar, Mumbai",
-    distance: 5.1,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
+    hospital: "Narayana Health",
+    location: "Electronic City, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 8.1,
+    imageUrl: "/doctors/doctor3.png",
     availableToday: true,
-    languages: ["English", "Hindi"],
-    consultationOptions: ["in-person"]
+    verified: true,
+    languages: ["English", "Hindi", "Telugu", "Kannada"],
+    consultationOptions: ["in-person"],
+    bio: "Specialist in joint replacement surgery and sports medicine with international training.",
+    gender: "male"
   },
   {
     id: "d4",
-    name: "Dr. Meera Desai",
+    name: "Dr. Kavitha Rao",
     specialty: "Gynecologist",
     qualifications: "MBBS, MD, DGO",
     experience: 12,
     rating: 4.9,
     reviewCount: 421,
     fee: 1300,
-    hospital: "Nanavati Hospital",
-    location: "Andheri, Mumbai",
-    distance: 8.7,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
+    hospital: "Fortis Hospital",
+    location: "Bannerghatta Road, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 6.7,
+    imageUrl: "/doctors/doctor4.png",
     availableToday: true,
     verified: true,
-    languages: ["English", "Hindi", "Marathi"],
-    consultationOptions: ["in-person", "video", "phone"]
+    languages: ["English", "Hindi", "Kannada", "Tamil"],
+    consultationOptions: ["in-person", "video", "phone"],
+    bio: "Compassionate gynecologist specializing in high-risk pregnancies and laparoscopic surgeries.",
+    gender: "female"
   },
   {
     id: "d5",
-    name: "Dr. Vikram Mehta",
+    name: "Dr. Arun Prasad",
     specialty: "Neurologist",
     qualifications: "MBBS, MD, DM Neurology",
     experience: 20,
     rating: 4.8,
     reviewCount: 316,
     fee: 2000,
-    hospital: "Hinduja Hospital",
-    location: "Mahim, Mumbai",
-    distance: 6.3,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
+    hospital: "Aster CMI Hospital",
+    location: "Hebbal, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 4.3,
+    imageUrl: "/doctors/doctor5.png",
     availableToday: false,
-    languages: ["English", "Hindi"],
-    consultationOptions: ["in-person", "video"]
+    verified: true,
+    languages: ["English", "Hindi", "Kannada"],
+    consultationOptions: ["in-person", "video"],
+    bio: "Leading neurologist specializing in stroke management and neurodegenerative disorders.",
+    gender: "male"
   },
   {
     id: "d6",
-    name: "Dr. Anjali Singh",
+    name: "Dr. Sneha Murthy",
     specialty: "Pediatrician",
     qualifications: "MBBS, MD Pediatrics",
     experience: 8,
     rating: 4.7,
     reviewCount: 287,
     fee: 1000,
-    hospital: "Kokilaben Hospital",
-    location: "Versova, Mumbai",
-    distance: 9.8,
-    imageUrl: "https://placehold.co/400x600/3730a3/FFFFFF.png?text=Doctor+Profile&font=montserrat",
+    hospital: "Columbia Asia Hospital",
+    location: "Yeshwanthpur, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 7.8,
+    imageUrl: "/doctors/doctor6.png",
     availableToday: true,
     verified: true,
-    languages: ["English", "Hindi", "Punjabi"],
-    consultationOptions: ["in-person", "video", "phone"]
+    languages: ["English", "Hindi", "Kannada"],
+    consultationOptions: ["in-person", "video", "phone"],
+    bio: "Child-friendly pediatrician with expertise in developmental disorders and vaccinations.",
+    gender: "female"
+  },
+  {
+    id: "d7",
+    name: "Dr. Venkatesh Iyer",
+    specialty: "Cardiologist",
+    qualifications: "MBBS, MD, DM Cardiology",
+    experience: 22,
+    rating: 4.9,
+    reviewCount: 712,
+    fee: 2500,
+    discountedFee: 3000,
+    hospital: "Jayadeva Hospital",
+    location: "Jayanagar, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 5.2,
+    imageUrl: "/doctors/doctor7.png",
+    availableToday: true,
+    verified: true,
+    languages: ["English", "Hindi", "Kannada", "Tamil"],
+    consultationOptions: ["in-person", "video"],
+    bio: "Award-winning cardiologist with expertise in cardiac electrophysiology.",
+    gender: "male"
+  },
+  {
+    id: "d8",
+    name: "Dr. Lakshmi Devi",
+    specialty: "Dermatologist",
+    qualifications: "MBBS, MD, DNB Dermatology",
+    experience: 14,
+    rating: 4.8,
+    reviewCount: 445,
+    fee: 1800,
+    hospital: "Sakra World Hospital",
+    location: "Marathahalli, Bangalore",
+    city: "Bangalore, Karnataka",
+    distance: 6.5,
+    imageUrl: "/doctors/doctor8.png",
+    availableToday: true,
+    verified: true,
+    languages: ["English", "Hindi", "Kannada", "Telugu"],
+    consultationOptions: ["in-person", "video", "phone"],
+    bio: "Expert in hair transplantation and advanced aesthetic procedures.",
+    gender: "female"
   }
 ];

@@ -16,12 +16,13 @@ const DoctorAppointment = lazy(() => import("./pages/DoctorAppointment"));
 const Login = lazy(() => import("./pages/Login"));
 const Profile = lazy(() => import("./pages/Profile"));
 const SignUp = lazy(() => import("./pages/SignUp"));
-const Blog = lazy(() => import("./pages/Blog"));
+const Community = lazy(() => import("./pages/Community"));
 const LabTests = lazy(() => import("./pages/LabTests"));
 const LabDetail = lazy(() => import("./pages/LabDetail"));
 const TestBooking = lazy(() => import("./pages/TestBooking"));
 const Index = lazy(() => import("./pages/Index"));
 const Orders = lazy(() => import("./pages/Orders"));
+const Settings = lazy(() => import("./pages/Settings"));
 const AddLab = lazy(() => import("./pages/lab-owner/AddLab"));
 const LabOwnerLabDetail = lazy(() => import("./pages/lab-owner/LabDetail"));
 const AddTest = lazy(() => import("./pages/lab-owner/AddTest"));
@@ -51,10 +52,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/blog" element={<Blog />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/community/post/:postId" element={<Community />} />
+          <Route path="/blog" element={<Navigate to="/community" replace />} />
           <Route path="/lab-tests" element={<LabTests />} />
           <Route path="/compare-labs" element={<LabComparison />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/settings" element={<Settings />} />
 
           {/* Lab Owner Routes */}
           <Route path="/lab-dashboard" element={<LabDashboard />} />

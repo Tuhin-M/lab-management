@@ -81,13 +81,20 @@ export const authAPI = {
       if (error) throw error;
 
       if (data.user) {
-        // We still store some data in localStorage for persistence if needed, 
-        // but Supabase handles the session in its own way as well.
-        const role = data.user.user_metadata?.role || 'user';
+        // Fetch user profile from 'profiles' table which includes role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        const role = profile?.role || data.user.user_metadata?.role || 'user';
+
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
-        localStorage.setItem('userData', JSON.stringify(data.user));
-        return { user: data.user, role, token: data.session?.access_token };
+        localStorage.setItem('userData', JSON.stringify({ ...data.user, ...profile }));
+
+        return { user: { ...data.user, ...profile }, role, token: data.session?.access_token };
       }
       return null;
     } catch (error) {
@@ -114,7 +121,10 @@ export const authAPI = {
       if (error) throw error;
 
       if (data.user) {
-        const role = data.user.user_metadata?.role || 'user';
+        // We don't need to manually insert into 'profiles' here because 
+        // the 'on_auth_user_created' trigger in SQL schema handles it.
+
+        const role = userData.role || 'user';
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
         localStorage.setItem('userData', JSON.stringify(data.user));
@@ -131,40 +141,70 @@ export const authAPI = {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
-      // Clear interceptors and tokens
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userData');
-
-      // Force redirect to login with full page refresh
-      window.location.replace('/login');
     } catch (error) {
       console.error('Logout error:', error);
-
-      // Ensure cleanup and redirect even if Supabase fails
+    } finally {
+      // Clear persistence and redirect
       localStorage.removeItem('authToken');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userData');
-
       window.location.replace('/login');
-      throw error;
     }
   },
 
   getProfile: async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;
-    return { data: user };
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      return { data: { ...user, ...profile } };
+    }
+    return { data: null };
   },
 
   updateProfile: async (profileData: any) => {
-    const { data, error } = await supabase.auth.updateUser({
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Update 'profiles' table
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+        gender: profileData.gender,
+        blood_group: profileData.bloodGroup,
+        avatar_url: profileData.avatar
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Also update Supabase Auth metadata for consistency (optional but good)
+    await supabase.auth.updateUser({
       data: {
         name: profileData.name,
         phone: profileData.phone,
-        address: profileData.address
+        address: profileData.address,
+        avatar: profileData.avatar
       }
+    });
+
+    return { data };
+  },
+
+  updatePassword: async (password: string) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: password
     });
     if (error) throw error;
     return { data: data.user };
@@ -187,26 +227,89 @@ export const authAPI = {
 
   getCurrentUser: async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      return { ...user, ...profile };
+    }
+    return null;
   }
 };
 
 // Doctor related API calls
 export const doctorsAPI = {
   getAllDoctors: async (params?: any) => {
-    return apiClient.get('/doctors', { params });
+    let query = supabase.from('doctors').select('*');
+
+    if (params?.city) {
+      query = query.eq('city', params.city);
+    }
+    if (params?.specialty && params.specialty !== 'all') {
+      query = query.eq('specialty', params.specialty);
+    }
+
+    // Simple search implementation
+    if (params?.search) {
+      query = query.ilike('name', `%${params.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Map database fields to frontend expected format if needed, 
+    // but schema matches closely so casting should work
+    return { data: data };
   },
 
   getDoctorById: async (id: string) => {
-    return apiClient.get(`/doctors/${id}`);
+    const { data, error } = await supabase
+      .from('doctors')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   bookAppointment: async (appointmentData: any) => {
-    return apiClient.post('/appointments', appointmentData);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        user_id: user.id,
+        doctor_id: appointmentData.doctorId,
+        appointment_date: appointmentData.date,
+        appointment_time: appointmentData.timeSlot,
+        type: appointmentData.type || 'in-person',
+        amount: appointmentData.fee,
+        status: 'confirmed', // Auto-confirm for demo
+        patient_name: appointmentData.patientName,
+        patient_phone: appointmentData.patientPhone
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   getSpecialties: async () => {
-    return apiClient.get('/specialties');
+    // Get unique specialties from doctors table
+    const { data, error } = await supabase
+      .from('doctors')
+      .select('specialty');
+
+    if (error) throw error;
+
+    // Return unique values
+    const uniqueSpecialties = [...new Set(data.map(d => d.specialty))];
+    return { data: uniqueSpecialties };
   }
 };
 
@@ -214,90 +317,228 @@ export const doctorsAPI = {
 export const labsAPI = {
   // Get all labs
   getAllLabs: async (params?: any) => {
-    const response = await apiClient.get('/labs', { params });
-    return response.data;
+    // Correct join: labs -> lab_tests -> tests
+    let query = supabase.from('labs').select('*, lab_tests(*, tests(*))');
+
+    if (params?.city) {
+      query = query.ilike('address_city', `%${params.city}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Transform data to flatten tests array for easier frontend consumption
+    const transformedData = data?.map((lab: any) => ({
+      ...lab,
+      tests: lab.lab_tests?.map((lt: any) => ({
+        ...lt.tests,
+        price: lt.price,
+        discountPrice: lt.discounted_price
+      })) || []
+    }));
+
+    return transformedData;
   },
 
   // Get all tests
   getAllTests: async (params?: any) => {
-    const response = await apiClient.get('/tests', { params });
-    return response.data;
+    let query = supabase.from('tests').select('*');
+
+    if (params?.search) {
+      query = query.ilike('name', `%${params.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   },
 
   getLabById: async (id: string) => {
-    const response = await apiClient.get(`/labs/${id}`);
-    return response.data;
+    const { data, error } = await supabase
+      .from('labs')
+      .select('*, lab_tests(*, tests(*))') // Join to get tests offered by this lab
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    // Transform data to match frontend expectation if necessary
+    // Frontend expects 'tests' array inside lab object
+    if (data && data.lab_tests) {
+      data.tests = data.lab_tests.map((lt: any) => ({
+        ...lt.tests,
+        price: lt.price,
+        discountPrice: lt.discounted_price
+      }));
+    }
+
+    return data;
   },
 
   bookTest: async (testData: any) => {
-    // Note: The endpoint in backend is /test-bookings, but previously was /tests/book
-    // Let's ensure this matches the refactored test-bookings logic
-    const response = await apiClient.post('/test-bookings', testData);
-    return response.data;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
+    const { data, error } = await supabase
+      .from('test_bookings')
+      .insert({
+        user_id: user.id,
+        lab_id: testData.labId,
+        booking_date: testData.date,
+        booking_time: testData.timeSlot,
+        total_amount: testData.totalAmount,
+        patient_name: testData.patientName,
+        patient_phone: testData.patientPhone,
+        home_collection: testData.homeCollection || false,
+        status: 'confirmed'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   getLabsSortedByDiscountedPrice: async (sortOrder: 'asc' | 'desc' = 'asc') => {
-    const response = await apiClient.get('/labs', { params: { sortBy: 'price', order: sortOrder } });
-    return response.data;
+    // This is complex in logic, for now returning all labs, client side sorting can handle it
+    // or we use an RPC function in Supabase if needed later.
+    const { data, error } = await supabase.from('labs').select('*');
+    if (error) throw error;
+    return data;
   }
 };
 
-// Coupon related API calls
+// User appointments and bookings
+export const userAPI = {
+  getAppointments: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*, doctors(*)')
+      .eq('user_id', user.id)
+      .order('appointment_date', { ascending: false });
+
+    if (error) throw error;
+    return { data };
+  },
+
+  getTestBookings: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    const { data, error } = await supabase
+      .from('test_bookings')
+      .select('*, labs(*)')
+      .eq('user_id', user.id)
+      .order('booking_date', { ascending: false });
+
+    if (error) throw error;
+    return { data };
+  },
+
+  cancelAppointment: async (id: string) => {
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: 'cancelled' })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  },
+
+  cancelTestBooking: async (id: string) => {
+    const { error } = await supabase
+      .from('test_bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true };
+  },
+
+  getProfile: authAPI.getProfile, // Reuse from authAPI
+  updateProfile: authAPI.updateProfile // Reuse from authAPI
+};
+
+// Health records API calls
+export const healthRecordsAPI = {
+  getAllRecords: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // Assuming we have a health_records table (not in schema yet, but good to placeholder)
+    // or we store it in a JSONB column in profiles for now
+    return { data: [] };
+  },
+  getRecordById: async (id: string) => {
+    return { data: null };
+  },
+  createRecord: async (data: any) => {
+    return { data: data };
+  },
+  updateRecord: async (id: string, data: any) => {
+    return { data: data };
+  },
+  deleteRecord: async (id: string) => {
+    return { success: true };
+  },
+};
+
+// Blog related API calls
+export const blogAPI = {
+  getAllPosts: async (params?: any) => {
+    let query = supabase.from('posts').select('*, profiles(name, avatar_url), post_likes(count), post_comments(count)');
+
+    if (params?.category) {
+      // Tag filtering
+      query = query.contains('tags', [params.category]);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Transform to frontend format if needed
+    const posts = data.map(post => ({
+      ...post,
+      author: post.profiles,
+      likes: post.post_likes?.[0]?.count || 0,
+      commentsCount: post.post_comments?.[0]?.count || 0
+    }));
+
+    return { data: posts };
+  },
+
+  getPostById: async (id: string) => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*, profiles(name, avatar_url)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return { data: { ...data, author: data.profiles } };
+  },
+
+  getCategories: async () => {
+    return { data: ["Health Tips", "Nutrition", "Mental Health", "Fitness", "Medical News"] };
+  }
+};
+
+// Coupon related API calls (Simplified for frontend-only)
 export const couponsAPI = {
   getAll: async () => {
-    const response = await apiClient.get('/coupons');
-    return response.data;
+    // Stub: in real app, fetch from 'coupons' table
+    return { data: [] };
   },
-
-  validate: async (data: { code: string; orderTotal: number; labId?: string; testIds?: string[] }) => {
-    const response = await apiClient.post('/coupons/validate', data);
-    return response.data;
+  validate: async (data: any) => {
+    // Stub validation
+    return { valid: true, discount: 0 };
   },
-
-  create: async (couponData: any) => {
-    const response = await apiClient.post('/coupons', couponData);
-    return response.data;
-  },
-
-  update: async (id: string, couponData: any) => {
-    const response = await apiClient.put(`/coupons/${id}`, couponData);
-    return response.data;
-  },
-
-  delete: async (id: string) => {
-    const response = await apiClient.delete(`/coupons/${id}`);
-    return response.data;
-  }
-};
-
-// Payment related API calls
-export const paymentsAPI = {
-  createOrder: async (data: {
-    amount: number;
-    testBookingId?: string;
-    appointmentId?: string;
-    paymentMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'COD' | 'WALLET';
-    couponCode?: string;
-    userId?: string;
-  }) => {
-    const response = await apiClient.post('/payments/create-order', data);
-    return response.data;
-  },
-
-  verify: async (data: { transactionId: string; gatewayPaymentId: string; gatewaySignature?: string }) => {
-    const response = await apiClient.post('/payments/verify', data);
-    return response.data;
-  },
-
-  getById: async (id: string) => {
-    const response = await apiClient.get(`/payments/${id}`);
-    return response.data;
-  },
-
-  requestRefund: async (id: string, reason: string) => {
-    const response = await apiClient.post(`/payments/${id}/refund`, { reason });
-    return response.data;
-  }
+  create: async (data: any) => { return { data }; },
+  update: async (id: string, data: any) => { return { data }; },
+  delete: async (id: string) => { return { success: true }; }
 };
 
 interface LabAddress {
@@ -351,102 +592,82 @@ interface LabCreateResponse {
 // Lab owner related API calls
 export const labOwnerAPI = {
   getLabStats: async () => {
-    const response = await apiClient.get('/lab-owner/stats');
-    return response.data;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: {} };
+
+    // Calculate stats from owned labs
+    const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user.id);
+    const labIds = labs?.map(l => l.id) || [];
+
+    if (labIds.length === 0) return { data: { totalBookings: 0, revenue: 0 } };
+
+    const { count } = await supabase
+      .from('test_bookings')
+      .select('*', { count: 'exact', head: true })
+      .in('lab_id', labIds);
+
+    return { data: { totalBookings: count || 0, revenue: 0, labs: labIds.length } };
   },
 
   getOwnedLabs: async () => {
-    const response = await apiClient.get('/lab-owner/labs');
-    return response.data;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    const { data, error } = await supabase
+      .from('labs')
+      .select('*')
+      .eq('owner_id', user.id);
+
+    if (error) throw error;
+    return { data };
   },
 
   updateAppointmentStatus: async (appointmentId: string, status: string) => {
-    const response = await apiClient.put(`/test-bookings/${appointmentId}/status`, { status });
-    return response.data;
+    const { data, error } = await supabase
+      .from('test_bookings')
+      .update({ status })
+      .eq('id', appointmentId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   deleteLab: async (id: string) => {
-    const response = await apiClient.delete(`/labs/${id}`);
-    return response.data;
+    const { error } = await supabase.from('labs').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
   },
 
   addLab: async (labData: LabCreateRequest): Promise<LabCreateResponse> => {
-    const response = await apiClient.post('/labs', {
-      name: labData.name,
-      description: labData.description,
-      establishedDate: labData.establishedDate,
-      registrationNumber: labData.registrationNumber,
-      contact: labData.contact,
-      address: labData.address,
-      facilities: labData.facilities,
-      certifications: labData.certifications,
-      workingHours: labData.workingHours,
-      staff: labData.staff,
-      services: labData.services
-    });
-    return response.data;
-  },
-};
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
 
-// User appointments and bookings
-export const userAPI = {
-  getAppointments: async () => {
-    return apiClient.get('/user/appointments');
-  },
+    const { data, error } = await supabase
+      .from('labs')
+      .insert({
+        owner_id: user.id,
+        name: labData.name,
+        description: labData.description,
+        // Mapping address fields
+        address_street: labData.address.street,
+        address_city: labData.address.city,
+        address_state: labData.address.state,
+        address_zip: labData.address.zipCode,
 
-  getTestBookings: async () => {
-    return apiClient.get('/user/test-bookings');
-  },
+        // Mapping other fields
+        phone: labData.contact.phone,
+        email: labData.contact.email,
+        facilities: labData.facilities,
+        // ... mapped fields
+      })
+      .select()
+      .single();
 
-  cancelAppointment: async (id: string) => {
-    return apiClient.delete(`/appointments/${id}`);
+    if (error) throw error;
+    return { id: data.id, name: data.name, message: "Lab created successfully" };
   },
-
-  cancelTestBooking: async (id: string) => {
-    return apiClient.delete(`/test-bookings/${id}`);
-  },
-
-  getProfile: async () => {
-    return apiClient.get('/user/profile');
-  },
-
-  updateProfile: async (profileData: any) => {
-    return apiClient.put('/user/profile', profileData);
-  }
-};
-
-// Health records API calls
-export const healthRecordsAPI = {
-  getAllRecords: async () => {
-    return apiClient.get('/health-records');
-  },
-  getRecordById: async (id: string) => {
-    return apiClient.get(`/health-records/${id}`);
-  },
-  createRecord: async (data: any) => {
-    return apiClient.post('/health-records', data);
-  },
-  updateRecord: async (id: string, data: any) => {
-    return apiClient.put(`/health-records/${id}`, data);
-  },
-  deleteRecord: async (id: string) => {
-    return apiClient.delete(`/health-records/${id}`);
-  },
-};
-
-// Blog related API calls
-export const blogAPI = {
-  getAllPosts: async (params?: any) => {
-    return apiClient.get('/blog/posts', { params });
-  },
-
-  getPostById: async (id: string) => {
-    return apiClient.get(`/blog/posts/${id}`);
-  },
-
-  getCategories: async () => {
-    return apiClient.get('/blog/categories');
-  }
 };
 
 interface Lab {

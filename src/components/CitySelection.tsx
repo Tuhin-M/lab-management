@@ -15,6 +15,7 @@ const CitySelection: React.FC<CitySelectionProps> = ({
   className = '',
 }) => {
   const cities = [
+    'All Locations',
     'Mumbai',
     'Delhi',
     'Bengaluru',

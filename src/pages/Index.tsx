@@ -213,82 +213,146 @@ const Index = () => {
       </section>
 
       {/* Stats Section with Pop-up Animation */}
-      <section className="relative -mt-10 z-20 container mx-auto px-4">
+      <section className="relative -mt-12 z-20 container mx-auto px-4">
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-5 border"
+          className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20"
         >
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {stats.map((stat, i) => (
               <motion.div 
                 key={i} 
                 className="text-center group"
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.08 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <div className="flex justify-center mb-1">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
-                    <stat.icon className="h-4 w-4 text-primary group-hover:text-white transition-colors" />
+                <div className="flex justify-center mb-3">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary group-hover:to-primary/80 transition-all duration-300 shadow-lg">
+                    <stat.icon className="h-7 w-7 text-primary group-hover:text-white transition-colors" />
                   </div>
                 </div>
-                <div className="text-lg md:text-xl font-bold text-foreground">{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+                <div className="text-3xl md:text-4xl font-extrabold text-foreground mb-1">{stat.value}</div>
+                <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
               </motion.div>
             ))}
           </div>
         </motion.div>
       </section>
 
-      {/* Services Section with Image Cards */}
-      <section className="py-12 container mx-auto px-4 relative z-10">
-        <div className="text-center mb-8">
-          <Badge variant="secondary" className="mb-2 text-xs">Our Services</Badge>
-          <h2 className="text-2xl font-bold mb-1">Everything You Need</h2>
-          <p className="text-muted-foreground text-sm">Complete healthcare at your fingertips</p>
+      {/* Services Section - Bento Grid Style */}
+      <section className="py-24 container mx-auto px-4 relative z-10">
+        <div className="text-center mb-16">
+          <Badge variant="secondary" className="mb-4 text-sm px-5 py-1.5 rounded-full font-medium">Our Services</Badge>
+          <h2 className="text-5xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:to-slate-400 tracking-tight">Everything You Need</h2>
+          <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">Complete healthcare at your fingertips. Book lab tests, consult doctors, and manage your health — all in one place.</p>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-3 max-w-5xl mx-auto">
-          {services.map((service, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.2, duration: 0.5 }}
-              whileHover={{ y: -10 }}
-              className="group relative overflow-hidden rounded-xl cursor-pointer h-56 shadow-md hover:shadow-xl transition-all duration-300"
-              onClick={() => navigate(service.path)}
-            >
-              {/* Background Image */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                style={{ backgroundImage: `url(${service.image})` }}
-              />
-              {/* Gradient Overlay */}
-              <div className={`absolute inset-0 bg-gradient-to-t ${service.color} opacity-80 group-hover:opacity-90 transition-opacity duration-300`} />
-              
-              {/* Content */}
-              <div className="absolute inset-0 p-5 flex flex-col justify-end text-white">
-                <div className="h-10 w-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                  <service.icon className="h-5 w-5" />
+        {/* Bento Grid Layout */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          {/* Featured Large Card - Lab Tests */}
+          <motion.div 
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            whileHover={{ scale: 1.02 }}
+            className="group relative overflow-hidden rounded-[2.5rem] cursor-pointer md:row-span-2 h-[500px] md:h-auto shadow-2xl border border-white/20"
+            onClick={() => navigate("/lab-tests")}
+          >
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+              style={{ backgroundImage: `url(https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800)` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-cyan-600 via-cyan-500/80 to-transparent opacity-95" />
+            
+            <div className="absolute inset-0 p-10 flex flex-col justify-end text-white">
+              <div className="h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-2xl border border-white/30">
+                <Microscope className="h-10 w-10" />
+              </div>
+              <Badge className="w-fit mb-3 bg-white/20 text-white border-0 backdrop-blur-md text-sm py-1.5 px-4">Most Popular</Badge>
+              <h3 className="text-4xl md:text-5xl font-black mb-3 leading-tight">Lab Tests</h3>
+              <p className="text-xl text-white/90 mb-6 max-w-md leading-relaxed">Book from 200+ tests with NABL certified labs. Get reports in just 6 hours with free home collection.</p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center text-lg font-bold bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl group-hover:bg-white group-hover:text-cyan-600 transition-all duration-300">
+                  <span>Explore Tests</span>
+                  <ChevronRight className="h-6 w-6 ml-2 group-hover:translate-x-2 transition-transform" />
                 </div>
-                <h3 className="text-lg font-bold mb-0.5 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">{service.title}</h3>
-                <p className="text-xs text-white/80 mb-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75">{service.description}</p>
-                <div className="flex items-center text-xs font-medium group-hover:gap-1 transition-all">
-                  <span>Explore</span>
-                  <ChevronRight className="h-3 w-3 ml-0.5 group-hover:translate-x-1 transition-transform" />
+                <div className="text-white/70 text-sm">Starting at ₹199</div>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Right Column - Stacked Cards */}
+          <div className="flex flex-col gap-6">
+            {/* Doctor Consult Card */}
+            <motion.div 
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              className="group relative overflow-hidden rounded-[2rem] cursor-pointer h-60 shadow-xl border border-white/20"
+              onClick={() => navigate("/doctors")}
+            >
+              <div 
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: `url(https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=600)` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-500/90 to-transparent opacity-95" />
+              
+              <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
+                <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-lg border border-white/30">
+                  <Stethoscope className="h-7 w-7" />
+                </div>
+                <h3 className="text-3xl font-extrabold mb-2">Doctor Consult</h3>
+                <p className="text-base text-white/90 mb-4 max-w-sm">500+ verified specialists available online. Get expert advice from the comfort of your home.</p>
+                <div className="flex items-center text-base font-bold group-hover:gap-2 transition-all">
+                  <span>Book Now</span>
+                  <ChevronRight className="h-5 w-5 ml-1 group-hover:translate-x-2 transition-transform" />
                 </div>
               </div>
             </motion.div>
-          ))}
+            
+            {/* Health Packages Card */}
+            <motion.div 
+              initial={{ opacity: 0, x: 40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+              whileHover={{ scale: 1.02 }}
+              className="group relative overflow-hidden rounded-[2rem] cursor-pointer h-60 shadow-xl border border-white/20"
+              onClick={() => navigate("/lab-tests")}
+            >
+              <div 
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                style={{ backgroundImage: `url(https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=600)` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-emerald-500/90 to-transparent opacity-95" />
+              
+              <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
+                <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-300 shadow-lg border border-white/30">
+                  <HeartPulse className="h-7 w-7" />
+                </div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-3xl font-extrabold">Health Packages</h3>
+                  <Badge className="bg-white/20 text-white border-0 text-sm">Popular</Badge>
+                </div>
+                <p className="text-base text-white/90 mb-4 max-w-sm">Full body checkups starting at just ₹999. Comprehensive health monitoring made affordable.</p>
+                <div className="flex items-center text-base font-bold group-hover:gap-2 transition-all">
+                  <span>View Packages</span>
+                  <ChevronRight className="h-5 w-5 ml-1 group-hover:translate-x-2 transition-transform" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Offers Section - Dark */}
-      <section className="py-10 bg-gray-900 text-white relative overflow-hidden">
+      <section className="py-16 bg-gray-900 text-white relative overflow-hidden">
         <motion.div 
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -296,14 +360,14 @@ const Index = () => {
         />
         
         <div className="container mx-auto px-4 relative">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <Badge className="mb-1 bg-primary/20 text-primary border-primary/30 text-xs">Limited Time</Badge>
-              <h2 className="text-xl font-bold">Exclusive Offers</h2>
+              <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 text-sm px-4 py-1">Limited Time</Badge>
+              <h2 className="text-3xl md:text-4xl font-extrabold">Exclusive Offers</h2>
             </div>
           </div>
           
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3 max-w-5xl mx-auto">
             {offers.map((offer, i) => (
               <motion.div 
                 key={i}
@@ -311,20 +375,20 @@ const Index = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.02 }}
-                className="relative overflow-hidden rounded-xl p-4 bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all group"
+                whileHover={{ scale: 1.03 }}
+                className="relative overflow-hidden rounded-2xl p-6 bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all group"
               >
-                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${offer.color} opacity-20 blur-2xl group-hover:opacity-30 transition-opacity`} />
-                <div className="relative flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${offer.color} flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform duration-300`}>
-                    <Percent className="h-4 w-4 text-white" />
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${offer.color} opacity-20 blur-3xl group-hover:opacity-30 transition-opacity`} />
+                <div className="relative flex items-center gap-4">
+                  <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${offer.color} flex items-center justify-center flex-shrink-0 group-hover:rotate-12 transition-transform duration-300 shadow-lg`}>
+                    <Percent className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-lg font-bold">{offer.discount}</span>
-                      <Badge variant="secondary" className="text-[9px] bg-white/10 border-0 h-4">{offer.code}</Badge>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-2xl font-extrabold">{offer.discount}</span>
+                      <Badge variant="secondary" className="text-xs bg-white/10 border-0 px-3 py-1">{offer.code}</Badge>
                     </div>
-                    <p className="text-xs text-gray-400">{offer.description}</p>
+                    <p className="text-sm text-gray-300">{offer.description}</p>
                   </div>
                 </div>
               </motion.div>
@@ -334,14 +398,14 @@ const Index = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="py-12 container mx-auto px-4 relative z-10">
-        <div className="text-center mb-8">
-          <Badge variant="secondary" className="mb-2 text-xs">Why Ekitsa</Badge>
-          <h2 className="text-2xl font-bold mb-1">The Smart Choice</h2>
-          <p className="text-muted-foreground text-sm">Features that set us apart</p>
+      <section className="py-20 container mx-auto px-4 relative z-10">
+        <div className="text-center mb-12">
+          <Badge variant="secondary" className="mb-3 text-sm px-4 py-1">Why Ekitsa</Badge>
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">The Smart Choice</h2>
+          <p className="text-muted-foreground text-lg">Features that set us apart</p>
         </div>
         
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 max-w-4xl mx-auto">
+        <div className="grid gap-6 grid-cols-2 md:grid-cols-4 max-w-5xl mx-auto">
           {features.map((feature, i) => (
             <motion.div 
               key={i} 
@@ -349,29 +413,30 @@ const Index = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.4 }}
-              whileHover={{ y: -5 }}
-              className="group text-center p-4 rounded-xl border bg-card hover:shadow-lg transition-all"
+              whileHover={{ y: -8 }}
+              className="group text-center p-6 rounded-2xl border bg-card/80 backdrop-blur-md hover:shadow-2xl hover:border-primary/20 transition-all duration-300"
             >
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-3 group-hover:from-primary group-hover:to-primary/80 transition-colors">
-                <feature.icon className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-4 group-hover:from-primary group-hover:to-primary/80 transition-all duration-300 shadow-lg">
+                <feature.icon className="h-7 w-7 text-primary group-hover:text-white transition-colors" />
               </div>
-              <div className="text-lg font-bold text-primary mb-0.5">{feature.stat}</div>
-              <h3 className="font-semibold text-sm mb-0.5">{feature.title}</h3>
-              <p className="text-[10px] text-muted-foreground">{feature.description}</p>
+              <div className="text-2xl font-extrabold text-primary mb-1">{feature.stat}</div>
+              <h3 className="font-bold text-base mb-1">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-10 relative z-10">
+      <section className="py-20 relative z-10">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-6">
-            <Badge variant="secondary" className="mb-2 text-xs">Testimonials</Badge>
-            <h2 className="text-2xl font-bold mb-1">Loved by Thousands</h2>
+          <div className="text-center mb-12">
+            <Badge variant="secondary" className="mb-3 text-sm px-4 py-1">Testimonials</Badge>
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">Loved by Thousands</h2>
+            <p className="text-muted-foreground text-lg">See what our customers have to say</p>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-3 max-w-4xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
             {testimonials.map((t, i) => (
               <motion.div 
                 key={i} 
@@ -379,24 +444,24 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="bg-card border rounded-xl p-4 shadow-sm hover:shadow-lg transition-all"
+                className="bg-card/80 backdrop-blur-md border rounded-2xl p-6 shadow-lg hover:shadow-2xl hover:border-primary/20 transition-all duration-300"
               >
-                <div className="flex items-center gap-0.5 mb-2">
+                <div className="flex items-center gap-1 mb-4">
                   {[...Array(5)].map((_, j) => (
                     <Star 
                       key={j} 
-                      className={`h-3 w-3 ${j < t.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+                      className={`h-5 w-5 ${j < t.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
                     />
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">"{t.text}"</p>
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center font-bold text-[10px] text-white">
+                <p className="text-base text-muted-foreground mb-5 leading-relaxed">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center font-bold text-sm text-white shadow-lg">
                     {t.avatar}
                   </div>
                   <div>
-                    <div className="font-medium text-xs">{t.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{t.location}</div>
+                    <div className="font-bold text-base">{t.name}</div>
+                    <div className="text-sm text-muted-foreground">{t.location}</div>
                   </div>
                 </div>
               </motion.div>
@@ -406,7 +471,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 bg-gradient-to-r from-primary to-cyan-600 text-white overflow-hidden relative">
+      <section className="py-20 bg-gradient-to-r from-primary to-cyan-600 text-white overflow-hidden relative">
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -419,27 +484,27 @@ const Index = () => {
              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
              className="inline-block"
           >
-           <Zap className="h-8 w-8 mx-auto mb-3 opacity-80" />
+           <Zap className="h-12 w-12 mx-auto mb-4 opacity-90" />
           </motion.div>
-          <h2 className="text-2xl font-bold mb-2">Start Your Health Journey</h2>
-          <p className="text-sm opacity-90 mb-5 max-w-md mx-auto">
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-4">Start Your Health Journey</h2>
+          <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
             Join 10,000+ users who trust Ekitsa for quality healthcare
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-4">
             <Button 
-              size="default" 
-              className="bg-white text-primary hover:bg-white/90 font-semibold h-10 px-6 rounded-xl shadow-lg shadow-black/10 transition-transform hover:scale-105 active:scale-95"
+              size="lg" 
+              className="bg-white text-primary hover:bg-white/90 font-bold h-14 px-8 rounded-2xl shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95 text-lg"
               onClick={() => navigate("/lab-tests")}
             >
               Book Lab Test
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
-              size="default" 
+              size="lg" 
               variant="outline"
-              className="bg-transparent border-white/30 text-white hover:bg-white/10 h-10 px-6 rounded-xl transition-transform hover:scale-105 active:scale-95"
+              className="bg-transparent border-white/30 text-white hover:bg-white/10 h-14 px-8 rounded-2xl transition-all hover:scale-105 active:scale-95 text-lg"
             >
-              <Phone className="mr-2 h-4 w-4" />
+              <Phone className="mr-2 h-5 w-5" />
               1800-123-4567
             </Button>
           </div>

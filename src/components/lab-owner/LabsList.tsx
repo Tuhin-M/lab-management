@@ -87,7 +87,6 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
                   <ExternalLink className="h-4 w-4 mr-2" /> Details
                 </Button>
                 <Button
-                  variant="destructive"
                   size="sm"
                   variant="ghost"
                   className="text-destructive hover:bg-destructive/10"

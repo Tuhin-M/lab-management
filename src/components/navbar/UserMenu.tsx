@@ -28,58 +28,90 @@ const UserMenu: React.FC<UserMenuProps> = ({ currentUser, onLogout }) => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-primary/10 hover:border-primary/30 p-0 overflow-hidden ring-offset-background transition-all hover:scale-105 active:scale-95 group">
           <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/20 transition-all">
-            <AvatarImage src={currentUser?.avatar} alt={currentUser?.name} />
+            <AvatarImage src={currentUser?.user_metadata?.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${currentUser?.email}`} alt={currentUser?.user_metadata?.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 mt-2 rounded-2xl p-2 border-primary/10 shadow-xl" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1 p-2">
-            <p className="text-sm font-bold leading-none">{currentUser?.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
+      <DropdownMenuContent 
+        className="w-72 mt-3 rounded-[28px] p-2 bg-white/90 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/40 dark:border-slate-800/60 shadow-[0_25px_70px_rgba(0,0,0,0.2)] ring-0 animate-in fade-in zoom-in-95 duration-200" 
+        align="end" 
+        forceMount
+      >
+        <DropdownMenuLabel className="px-5 pt-4 pb-2">
+          <div className="flex flex-col space-y-0.5">
+            <p className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">{currentUser?.name}</p>
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
               {currentUser?.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-primary/5" />
-        <div className="p-1">
-          <DropdownMenuItem className="rounded-xl cursor-pointer p-2 focus:bg-primary/10 focus:text-primary transition-colors" asChild>
+        
+        <div className="h-px bg-slate-100 dark:bg-slate-800 mx-2 mb-1" />
+        
+        <div className="p-1 space-y-1">
+          <DropdownMenuItem 
+            className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+            asChild
+          >
             <Link to="/profile" className="flex items-center">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <div className="bg-blue-50 dark:bg-blue-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="font-semibold text-[15px]">My Profile</span>
             </Link>
           </DropdownMenuItem>
+          
           {userRole === 'lab_owner' ? (
-            <DropdownMenuItem className="rounded-xl cursor-pointer p-2 focus:bg-primary/10 focus:text-primary transition-colors" asChild>
+            <DropdownMenuItem 
+              className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+              asChild
+            >
               <Link to="/lab-dashboard" className="flex items-center">
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>Lab Dashboard</span>
+                <div className="bg-teal-50 dark:bg-teal-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                  <LayoutDashboard className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <span className="font-semibold text-[15px]">Lab Dashboard</span>
               </Link>
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem className="rounded-xl cursor-pointer p-2 focus:bg-primary/10 focus:text-primary transition-colors" asChild>
+            <DropdownMenuItem 
+              className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+              asChild
+            >
               <Link to="/orders" className="flex items-center">
-                <HeartPulse className="mr-2 h-4 w-4" />
-                <span>My Orders</span>
+                <div className="bg-rose-50 dark:bg-rose-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                  <HeartPulse className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                </div>
+                <span className="font-semibold text-[15px]">My Orders</span>
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem className="rounded-xl cursor-pointer p-2 focus:bg-primary/10 focus:text-primary transition-colors" asChild>
-            <Link to="/profile?tab=security" className="flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+          
+          <DropdownMenuItem 
+            className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+            asChild
+          >
+            <Link to="/settings" className="flex items-center">
+              <div className="bg-amber-50 dark:bg-amber-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                <Settings className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <span className="font-semibold text-[15px]">Platform Settings</span>
             </Link>
           </DropdownMenuItem>
         </div>
-        <DropdownMenuSeparator className="bg-primary/5" />
+        
+        <div className="h-px bg-slate-100 dark:bg-slate-800 mx-2 my-2" />
+        
         <div className="p-1">
           <DropdownMenuItem 
-            className="rounded-xl cursor-pointer p-2 text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors"
+            className="rounded-[20px] cursor-pointer p-3 text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-700 transition-all duration-300 group"
             onClick={onLogout}
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
+            <div className="bg-red-50 dark:bg-red-900/30 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <span className="font-bold text-[15px]">Sign Out</span>
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
