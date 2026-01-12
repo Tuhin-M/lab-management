@@ -430,7 +430,13 @@ export const labsAPI = {
         patient_name: testData.patientName,
         patient_phone: testData.patientPhone,
         home_collection: testData.homeCollection || false,
-        status: 'confirmed'
+        status: 'confirmed',
+        // Storing test info as JSONB for flexibility
+        tests: testData.tests.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          price: t.price
+        }))
       })
       .select()
       .single();
@@ -781,6 +787,27 @@ export const labOwnerAPI = {
     return { data };
   },
 
+  getLabBookings: async (labId?: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    let query = supabase.from('test_bookings').select('*');
+
+    if (labId) {
+      query = query.eq('lab_id', labId);
+    } else {
+      // Get all bookings for all owned labs
+      const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user.id);
+      const labIds = labs?.map(l => l.id) || [];
+      if (labIds.length === 0) return { data: [] };
+      query = query.in('lab_id', labIds);
+    }
+
+    const { data, error } = await query.order('booking_date', { ascending: false });
+    if (error) throw error;
+    return { data };
+  },
+
   updateAppointmentStatus: async (appointmentId: string, status: string) => {
     const { data, error } = await supabase
       .from('test_bookings')
@@ -797,6 +824,68 @@ export const labOwnerAPI = {
     const { error } = await supabase.from('labs').delete().eq('id', id);
     if (error) throw error;
     return { success: true };
+  },
+
+  getLabTests: async (labId: string) => {
+    const { data, error } = await supabase
+      .from('lab_tests')
+      .select('*, tests(*)')
+      .eq('lab_id', labId);
+
+    if (error) throw error;
+    return {
+      data: data.map((lt: any) => ({
+        ...lt.tests,
+        price: lt.price,
+        discountPrice: lt.discounted_price,
+        labTestId: lt.id
+      }))
+    };
+  },
+
+  addTestToLab: async (labId: string, testData: any) => {
+    // 1. Check if test exists in global 'tests' or create it
+    let testId: string;
+    const { data: existingTest } = await supabase
+      .from('tests')
+      .select('id')
+      .eq('name', testData.name)
+      .maybeSingle();
+
+    if (existingTest) {
+      testId = existingTest.id;
+    } else {
+      const { data: newTest, error: testError } = await supabase
+        .from('tests')
+        .insert({
+          name: testData.name,
+          category: testData.category,
+          sample_type: testData.sampleType,
+          description: testData.description,
+          parameters: testData.parameters
+        })
+        .select()
+        .single();
+      if (testError) throw testError;
+      testId = newTest.id;
+    }
+
+    // 2. Map this test to the specific lab
+    const { data, error } = await supabase
+      .from('lab_tests')
+      .insert({
+        lab_id: labId,
+        test_id: testId,
+        price: testData.price,
+        discounted_price: testData.discount ? Math.round(testData.price * (1 - testData.discount / 100)) : testData.price,
+        turnaround_time: testData.turnaroundTime,
+        duration: testData.duration
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   addLab: async (labData: LabCreateRequest): Promise<LabCreateResponse> => {

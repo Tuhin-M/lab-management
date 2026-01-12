@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { labsAPI } from "@/services/api";
+import LoadingFallback from "@/utils/LoadingFallback";
 
 // Types for booking data
 interface SelectedTest {
@@ -82,18 +84,16 @@ type BookingFormValues = z.infer<typeof bookingFormSchema>;
 const TestBooking = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const params = useParams<{ id: string }>();
-  
+  const { id: routeTestId } = useParams<{ id: string }>();
+
   // Get lab and tests from route state (passed from LabDetail page)
   const labFromState = location.state?.lab;
   const testsFromState = location.state?.tests as SelectedTest[] | undefined;
   const priceFromState = location.state?.price as number | undefined;
-  
-  // Sanitize lab object - only extract primitive values we need (avoid rendering objects like reviews)
+
+  // Sanitize lab object
   const sanitizeLab = (rawLab: any): LabInfo => {
     if (!rawLab) return defaultLab;
-    
-    // Construct address string from either address field or address_* fields
     let address = rawLab.address;
     if (typeof address === 'object' || !address) {
       const parts = [
@@ -104,31 +104,54 @@ const TestBooking = () => {
       ].filter(Boolean);
       address = parts.length > 0 ? parts.join(', ') : 'Lab Location';
     }
-    
     return {
       id: rawLab.id || 'lab-default',
       name: rawLab.name || 'Lab',
       address: address,
       rating: rawLab.rating || rawLab.avgRating,
-      reviews: typeof rawLab.reviews === 'number' ? rawLab.reviews : rawLab.reviewCount,
+      reviews: typeof rawLab.reviews === 'number' ? rawLab.reviews : 20,
       image: rawLab.image || rawLab.imageUrl,
       imageUrl: rawLab.imageUrl || rawLab.image,
       homeCollectionCharges: rawLab.homeCollectionCharges || 100,
     };
   };
-  
-  // Use passed data or fallback to defaults
-  const [lab] = useState<LabInfo>(() => sanitizeLab(labFromState));
-  const [selectedTests] = useState<SelectedTest[]>(
+
+  const [lab, setLab] = useState<LabInfo>(() => sanitizeLab(labFromState));
+  const [selectedTests, setSelectedTests] = useState<SelectedTest[]>(
     testsFromState && testsFromState.length > 0 ? testsFromState : [defaultTest]
   );
-  
+  const [loading, setLoading] = useState(!labFromState || !testsFromState);
+
+  useEffect(() => {
+    const fetchMissingData = async () => {
+      if (!labFromState && routeTestId) {
+        try {
+          // In a real scenario, we might need to find which lab has this test
+          // For now, we'll try to get labs and find one containing this test ID
+          const allLabs = await labsAPI.getAllLabs();
+          const targetLab = allLabs.find((l: any) => l.tests.some((t: any) => t.id === routeTestId));
+          if (targetLab) {
+            setLab(sanitizeLab(targetLab));
+            const test = targetLab.tests.find((t: any) => t.id === routeTestId);
+            if (test) setSelectedTests([test]);
+          }
+        } catch (error) {
+          console.error("Error fetching missing booking data:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchMissingData();
+  }, [routeTestId, labFromState]);
+
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<BookingFormValues | null>(null);
 
-  
   const homeCollectionCharges = lab.homeCollectionCharges || 100;
-  
   const timeSlots = [
     "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM",
     "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM",
@@ -150,8 +173,6 @@ const TestBooking = () => {
   });
 
   const collectionType = form.watch("collectionType");
-  
-  // Calculate total price
   const testTotal = priceFromState || selectedTests.reduce((sum, test) => sum + (test.price || 0), 0);
   const totalAmount = testTotal + (collectionType === "home" ? homeCollectionCharges : 0);
 
@@ -160,43 +181,59 @@ const TestBooking = () => {
     setIsConfirmationOpen(true);
   };
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!bookingDetails) return;
-    
-    // Create new order and save to localStorage
-    const newOrder = {
-      id: `LAB-${Date.now()}`,
-      type: "lab" as const,
-      status: "processing",
-      lab: lab.name,
-      tests: selectedTests.map(t => t.name),
-      date: format(bookingDetails.testDate, "yyyy-MM-dd"),
-      time: bookingDetails.timeSlot.split(" - ")[0],
-      paymentStatus: "pending",
-      amount: totalAmount,
-      address: bookingDetails.collectionType === "home" 
-        ? bookingDetails.address || lab.address || "Home Collection"
-        : lab.address || "Lab Visit",
-      trackingSteps: [
-        { id: 1, label: "Order Placed", completed: true, date: format(new Date(), "yyyy-MM-dd") },
-        { id: 2, label: "Sample Collection", completed: false },
-        { id: 3, label: "Testing in Progress", completed: false },
-        { id: 4, label: "Results Processing", completed: false },
-        { id: 5, label: "Report Ready", completed: false },
-      ],
-      patientName: bookingDetails.patientName,
-      patientPhone: bookingDetails.patientPhone,
-    };
-    
-    // Save to localStorage
-    const existingOrders = localStorage.getItem('ekitsa_lab_orders');
-    const orders = existingOrders ? JSON.parse(existingOrders) : [];
-    orders.unshift(newOrder); // Add new order at the beginning
-    localStorage.setItem('ekitsa_lab_orders', JSON.stringify(orders));
-    
-    setIsConfirmationOpen(false);
-    toast.success("Test booking confirmed! You will receive a confirmation on your phone.");
-    navigate("/orders");
+
+    try {
+      // 1. Save to Database via API
+      await labsAPI.bookTest({
+        labId: lab.id,
+        tests: selectedTests,
+        date: format(bookingDetails.testDate, "yyyy-MM-dd"),
+        timeSlot: bookingDetails.timeSlot,
+        totalAmount: totalAmount,
+        patientName: bookingDetails.patientName,
+        patientPhone: bookingDetails.patientPhone,
+        homeCollection: bookingDetails.collectionType === "home",
+      });
+
+      // 2. Backward compatibility with localStorage for Orders page
+      const newOrder = {
+        id: `LAB-${Date.now()}`,
+        type: "lab" as const,
+        status: "processing",
+        lab: lab.name,
+        tests: selectedTests.map(t => t.name),
+        date: format(bookingDetails.testDate, "yyyy-MM-dd"),
+        time: bookingDetails.timeSlot.split(" - ")[0],
+        paymentStatus: "pending",
+        amount: totalAmount,
+        address: bookingDetails.collectionType === "home"
+          ? bookingDetails.address || lab.address || "Home Collection"
+          : lab.address || "Lab Visit",
+        trackingSteps: [
+          { id: 1, label: "Order Placed", completed: true, date: format(new Date(), "yyyy-MM-dd") },
+          { id: 2, label: "Sample Collection", completed: false },
+          { id: 3, label: "Testing in Progress", completed: false },
+          { id: 4, label: "Results Processing", completed: false },
+          { id: 5, label: "Report Ready", completed: false },
+        ],
+        patientName: bookingDetails.patientName,
+        patientPhone: bookingDetails.patientPhone,
+      };
+
+      const existingOrders = localStorage.getItem('ekitsa_lab_orders');
+      const orders = existingOrders ? JSON.parse(existingOrders) : [];
+      orders.unshift(newOrder);
+      localStorage.setItem('ekitsa_lab_orders', JSON.stringify(orders));
+
+      setIsConfirmationOpen(false);
+      toast.success("Test booking confirmed! You will receive a confirmation on your phone.");
+      navigate("/orders");
+    } catch (error) {
+      console.error("Booking error:", error);
+      toast.error("Failed to book test. Please try again.");
+    }
   };
 
   return (
@@ -208,18 +245,20 @@ const TestBooking = () => {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] opacity-60" />
       </div>
 
+      {loading && <LoadingFallback />}
+
       <main className="flex-grow container mx-auto py-8 px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
           <Link to={labFromState ? `/lab/${lab.id}` : "/lab-tests"} className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
             Back to {labFromState ? "Lab Details" : "Lab Tests"}
           </Link>
-          
+
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight mb-2">Book Your Test</h1>
             <p className="text-muted-foreground">Complete the form below to schedule your appointment at {lab.name}</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2">
               <Card className="bg-white/80 backdrop-blur-md border border-white/20 shadow-xl overflow-hidden rounded-2xl">
@@ -331,47 +370,47 @@ const TestBooking = () => {
                       <div className="space-y-6 pt-6 border-t border-dashed">
                         <div>
                           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                             <MapPin className="h-5 w-5 text-primary" />
-                             Collection Preference
+                            <MapPin className="h-5 w-5 text-primary" />
+                            Collection Preference
                           </h3>
-                        <FormField
-                          control={form.control}
-                          name="collectionType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RadioGroup
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                  className="grid grid-cols-2 gap-6"
-                                >
-                                  <FormItem>
-                                    <FormControl>
-                                      <RadioGroupItem value="lab" className="sr-only peer" />
-                                    </FormControl>
-                                    <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm">
-                                      <Building2 className="mb-3 h-8 w-8 text-gray-400 peer-data-[state=checked]:text-primary" />
-                                      <span className="font-bold text-lg">Visit Lab</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Visit the lab location for sample collection</span>
-                                    </FormLabel>
-                                  </FormItem>
-                                  <FormItem>
-                                    <FormControl>
-                                      <RadioGroupItem value="home" className="sr-only peer" />
-                                    </FormControl>
-                                    <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm relative overflow-hidden">
-                                      <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Recommended</div>
-                                      <Home className="mb-3 h-8 w-8 text-gray-400 peer-data-[state=checked]:text-primary" />
-                                      <span className="font-bold text-lg">Home Collection</span>
-                                      <span className="text-xs text-muted-foreground mt-1">Get samples collected at your home (+₹{homeCollectionCharges})</span>
-                                    </FormLabel>
-                                  </FormItem>
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <FormField
+                            control={form.control}
+                            name="collectionType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="grid grid-cols-2 gap-6"
+                                  >
+                                    <FormItem>
+                                      <FormControl>
+                                        <RadioGroupItem value="lab" className="sr-only peer" />
+                                      </FormControl>
+                                      <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm">
+                                        <Building2 className="mb-3 h-8 w-8 text-gray-400 peer-data-[state=checked]:text-primary" />
+                                        <span className="font-bold text-lg">Visit Lab</span>
+                                        <span className="text-xs text-muted-foreground mt-1">Visit the lab location for sample collection</span>
+                                      </FormLabel>
+                                    </FormItem>
+                                    <FormItem>
+                                      <FormControl>
+                                        <RadioGroupItem value="home" className="sr-only peer" />
+                                      </FormControl>
+                                      <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-slate-50 hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 text-center cursor-pointer transition-all shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Recommended</div>
+                                        <Home className="mb-3 h-8 w-8 text-gray-400 peer-data-[state=checked]:text-primary" />
+                                        <span className="font-bold text-lg">Home Collection</span>
+                                        <span className="text-xs text-muted-foreground mt-1">Get samples collected at your home (+₹{homeCollectionCharges})</span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
 
                         {collectionType === "home" && (
@@ -404,7 +443,7 @@ const TestBooking = () => {
                                         mode="single"
                                         selected={field.value}
                                         onSelect={field.onChange}
-                                        disabled={(date) => 
+                                        disabled={(date) =>
                                           date < new Date() || date > new Date(new Date().setDate(new Date().getDate() + 30))
                                         }
                                         initialFocus
@@ -417,7 +456,7 @@ const TestBooking = () => {
                               )}
                             />
                           </div>
-                          
+
                           <div>
                             <FormField
                               control={form.control}
@@ -428,14 +467,14 @@ const TestBooking = () => {
                                   <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
                                     {timeSlots.map((slot) => (
                                       <div key={slot} className="relative">
-                                        <RadioGroup 
-                                          value={field.value} 
+                                        <RadioGroup
+                                          value={field.value}
                                           onValueChange={field.onChange}
                                           className="hidden"
                                         >
                                           <RadioGroupItem value={slot} id={`time-${slot}`} />
                                         </RadioGroup>
-                                        <Label 
+                                        <Label
                                           htmlFor={`time-${slot}`}
                                           className={`flex items-center justify-center text-center rounded-lg border-2 p-3 cursor-pointer text-xs w-full transition-all hover:bg-primary/5 ${field.value === slot ? 'border-primary bg-primary/5 text-primary font-bold' : 'border-gray-100 bg-white'}`}
                                           onClick={() => field.onChange(slot)}
@@ -487,45 +526,45 @@ const TestBooking = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
-                   <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
-                        Selected Tests ({selectedTests.length})
-                      </h4>
-                      <div className="space-y-3">
-                        {selectedTests.map((test, index) => (
-                          <div key={test.id || index} className="bg-white p-4 rounded-xl shadow-sm border border-primary/10">
-                            <div className="flex justify-between items-start mb-1">
-                              <h3 className="font-bold text-gray-900 text-sm">{test.name}</h3>
-                              <span className="font-bold text-primary text-sm">₹{test.price}</span>
-                            </div>
-                            {test.category && (
-                              <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 mt-1">
-                                {test.category}
-                              </Badge>
-                            )}
+                  <div>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
+                      Selected Tests ({selectedTests.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {selectedTests.map((test, index) => (
+                        <div key={test.id || index} className="bg-white p-4 rounded-xl shadow-sm border border-primary/10">
+                          <div className="flex justify-between items-start mb-1">
+                            <h3 className="font-bold text-gray-900 text-sm">{test.name}</h3>
+                            <span className="font-bold text-primary text-sm">₹{test.price}</span>
                           </div>
-                        ))}
-                      </div>
-                   </div>
+                          {test.category && (
+                            <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 mt-1">
+                              {test.category}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                   <div className="space-y-3 pt-2 text-sm">
+                  <div className="space-y-3 pt-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Test Price</span>
+                      <span>₹{testTotal}</span>
+                    </div>
+                    {collectionType === "home" && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Test Price</span>
-                        <span>₹{testTotal}</span>
+                        <span className="text-muted-foreground">Home Collection</span>
+                        <span>₹{homeCollectionCharges}</span>
                       </div>
-                      {collectionType === "home" && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Home Collection</span>
-                          <span>₹{homeCollectionCharges}</span>
-                        </div>
-                      )}
-                      <div className="border-t border-dashed pt-3 mt-2">
-                        <div className="flex justify-between items-end">
-                          <span className="font-bold text-lg">Total</span>
-                          <span className="font-black text-2xl text-primary">₹{totalAmount}</span>
-                        </div>
+                    )}
+                    <div className="border-t border-dashed pt-3 mt-2">
+                      <div className="flex justify-between items-end">
+                        <span className="font-bold text-lg">Total</span>
+                        <span className="font-black text-2xl text-primary">₹{totalAmount}</span>
                       </div>
-                   </div>
+                    </div>
+                  </div>
                 </CardContent>
                 <CardFooter className="bg-primary/5 border-t border-primary/10 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -539,31 +578,31 @@ const TestBooking = () => {
               <Card className="bg-white/80 backdrop-blur-md border border-white/20 shadow-sm rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                     <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                       <img 
-                         src={lab.image || lab.imageUrl || "https://images.unsplash.com/photo-1581595219315-a187dd40c322?auto=format&fit=crop&w=100&q=80"} 
-                         alt={lab.name} 
-                         className="w-full h-full object-cover" 
-                       />
-                     </div>
-                     <div>
-                       <h4 className="font-bold text-sm">{lab.name}</h4>
-                       <div className="flex items-center text-xs text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          <span className="line-clamp-1">{lab.address}</span>
-                       </div>
-                       {lab.rating && (
-                         <div className="flex items-center gap-1 mt-2">
-                            <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center">
-                              <Star className="h-3 w-3 mr-0.5" fill="currentColor" />
-                              {lab.rating}
-                            </span>
-                            {lab.reviews && (
-                              <span className="text-[10px] text-muted-foreground">({lab.reviews} reviews)</span>
-                            )}
-                         </div>
-                       )}
-                     </div>
+                    <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                      <img
+                        src={lab.image || lab.imageUrl || "https://images.unsplash.com/photo-1581595219315-a187dd40c322?auto=format&fit=crop&w=100&q=80"}
+                        alt={lab.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">{lab.name}</h4>
+                      <div className="flex items-center text-xs text-muted-foreground mt-1">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        <span className="line-clamp-1">{lab.address}</span>
+                      </div>
+                      {lab.rating && (
+                        <div className="flex items-center gap-1 mt-2">
+                          <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center">
+                            <Star className="h-3 w-3 mr-0.5" fill="currentColor" />
+                            {lab.rating}
+                          </span>
+                          {lab.reviews && (
+                            <span className="text-[10px] text-muted-foreground">({lab.reviews} reviews)</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -578,38 +617,38 @@ const TestBooking = () => {
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-cyan-500" />
             <DialogHeader className="pt-6 px-6">
               <div className="mx-auto bg-green-100 h-12 w-12 rounded-full flex items-center justify-center mb-4">
-                 <CheckCircle className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <DialogTitle className="text-center text-xl">Confirm Booking</DialogTitle>
               <DialogDescription className="text-center">
                 Please review your appointment details
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="px-6 py-2 space-y-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Patient</span>
-                    <span className="font-semibold">{bookingDetails.patientName}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Date & Time</span>
-                    <span className="font-semibold">{format(bookingDetails.testDate, "MMM d")} at {bookingDetails.timeSlot.split('-')[0]}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Lab</span>
-                    <span className="font-semibold truncate max-w-[150px]">{lab.name}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tests</span>
-                    <span className="font-semibold text-right max-w-[150px] line-clamp-2">
-                      {selectedTests.map(t => t.name).join(", ")}
-                    </span>
-                 </div>
-                 <div className="border-t pt-2 flex justify-between items-center">
-                    <span className="font-bold">Total Amount</span>
-                    <span className="font-bold text-lg text-primary">₹{totalAmount}</span>
-                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Patient</span>
+                  <span className="font-semibold">{bookingDetails.patientName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Date & Time</span>
+                  <span className="font-semibold">{format(bookingDetails.testDate, "MMM d")} at {bookingDetails.timeSlot.split('-')[0]}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Lab</span>
+                  <span className="font-semibold truncate max-w-[150px]">{lab.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tests</span>
+                  <span className="font-semibold text-right max-w-[150px] line-clamp-2">
+                    {selectedTests.map(t => t.name).join(", ")}
+                  </span>
+                </div>
+                <div className="border-t pt-2 flex justify-between items-center">
+                  <span className="font-bold">Total Amount</span>
+                  <span className="font-bold text-lg text-primary">₹{totalAmount}</span>
+                </div>
               </div>
 
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-green-50 p-3 rounded-lg text-green-700">
@@ -617,7 +656,7 @@ const TestBooking = () => {
                 <p>Payment will be collected at the time of sample collection. Please keep cash or UPI ready.</p>
               </div>
             </div>
-            
+
             <DialogFooter className="px-6 pb-6 pt-2 gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setIsConfirmationOpen(false)} className="rounded-xl h-11 border-gray-200">
                 Back
