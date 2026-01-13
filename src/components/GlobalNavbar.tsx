@@ -103,7 +103,7 @@ const GlobalNavbar: React.FC = () => {
           ) : (
             <Button 
               className="hidden md:flex h-9 px-4 rounded-full" 
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login", { state: { from: location } })}
             >
               Login
             </Button>
@@ -153,7 +153,7 @@ const GlobalNavbar: React.FC = () => {
                       { path: "/", label: "Home", icon: <HomeIcon className="h-5 w-5" /> },
                       { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-5 w-5" /> },
                       { path: "/doctors", label: "Doctors", icon: <Stethoscope className="h-5 w-5" /> },
-                      { path: "/blog", label: "Blog", icon: <FileText className="h-5 w-5" /> },
+                      { path: "/blog", label: "Community", icon: <FileText className="h-5 w-5" /> },
                       { path: "/about", label: "About Us", icon: <Info className="h-5 w-5" /> }
                     ].map((link, idx) => (
                       <SheetClose key={link.path} asChild>
@@ -220,7 +220,7 @@ const GlobalNavbar: React.FC = () => {
                       <div className="flex flex-col gap-3">
                         <Button 
                           className="w-full h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 text-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" 
-                          onClick={() => navigate("/login")}
+                          onClick={() => navigate("/login", { state: { from: location } })}
                         >
                           Login to Account
                         </Button>
