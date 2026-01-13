@@ -95,22 +95,28 @@ export const LabOnboardingModal = ({
 
   return (
     <Modal
-      title={`Lab Onboarding - Step ${currentStep} of 5`}
+      title={`Lab Onboarding - Step ${currentStep} of 2`}
       isOpen={show}
       onClose={onClose}
-      maxWidth="2xl"
+      maxWidth="xl"
     >
-      <Progress value={(currentStep / 5) * 100} className="mb-6" />
+      <Progress value={(currentStep / 2) * 100} className="mb-6 h-2" />
 
       {currentStep === 1 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 mb-2">
+            <h4 className="text-sm font-semibold text-primary mb-1">Let's get started</h4>
+            <p className="text-xs text-slate-600">Enter the basic identity of your laboratory. You can add more details and tests later.</p>
+          </div>
+
           <InputGroup
             label="Lab Name*"
             value={labData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="Enter lab name"
+            placeholder="e.g. Central Diagnostics"
+            className="rounded-xl"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="Lab Type*"
               value={labData.type}
@@ -122,245 +128,71 @@ export const LabOnboardingModal = ({
               label="Registration Number*"
               value={labData.registrationNumber}
               onChange={(e) => handleInputChange('registrationNumber', e.target.value)}
-              placeholder="Lab registration number"
+              placeholder="e.g. 123456789"
             />
           </div>
-          <InputGroup
-            label="Description"
-            value={labData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            placeholder="Brief description about your lab"
-          />
-          <InputGroup
-            label="Established Date"
-            type="date"
-            value={labData.establishedDate}
-            onChange={(e) => handleInputChange('establishedDate', e.target.value)}
-          />
         </div>
       )}
 
       {currentStep === 2 && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 mb-2">
+            <h4 className="text-sm font-semibold text-blue-700 mb-1">Contact & Primary Location</h4>
+            <p className="text-xs text-slate-600">Provide ways for patients to find and contact you.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputGroup
-              label="Email*"
+              label="Business Email*"
               type="email"
               value={labData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="contact@lab.com"
             />
             <InputGroup
-              label="Phone*"
+              label="Primary Phone*"
               value={labData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+91XXXXXXXXXX"
+              placeholder="+91 XXXXX XXXXX"
             />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <InputGroup
-              label="Emergency Contact"
-              value={labData.emergencyContact}
-              onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-              placeholder="+91XXXXXXXXXX"
-            />
-            <InputGroup
-              label="Website"
-              value={labData.website}
-              onChange={(e) => handleInputChange('website', e.target.value)}
-              placeholder="https://yourlab.com"
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <InputGroup
-              label="Street*"
-              value={labData.street}
-              onChange={(e) => handleInputChange('street', e.target.value)}
-              placeholder="Street address"
-            />
             <InputGroup
               label="City*"
               value={labData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
-              placeholder="City"
+              placeholder="e.g. Mumbai"
             />
             <InputGroup
               label="State*"
               value={labData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
-              placeholder="State"
+              placeholder="e.g. Maharashtra"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <InputGroup
-              label="Zip Code*"
-              value={labData.zipCode}
-              onChange={(e) => handleInputChange('zipCode', e.target.value)}
-              placeholder="Postal code"
-            />
-            <InputGroup
-              label="Landmark"
-              value={labData.landmark}
-              onChange={(e) => handleInputChange('landmark', e.target.value)}
-              placeholder="Nearby landmark"
-            />
+
+          <div className="mt-4 p-4 border rounded-xl bg-slate-50">
+            <h3 className="text-sm font-semibold mb-2">Verification Summary</h3>
+            <div className="space-y-1 text-xs text-slate-600">
+              <div className="flex justify-between"><span>Lab Name:</span> <span className="font-medium text-slate-900">{labData.name || 'Not set'}</span></div>
+              <div className="flex justify-between"><span>Location:</span> <span className="font-medium text-slate-900">{labData.city || 'Not set'}, {labData.state}</span></div>
+            </div>
           </div>
+
+          <p className="text-[10px] text-center text-slate-400 mt-4 italic">By clicking complete, you agree to our laboratory partnership agreement.</p>
         </div>
       )}
 
-      {currentStep === 3 && (
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Facilities</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {facilityOptions.map(facility => (
-                <Checkbox
-                  key={facility}
-                  id={`facility-${facility}`}
-                  label={facility}
-                  checked={labData.facilities.includes(facility)}
-                  onCheckedChange={(checked) => {
-                    const newFacilities = checked
-                      ? [...labData.facilities, facility]
-                      : labData.facilities.filter(f => f !== facility);
-                    handleInputChange('facilities', newFacilities);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Certifications</h4>
-            <div className="grid grid-cols-3 gap-3">
-              {certificationOptions.map(cert => (
-                <Checkbox
-                  key={cert}
-                  id={`cert-${cert}`}
-                  label={cert}
-                  checked={labData.certifications.includes(cert)}
-                  onCheckedChange={(checked) => {
-                    const newCerts = checked
-                      ? [...labData.certifications, cert]
-                      : labData.certifications.filter(c => c !== cert);
-                    handleInputChange('certifications', newCerts);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Services Offered</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {serviceOptions.map(service => (
-                <Checkbox
-                  key={service}
-                  id={`service-${service}`}
-                  label={service}
-                  checked={labData.services.includes(service)}
-                  onCheckedChange={(checked) => {
-                    const newServices = checked
-                      ? [...labData.services, service]
-                      : labData.services.filter(s => s !== service);
-                    handleInputChange('services', newServices);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {currentStep === 4 && (
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Working Hours</h4>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <InputGroup
-                  label="Weekdays Open"
-                  type="time"
-                  value={labData.workingHours.weekdays.open}
-                  onChange={(e) => handleNestedInputChange('workingHours', 'weekdays.open', e.target.value)}
-                />
-                <InputGroup
-                  label="Weekdays Close"
-                  type="time"
-                  value={labData.workingHours.weekdays.close}
-                  onChange={(e) => handleNestedInputChange('workingHours', 'weekdays.close', e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <InputGroup
-                  label="Weekends Open"
-                  type="time"
-                  value={labData.workingHours.weekends.open}
-                  onChange={(e) => handleNestedInputChange('workingHours', 'weekends.open', e.target.value)}
-                />
-                <InputGroup
-                  label="Weekends Close"
-                  type="time"
-                  value={labData.workingHours.weekends.close}
-                  onChange={(e) => handleNestedInputChange('workingHours', 'weekends.close', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-3">Staff Configuration</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <InputGroup
-                label="Pathologists"
-                type="number"
-                min="0"
-                value={labData.staff.pathologists}
-                onChange={(e) => handleNestedInputChange('staff', 'pathologists', parseInt(e.target.value))}
-              />
-              <InputGroup
-                label="Technicians"
-                type="number"
-                min="0"
-                value={labData.staff.technicians}
-                onChange={(e) => handleNestedInputChange('staff', 'technicians', parseInt(e.target.value))}
-              />
-              <InputGroup
-                label="Receptionists"
-                type="number"
-                min="0"
-                value={labData.staff.receptionists}
-                onChange={(e) => handleNestedInputChange('staff', 'receptionists', parseInt(e.target.value))}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {currentStep === 5 && (
-        <div className="space-y-4">
-          <div className="p-5 border rounded-xl bg-gray-50">
-            <h3 className="font-semibold mb-3">Final Review</h3>
-            <div className="grid grid-cols-2 gap-y-2 text-sm">
-              <span className="text-muted-foreground">Lab Name:</span> <span className="font-medium text-right">{labData.name}</span>
-              <span className="text-muted-foreground">Address:</span> <span className="font-medium text-right">{labData.city}, {labData.state}</span>
-              <span className="text-muted-foreground">Contact:</span> <span className="font-medium text-right">{labData.phone}</span>
-              <span className="text-muted-foreground">Staff Total:</span> <span className="font-medium text-right">{labData.staff.pathologists + labData.staff.technicians + labData.staff.receptionists}</span>
-            </div>
-          </div>
-          <p className="text-xs text-center text-muted-foreground pt-4">By clicking complete, you agree to our terms of laboratory partnership.</p>
-        </div>
-      )}
-
-      <div className="flex justify-between mt-8 border-t pt-6">
+      <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
         {currentStep > 1 ? (
-          <Button variant="outline" onClick={() => onStepChange(currentStep - 1)}>Previous</Button>
+          <Button variant="ghost" onClick={() => onStepChange(currentStep - 1)} className="rounded-xl">Previous</Button>
         ) : <div />}
 
-        {currentStep < 5 ? (
-          <Button onClick={() => onStepChange(currentStep + 1)}>Next Step</Button>
+        {currentStep < 2 ? (
+          <Button onClick={() => onStepChange(currentStep + 1)} className="rounded-xl">Next: Contact Info</Button>
         ) : (
-          <Button onClick={onSubmit}>Complete Onboarding</Button>
+          <Button onClick={onSubmit} className="rounded-xl shadow-lg shadow-primary/20">Complete Onboarding</Button>
         )}
       </div>
     </Modal>
