@@ -303,7 +303,7 @@ const SignUp = () => {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} className="h-11 bg-white border-slate-200 rounded-xl" />
+                          <Input placeholder="Avishek Das" {...field} className="h-11 bg-white border-slate-200 rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -332,7 +332,7 @@ const SignUp = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="john@example.com" {...field} className="h-11 bg-white border-slate-200 rounded-xl" />
+                        <Input type="email" placeholder="name@example.com" {...field} className="h-11 bg-white border-slate-200 rounded-xl" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

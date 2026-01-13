@@ -25,7 +25,7 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
   const labOwnerLinks = [
     { path: "/", label: "Home", icon: <Home className="h-6 w-6" /> },
     { path: "/lab-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
-    { path: "/blog", label: "Blog", icon: <FileText className="h-6 w-6" /> }
+    { path: "/community", label: "Community", icon: <FileText className="h-6 w-6" /> }
   ];
 
   const links = userRole === 'lab_owner' ? labOwnerLinks : commonLinks;

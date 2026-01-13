@@ -168,10 +168,10 @@ const Settings = () => {
                 <Bell className="h-4 w-4 mr-2" />
                 {t('settings.notifications.title')}
               </TabsTrigger>
-              <TabsTrigger value="appearance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-primary transition-all">
+              {/* <TabsTrigger value="appearance" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-primary transition-all">
                 <Moon className="h-4 w-4 mr-2" />
                 {t('settings.appearance.title')}
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="privacy" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-primary transition-all">
                 <Shield className="h-4 w-4 mr-2" />
                 {t('settings.privacy.title')}
@@ -268,8 +268,7 @@ const Settings = () => {
               </motion.div>
             </TabsContent>
 
-            {/* Appearance Tab */}
-            <TabsContent value="appearance">
+            {/* <TabsContent value="appearance">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -344,7 +343,7 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               </motion.div>
-            </TabsContent>
+            </TabsContent> */}
 
             {/* Privacy Tab */}
             <TabsContent value="privacy">

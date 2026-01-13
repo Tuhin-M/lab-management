@@ -39,7 +39,7 @@ const DependentsTab: React.FC = () => {
   const [dependents, setDependents] = useState<Dependent[]>([
     {
       id: '1',
-      name: 'Sarah Johnson',
+      name: 'Madhu Das',
       relationship: 'Spouse',
       dateOfBirth: '1990-05-15',
       gender: 'Female',
@@ -48,7 +48,7 @@ const DependentsTab: React.FC = () => {
     },
     {
       id: '2',
-      name: 'Alex Johnson',
+      name: 'Ayan Das',
       relationship: 'Child',
       dateOfBirth: '2015-08-20',
       gender: 'Male',

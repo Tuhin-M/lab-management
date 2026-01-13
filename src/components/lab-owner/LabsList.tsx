@@ -10,7 +10,9 @@ interface Lab {
   _id?: string;
   name: string;
   address: any;
-  image: string;
+  image?: string;
+  images?: string[];
+  logo?: string;
   rating: number;
   tests: any[];
   status: string;
@@ -49,10 +51,21 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
             <Card key={labId} className="overflow-hidden group hover:shadow-lg transition-shadow duration-300">
               <div className="h-44 overflow-hidden relative">
                 <img
-                  src={lab.image || "https://images.unsplash.com/photo-1579152276503-391494578b94?w=500&auto=format"}
+                  src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || "https://images.unsplash.com/photo-1579152276503-391494578b94?w=500&auto=format"}
                   alt={lab.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
+                
+                {lab.logo && (
+                  <div className="absolute top-3 left-3 w-10 h-10 rounded-lg bg-white p-0.5 shadow-md">
+                    <img 
+                      src={lab.logo} 
+                      alt="Logo" 
+                      className="w-full h-full object-contain rounded-md"
+                    />
+                  </div>
+                )}
+
                 <div className="absolute top-3 right-3">
                   <Badge variant={lab.status === "active" ? "success" : "warning"}>
                     {lab.status === "active" ? "Active" : "Registering"}

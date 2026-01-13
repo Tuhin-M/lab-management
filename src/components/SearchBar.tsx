@@ -27,6 +27,7 @@ const SearchBar = ({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"tests" | "doctors">("tests");
   const [isFocused, setIsFocused] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const popularSearches = [
@@ -55,7 +56,7 @@ const SearchBar = ({
         
         {/* Category Selector */}
         <div className="relative border-r border-gray-200 dark:border-gray-700 h-8 flex items-center">
-            <Popover>
+            <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-full px-3 text-muted-foreground hover:text-foreground hover:bg-transparent gap-1 rounded-l-2xl">
                   {category === "tests" ? <TestTube className="h-4 w-4 text-primary" /> : <Stethoscope className="h-4 w-4 text-primary" />}
@@ -66,14 +67,20 @@ const SearchBar = ({
               <PopoverContent className="w-[140px] p-1" align="start">
                 <div 
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-primary/10 transition-colors ${category === "tests" ? 'bg-primary/5 text-primary font-medium' : ''}`}
-                  onClick={() => setCategory("tests")}
+                  onClick={() => {
+                    setCategory("tests");
+                    setIsCategoryOpen(false);
+                  }}
                 >
                   <TestTube className="h-4 w-4" />
                   <span className="text-sm">Lab Tests</span>
                 </div>
                 <div 
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-primary/10 transition-colors ${category === "doctors" ? 'bg-primary/5 text-primary font-medium' : ''}`}
-                  onClick={() => setCategory("doctors")}
+                  onClick={() => {
+                    setCategory("doctors");
+                    setIsCategoryOpen(false);
+                  }}
                 >
                   <Stethoscope className="h-4 w-4" />
                   <span className="text-sm">Doctors</span>

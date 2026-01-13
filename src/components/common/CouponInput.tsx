@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tag, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import axios from 'axios';
+
 
 interface CouponInputProps {
   orderTotal: number;
@@ -25,7 +25,7 @@ interface CouponValidationResponse {
   finalAmount: number;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 
 export const CouponInput: React.FC<CouponInputProps> = ({
   orderTotal,
@@ -48,25 +48,36 @@ export const CouponInput: React.FC<CouponInputProps> = ({
     setError(null);
 
     try {
-      const response = await axios.post<CouponValidationResponse>(
-        `${API_URL}/coupons/validate`,
-        {
-          code: couponCode.toUpperCase(),
-          orderTotal,
-          labId,
-          testIds,
-        }
-      );
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      const data = response.data;
-      setAppliedCoupon(data);
-      onCouponApplied({
-        code: data.code,
-        discountAmount: data.discountAmount,
-        finalAmount: data.finalAmount,
-      });
+      // Mock coupon validation
+      if (couponCode.toUpperCase() === 'WELCOME50') {
+        const discountAmount = 50;
+        const finalAmount = Math.max(0, orderTotal - discountAmount);
+        
+        const data: CouponValidationResponse = {
+          valid: true,
+          couponId: 'mock-coupon-id',
+          code: 'WELCOME50',
+          discountType: 'FIXED',
+          discountValue: 50,
+          discountAmount: discountAmount,
+          finalAmount: finalAmount
+        };
+
+        setAppliedCoupon(data);
+        onCouponApplied({
+          code: data.code,
+          discountAmount: data.discountAmount,
+          finalAmount: data.finalAmount,
+        });
+      } else {
+        throw new Error('Invalid coupon code');
+      }
+
     } catch (err: any) {
-      const message = err.response?.data?.error || 'Failed to validate coupon';
+      const message = err.message || 'Failed to validate coupon';
       setError(message);
       setAppliedCoupon(null);
       onCouponApplied(null);

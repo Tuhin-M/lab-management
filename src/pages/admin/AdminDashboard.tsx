@@ -31,9 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { supabase } from '@/lib/supabase';
 
 interface Analytics {
   overview: {
@@ -80,8 +78,48 @@ const AdminDashboard: React.FC = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`${API_URL}/admin/analytics`);
-      setAnalytics(response.data);
+      // Parallel requests for counts (using head: true for efficiency)
+      const [
+        { count: totalUsers },
+        { count: totalDoctors },
+        { count: totalLabs },
+        { count: totalBookings },
+        { count: totalAppointments },
+        { data: profiles }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }),
+        supabase.from('labs').select('*', { count: 'exact', head: true }),
+        supabase.from('test_bookings').select('*', { count: 'exact', head: true }),
+        supabase.from('appointments').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('role')
+      ]);
+
+      const usersByRole: Record<string, number> = {};
+      profiles?.forEach((p) => {
+        const role = p.role || 'user';
+        usersByRole[role] = (usersByRole[role] || 0) + 1;
+      });
+
+      setAnalytics({
+        overview: {
+          totalUsers: totalUsers || 0,
+          totalDoctors: totalDoctors || 0,
+          totalLabs: totalLabs || 0,
+          totalBookings: totalBookings || 0,
+          totalAppointments: totalAppointments || 0,
+        },
+        recent30Days: {
+          bookings: 0, 
+          appointments: 0, 
+          revenue: 0, 
+          transactions: 0 
+        },
+        breakdowns: {
+          usersByRole,
+          bookingsByStatus: {}
+        }
+      });
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
     }
@@ -90,12 +128,27 @@ const AdminDashboard: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const params: Record<string, string> = {};
-      if (searchQuery) params.search = searchQuery;
-      if (roleFilter) params.role = roleFilter;
+      let query = supabase.from('profiles').select('*');
 
-      const response = await axios.get(`${API_URL}/admin/users`, { params });
-      setUsers(response.data.users);
+      if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+      }
+      if (roleFilter) {
+        query = query.eq('role', roleFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setUsers(data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        email: p.email || 'N/A', 
+        phone: p.phone,
+        role: p.role,
+        lastLogin: new Date().toISOString(),
+        createdAt: p.created_at
+      })));
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {

@@ -134,7 +134,7 @@ const BookAppointment = () => {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="John Doe" {...field} />
+                              <Input placeholder="Avishek Das" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
