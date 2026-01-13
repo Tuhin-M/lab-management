@@ -1,73 +1,4 @@
-import axios from 'axios';
 import { supabase } from '../lib/supabase';
-
-// Base API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// Create axios instance
-const apiClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true, // This is important for cookies
-});
-
-// Add request interceptor for auth tokens
-apiClient.interceptors.request.use(
-  async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor for handling common errors and token refresh
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If error is 401 and we haven't already tried to refresh the token
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // Check if we should stop refresh attempts
-      if (error.response.data?.shouldStopRefresh) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userData');
-        return Promise.reject(error);
-      }
-
-      originalRequest._retry = true;
-
-      try {
-        // Try to get a new token using the refresh endpoint
-        const response = await apiClient.get('/auth/refresh');
-
-        // If successful, update the token and retry
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('userRole', response.data.role);
-        localStorage.setItem('userData', JSON.stringify(response.data.user));
-
-        originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
-        return axios(originalRequest);
-      } catch (refreshError) {
-        // If refresh fails, log the user out
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userData');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
 
 // Auth related API calls
 export const authAPI = {
@@ -953,36 +884,179 @@ interface ApiResponse<T> {
 // Doctor chat API calls
 export const doctorChatAPI = {
   getChats: async () => {
-    return apiClient.get('/doctor-chats');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    const { data, error } = await supabase
+      .from('tele_sessions')
+      .select('*, doctor:doctors(name, image_url)')
+      .eq('patient_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching chats:', error);
+      return { data: [] };
+    }
+
+    return {
+      data: data.map((session: any) => ({
+        _id: session.id,
+        doctor: {
+          _id: session.doctor_id,
+          name: session.doctor?.name || 'Doctor',
+          image: session.doctor?.image_url
+        },
+        messages: session.chat_history || [],
+        updatedAt: session.updated_at
+      }))
+    };
   },
 
   getChatById: async (id: string) => {
-    return apiClient.get(`/doctor-chats/${id}`);
+    const { data, error } = await supabase
+      .from('tele_sessions')
+      .select('*, doctor:doctors(name, image_url)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      data: {
+        _id: data.id,
+        messages: data.chat_history || [],
+        doctor: {
+          name: data.doctor?.name || 'Doctor'
+        }
+      }
+    };
   },
 
   createChat: async (doctorId: string) => {
-    return apiClient.post('/doctor-chats', { doctorId });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // Check for existing active session
+    const { data: existing } = await supabase
+      .from('tele_sessions')
+      .select('*')
+      .eq('patient_id', user.id)
+      .eq('doctor_id', doctorId)
+      .neq('status', 'completed')
+      .neq('status', 'cancelled')
+      .maybeSingle();
+
+    if (existing) {
+      return {
+        data: {
+          _id: existing.id,
+          messages: existing.chat_history || []
+        }
+      };
+    }
+
+    // Create new session
+    const { data, error } = await supabase
+      .from('tele_sessions')
+      .insert({
+        patient_id: user.id,
+        doctor_id: doctorId,
+        status: 'scheduled',
+        mode: 'chat',
+        chat_history: []
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      data: {
+        _id: data.id,
+        messages: []
+      }
+    };
   },
 
   sendMessage: async (chatId: string, message: string) => {
-    return apiClient.post(`/doctor-chats/${chatId}/messages`, { message });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // Get current chat history
+    const { data: session } = await supabase
+      .from('tele_sessions')
+      .select('chat_history')
+      .eq('id', chatId)
+      .single();
+
+    const currentHistory = session?.chat_history || [];
+
+    // Append new message
+    const newMessage = {
+      _id: Date.now().toString(),
+      sender: {
+        _id: user.id,
+        name: user.user_metadata?.name || 'You',
+        role: 'user'
+      },
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedHistory = [...currentHistory, newMessage];
+
+    const { data, error } = await supabase
+      .from('tele_sessions')
+      .update({
+        chat_history: updatedHistory,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', chatId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   initiateVideoCall: async (chatId: string) => {
-    return apiClient.post(`/doctor-chats/${chatId}/video-call`);
+    const roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const { data, error } = await supabase
+      .from('tele_sessions')
+      .update({
+        room_id: roomId,
+        mode: 'video',
+        status: 'in_progress',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', chatId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
 
   acceptVideoCall: async (chatId: string) => {
-    return apiClient.put(`/doctor-chats/${chatId}/video-call/accept`);
+    return { success: true };
   },
 
   endVideoCall: async (chatId: string) => {
-    return apiClient.put(`/doctor-chats/${chatId}/video-call/end`);
+    const { error } = await supabase
+      .from('tele_sessions')
+      .update({
+        status: 'completed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', chatId);
+
+    if (error) throw error;
+    return { success: true };
   },
 
   getVideoCallToken: async (chatId: string) => {
-    return apiClient.get(`/doctor-chats/${chatId}/video-call/token`);
+    // Mock token
+    return { data: { token: 'mock-token' } };
   }
 };
-
-export default apiClient;

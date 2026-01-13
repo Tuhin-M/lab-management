@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, X } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
 import { storageService } from "@/services/storage";
 import { toast } from "sonner";
@@ -35,8 +35,11 @@ type LabFormValues = z.infer<typeof labSchema>;
 
 const AddLab = () => {
   const navigate = useNavigate();
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
-  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [logoFile, setLogoFile] = React.useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
+  const [labImages, setLabImages] = React.useState<File[]>([]);
+  const [labImagePreviews, setLabImagePreviews] = React.useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<LabFormValues>({
     resolver: zodResolver(labSchema),
@@ -58,29 +61,57 @@ const AddLab = () => {
     }
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const handleLabImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setLabImages(prev => [...prev, ...files]);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLabImagePreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeLabImage = (index: number) => {
+    setLabImages(prev => prev.filter((_, i) => i !== index));
+    setLabImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = async (data: LabFormValues) => {
+    setIsSubmitting(true);
     try {
-      let imageUrl = null;
-      if (imageFile) {
-        const fileName = `${Date.now()}-${imageFile.name}`;
-        imageUrl = await storageService.uploadImage('labs', fileName, imageFile);
+      let logoUrl = null;
+      if (logoFile) {
+        const fileName = `${Date.now()}-logo-${logoFile.name}`;
+        logoUrl = await storageService.uploadImage('labs', fileName, logoFile);
+      }
+
+      const labImageUrls = [];
+      for (const file of labImages) {
+        const fileName = `${Date.now()}-lab-${file.name}`;
+        const url = await storageService.uploadImage('labs', fileName, file);
+        if (url) labImageUrls.push(url);
       }
 
       const payload = {
         ...data,
-        image: imageUrl || 'default-lab.jpg'
+        logo: logoUrl || '/images/ekitsa_logo.png',
+        images: labImageUrls.length > 0 ? labImageUrls : ['/placeholder.svg']
       };
 
       const res = await fetch('/api/labs', {
@@ -88,17 +119,20 @@ const AddLab = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      
       if (!res.ok) throw new Error('Failed to add lab');
       toast.success('Lab added successfully');
       navigate('/lab-dashboard');
     } catch (error) {
       console.error('Failed to add lab:', error);
       toast.error('Failed to add lab. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50/50 relative overflow-hidden pt-20">
       {/* Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -143,6 +177,44 @@ const AddLab = () => {
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">1</div>
                         <h3 className="text-xl font-bold text-slate-900">Lab Identity</h3>
+                      </div>
+
+                      <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-6">
+                         <h4 className="font-semibold text-slate-700 mb-4">Lab Logo</h4>
+                         <div className="flex items-start gap-6">
+                            <div
+                              className="relative group cursor-pointer w-32 h-32 flex-shrink-0"
+                              onClick={() => document.getElementById('lab-logo')?.click()}
+                            >
+                              <div className={`w-full h-full rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-2 ${logoPreview ? 'border-transparent' : 'border-slate-300 bg-white hover:border-primary/50'}`}>
+                                {logoPreview ? (
+                                  <img
+                                    src={logoPreview}
+                                    alt="Logo Preview"
+                                    className="w-full h-full object-contain rounded-xl"
+                                  />
+                                ) : (
+                                  <>
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                                      <Upload className="text-slate-400" size={16} />
+                                    </div>
+                                    <p className="text-[10px] text-center font-medium text-slate-500">Upload Logo</p>
+                                  </>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                id="lab-logo"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleLogoChange}
+                              />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm text-slate-600 mb-2">Upload your official lab logo to be displayed on your profile and reports.</p>
+                                <p className="text-xs text-slate-400">Recommended: Square image, 500x500px or larger. PNG or JPG.</p>
+                            </div>
+                         </div>
                       </div>
 
                       <FormField
@@ -278,11 +350,23 @@ const AddLab = () => {
                         variant="ghost"
                         className="rounded-xl h-12 px-8 text-slate-500"
                         onClick={() => navigate("/lab-dashboard")}
+                        disabled={isSubmitting}
                       >
                         Discard Changes
                       </Button>
-                      <Button type="submit" className="rounded-xl h-12 px-10 shadow-xl shadow-primary/20 font-bold active:scale-95 transition-all">
-                        Register Laboratory
+                      <Button 
+                        type="submit" 
+                        className="rounded-xl h-12 px-10 shadow-xl shadow-primary/20 font-bold active:scale-95 transition-all"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Registering...
+                          </>
+                        ) : (
+                          "Register Laboratory"
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -294,38 +378,45 @@ const AddLab = () => {
           <div className="space-y-6">
             <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-bold">Media Upload</CardTitle>
+                <CardTitle className="text-lg font-bold">Lab Photos</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div
-                  className="relative group cursor-pointer"
-                  onClick={() => document.getElementById('lab-image')?.click()}
-                >
-                  <div className={`aspect-video rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-6 ${imagePreview ? 'border-transparent' : 'border-slate-200 bg-slate-50 group-hover:bg-primary/5 group-hover:border-primary/50'}`}>
-                    {imagePreview ? (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="absolute inset-0 h-full w-full object-cover rounded-2xl shadow-inner"
-                      />
-                    ) : (
-                      <>
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md mb-2 group-hover:scale-110 transition-transform">
-                          <Upload className="text-slate-400 group-hover:text-primary" size={20} />
-                        </div>
-                        <p className="text-xs font-semibold text-slate-500 group-hover:text-primary">Click to upload photo</p>
-                      </>
-                    )}
+                <div className="grid grid-cols-1 gap-4">
+                  {labImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-video rounded-xl overflow-hidden group">
+                      <img src={preview} alt={`Lab ${index}`} className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => removeLabImage(index)}
+                        className="absolute top-2 right-2 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <div
+                    className="relative group cursor-pointer"
+                    onClick={() => document.getElementById('lab-images')?.click()}
+                  >
+                    <div className="aspect-video rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 group-hover:bg-primary/5 group-hover:border-primary/50 transition-all flex flex-col items-center justify-center p-6 text-center">
+                      <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md mb-2 group-hover:scale-110 transition-transform">
+                        <Upload className="text-slate-400 group-hover:text-primary" size={20} />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-500 group-hover:text-primary">Click to upload lab photos</p>
+                      <p className="text-[10px] text-slate-400 mt-1">Add interior/exterior shots</p>
+                    </div>
+                    <input
+                      type="file"
+                      id="lab-images"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleLabImagesChange}
+                    />
                   </div>
-                  <input placeholder="Enter value" title="Enter value"
-                    type="file"
-                    id="lab-image"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-4 text-center">Recommended size: 1200x800px. JPG, PNG formats supported.</p>
+                <p className="text-[10px] text-slate-400 mt-4 text-center">Recommended size: 1200x800px. JPG, PNG formats supported. Upload multiple images to showcase your facility.</p>
               </CardContent>
             </Card>
 

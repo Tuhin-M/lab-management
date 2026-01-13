@@ -103,9 +103,9 @@ const trendingTopics = [
 ];
 
 const topContributors = [
-  { name: "Dr. Sarah Johnson", avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100", posts: 45, isVerified: true },
+  { name: "Dr. Madhu Das", avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100", posts: 45, isVerified: true },
   { name: "HealthPlus Labs", avatar: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100", posts: 38, isVerified: true },
-  { name: "Dr. Priya Patel", avatar: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=100", posts: 32, isVerified: true },
+  { name: "Dr. Ayan Das", avatar: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=100", posts: 32, isVerified: true },
 ];
 
 type ReactionType = "like" | "love" | "celebrate";

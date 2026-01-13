@@ -89,7 +89,7 @@ const HealthRecords = () => {
       recordType: 'prescription',
       title: 'Amoxicillin 500mg',
       date: '2023-05-15T10:30:00Z',
-      doctorName: 'Dr. Sarah Johnson',
+      doctorName: 'Dr. Madhu Das',
       hospitalName: 'City Medical Center',
       description: 'Take 1 tablet 3 times daily after meals for 7 days.',
       tags: ['antibiotic', 'infection']

@@ -285,7 +285,7 @@ const TestBooking = () => {
                               <FormItem>
                                 <FormLabel>Full Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="John Doe" {...field} className="bg-white/50 backdrop-blur-sm border-gray-200 focus:border-primary/50 focus:ring-primary/20 h-11" />
+                                  <Input placeholder="Avishek Das" {...field} className="bg-white/50 backdrop-blur-sm border-gray-200 focus:border-primary/50 focus:ring-primary/20 h-11" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

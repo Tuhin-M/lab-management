@@ -142,7 +142,7 @@ const LabDetail = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-slate-50/50 relative overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-screen bg-slate-50/50 relative overflow-hidden pt-20">
       {/* Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -180,11 +180,20 @@ const LabDetail = () => {
               <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
                 <div className="aspect-video overflow-hidden relative group">
                   <img
-                    src={lab.image || "/placeholder.svg"}
+                    src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || "/placeholder.svg"}
                     alt={lab.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  {/* Logo Overlay */}
+                  <div className="absolute bottom-4 left-4 w-16 h-16 rounded-xl bg-white p-1 shadow-lg z-10">
+                    <img 
+                      src={lab.logo || "/images/ekitsa_logo.png"} 
+                      alt="Lab Logo" 
+                      className="w-full h-full object-contain rounded-lg"
+                    />
+                  </div>
                 </div>
 
                 <CardHeader className="pt-6 pb-2 px-6">

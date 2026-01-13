@@ -77,7 +77,7 @@ export default function SingleLabDashboard() {
   if (error || !lab) return <ErrorMessage message="Failed to load lab data" />;
 
   return (
-    <div className="p-6">
+    <div className="p-6 pt-24">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">{lab?.name}</h1>

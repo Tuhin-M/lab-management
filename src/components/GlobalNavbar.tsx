@@ -153,7 +153,7 @@ const GlobalNavbar: React.FC = () => {
                       { path: "/", label: "Home", icon: <HomeIcon className="h-5 w-5" /> },
                       { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-5 w-5" /> },
                       { path: "/doctors", label: "Doctors", icon: <Stethoscope className="h-5 w-5" /> },
-                      { path: "/blog", label: "Community", icon: <FileText className="h-5 w-5" /> },
+                      { path: "/community", label: "Community", icon: <FileText className="h-5 w-5" /> },
                       { path: "/about", label: "About Us", icon: <Info className="h-5 w-5" /> }
                     ].map((link, idx) => (
                       <SheetClose key={link.path} asChild>
