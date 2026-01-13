@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -24,15 +24,28 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Get the redirect path from location state or default
+  const from = location.state?.from?.pathname || "/";
+  // Avoid redirecting to login page itself if that was somehow set as 'from'
+  const redirectPath = from === "/login" ? "/" : from;
+
   useEffect(() => {
     const checkAuth = async () => {
       if (await authAPI.isAuthenticated()) {
         const userRole = authAPI.getCurrentUserRole();
+        // If we have a specific return url (and it's not root), go there
+        if (location.state?.from) {
+          navigate(location.state.from);
+          return;
+        }
+        
+        // Otherwise use default role-based redirect
         if (userRole === "lab_owner") {
           navigate("/lab-dashboard");
         } else {
@@ -41,7 +54,7 @@ const Login = () => {
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, [navigate, location]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -61,13 +74,20 @@ const Login = () => {
 
       if (response) {
         dispatch(setCredentials({ user: response.user, role: response.role }));
+        toast.success('Successfully logged in!');
 
+        // Priority 1: Redirect to previous page if it exists in state
+        if (location.state?.from) {
+          navigate(location.state.from);
+          return;
+        }
+
+        // Priority 2: Role-based default dashboard
         if (response.role === 'lab_owner') {
           navigate('/lab-dashboard');
         } else {
           navigate('/profile');
         }
-        toast.success('Successfully logged in!');
       }
 
     } catch (error: any) {

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { z } from "zod";
@@ -30,6 +30,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
@@ -40,6 +41,13 @@ const SignUp = () => {
     const checkAuth = async () => {
       if (await authAPI.isAuthenticated()) {
         const userRole = authAPI.getCurrentUserRole();
+        // Priority 1: Redirect to previous page
+        if (location.state?.from) {
+          navigate(location.state.from);
+          return;
+        }
+
+        // Priority 2: Role-based dashboard
         if (userRole === "lab_owner") {
           navigate("/lab-dashboard");
         } else {
@@ -48,7 +56,7 @@ const SignUp = () => {
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, [navigate, location]);
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -78,6 +86,12 @@ const SignUp = () => {
       if (response) {
         dispatch(setCredentials({ user: response.user, role: response.role }));
         toast.success("Account created successfully! Welcome to Ekitsa.");
+
+        // Priority 1: Redirect to previous page
+        if (location.state?.from) {
+          navigate(location.state.from);
+          return;
+        }
 
         if (response.role === "lab_owner") {
           navigate("/lab-dashboard");
@@ -405,7 +419,11 @@ const SignUp = () => {
 
           <p className="text-center mt-6 text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary font-semibold hover:underline">
+            <Link 
+              to="/login"
+              state={location.state}
+              className="text-primary font-semibold hover:underline"
+            >
               Log in
             </Link>
           </p>
