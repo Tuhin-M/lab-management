@@ -1,0 +1,31 @@
+
+ ⛅️ wrangler 4.59.1
+───────────────────
+Getting User settings...
+👋 You are logged in with an OAuth Token, associated with the email officialekitsa@gmail.com.
+┌────────────────────────────────────┬──────────────────────────────────┐
+│ Account Name                       │ Account ID                       │
+├────────────────────────────────────┼──────────────────────────────────┤
+│ Officialekitsa@gmail.com's Account │ 3ceb97809631378a8ba734c9dbd2904d │
+└────────────────────────────────────┴──────────────────────────────────┘
+🔓 Token Permissions:
+Scope (Access)
+- account (read)
+- user (read)
+- workers (write)
+- workers_kv (write)
+- workers_routes (write)
+- workers_scripts (write)
+- workers_tail (read)
+- d1 (write)
+- pages (write)
+- zone (read)
+- ssl_certs (write)
+- ai (write)
+- queues (write)
+- pipelines (write)
+- secrets_store (write)
+- containers (write)
+- cloudchamber (write)
+- connectivity (admin)
+- offline_access 

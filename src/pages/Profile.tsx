@@ -43,7 +43,7 @@ const Profile = () => {
       <div className="fixed right-0 bottom-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
 
       <main className="container mx-auto px-4 relative z-10">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-8xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

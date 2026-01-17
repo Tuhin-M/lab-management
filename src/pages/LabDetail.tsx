@@ -553,7 +553,7 @@ const LabDetail = () => {
 
             {isLabOwner && isOwner && (
               <div className="bg-card rounded-2xl border p-6 shadow-sm sticky top-24">
-                <h3 className="font-bold text-xl mb-6">Lab Management</h3>
+                <h3 className="font-bold text-xl mb-6">Ekitsa</h3>
                 <div className="space-y-4">
                   <Button onClick={() => navigate(`/lab-owner/${params.id}/add-test`)} className="w-full bg-primary hover:bg-primary/90 h-12 font-bold rounded-xl">
                     <Plus className="mr-2 h-4 w-4" />

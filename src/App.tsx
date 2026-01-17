@@ -7,6 +7,7 @@ import LoadingFallback from "@/utils/LoadingFallback";
 import { isLabOwnerRoute } from "@/utils/routeUtils";
 import SingleLabDashboard from "./components/lab-owner/SingleLabDashboard";
 import Footer from "./components/Footer";
+import ChatBot from "./components/ChatBot";
 const LabDashboard = lazy(() => import("./pages/lab-owner/LabDashboard"));
 
 // All pages are now lazy-loaded for consistency and performance
@@ -87,6 +88,7 @@ function App() {
       </Suspense>
       <Toaster />
       <Footer />
+      <ChatBot />
     </QueryClientProvider>
   );
 }

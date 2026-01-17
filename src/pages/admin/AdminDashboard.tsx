@@ -392,7 +392,7 @@ const AdminDashboard: React.FC = () => {
             <Card>
               <CardContent className="py-12 text-center">
                 <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Lab Management</h3>
+                <h3 className="text-lg font-medium">Ekitsa</h3>
                 <p className="text-muted-foreground">Coming soon - Manage lab registrations and approvals</p>
               </CardContent>
             </Card>

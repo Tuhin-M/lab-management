@@ -1,4 +1,4 @@
-# Ekitsa Lab Management Platform
+# Ekitsa Platform
 
 A modern platform for lab owners, doctors, and patients to manage diagnostics, bookings, and health records.
 
