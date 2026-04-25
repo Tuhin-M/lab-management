@@ -44,9 +44,8 @@ const AboutUs = () => {
     },
     {
       name: "Haris Patel",
-      role: "Co-Founder", 
+      role: "Developer",
       department: "Technology",
-      description: "Oversees technical infrastructure and engineering teams. Focused on building secure, reliable, and user-friendly healthcare platforms.",
       icon: Code2,
       gradient: "from-purple-500 to-pink-500",
       avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Haris30&backgroundColor=d1d5db"
@@ -66,28 +65,28 @@ const AboutUs = () => {
       <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black">
         {/* Animated Background */}
         <div className="absolute inset-0">
-          <motion.div 
+          <motion.div
             initial={{ scale: 1 }}
             animate={{ scale: 1.05 }}
             transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
             className="absolute inset-0 bg-cover bg-center opacity-20"
             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=2000')" }}
           />
-          <motion.div 
+          <motion.div
             animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-20 right-20 w-72 h-72 bg-primary/30 rounded-full blur-[100px]" 
+            className="absolute top-20 right-20 w-72 h-72 bg-primary/30 rounded-full blur-[100px]"
           />
-          <motion.div 
+          <motion.div
             animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute bottom-20 left-20 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px]" 
+            className="absolute bottom-20 left-20 w-64 h-64 bg-cyan-500/20 rounded-full blur-[80px]"
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        
+
         <div className="container mx-auto px-4 relative z-10 text-center text-white pt-20">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -102,7 +101,7 @@ const AboutUs = () => {
               <Heart className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Caring for India's Health</span>
             </motion.div>
-            
+
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight">
               Transforming Healthcare
               <br />
@@ -110,24 +109,24 @@ const AboutUs = () => {
                 for Everyone
               </span>
             </h1>
-            
+
             <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto">
-              Ekitsa is on a mission to make quality healthcare accessible, 
+              Ekitsa is on a mission to make quality healthcare accessible,
               affordable, and convenient through cutting-edge technology.
             </p>
-            
+
             <div className="flex flex-wrap justify-center gap-4">
-              <Button 
-                size="lg" 
-                className="rounded-xl px-8 h-12 text-base font-semibold shadow-lg shadow-primary/30 bg-gradient-to-r from-primary to-cyan-500 hover:opacity-90" 
+              <Button
+                size="lg"
+                className="rounded-xl px-8 h-12 text-base font-semibold shadow-lg shadow-primary/30 bg-gradient-to-r from-primary to-cyan-500 hover:opacity-90"
                 onClick={() => navigate("/signup")}
               >
                 Get Started
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="rounded-xl px-8 h-12 text-base font-semibold bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20" 
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-xl px-8 h-12 text-base font-semibold bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
                 onClick={() => navigate("/contact")}
               >
                 Contact Us
@@ -150,7 +149,7 @@ const AboutUs = () => {
               <Clock className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-primary">Our Journey</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-8">Empowering Patients <br/>Since 2020</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">Empowering Patients <br />Since 2020</h2>
             <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
               <p>
                 Founded in 2020, Ekitsa was born from a simple yet powerful idea: healthcare should be accessible to everyone, everywhere.
@@ -166,7 +165,7 @@ const AboutUs = () => {
               </p>
             </div>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -174,8 +173,8 @@ const AboutUs = () => {
             className="relative"
           >
             <div className="aspect-[4/3] bg-primary/10 rounded-3xl overflow-hidden shadow-2xl relative z-10">
-              <img 
-                src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" 
+              <img
+                src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80"
                 alt="Medical professionals"
                 className="w-full h-full object-cover"
               />
@@ -191,7 +190,7 @@ const AboutUs = () => {
       {/* Meet Our Team Section */}
       <section className="py-24 bg-gradient-to-b from-white to-slate-50 relative z-10">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -206,8 +205,8 @@ const AboutUs = () => {
               Three passionate founders with equal vision, driving Ekitsa's mission to transform healthcare in India.
             </p>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="show"
@@ -215,22 +214,22 @@ const AboutUs = () => {
             className="grid md:grid-cols-3 gap-8"
           >
             {teamMembers.map((member, idx) => (
-              <motion.div 
+              <motion.div
                 key={idx}
-                variants={itemVariants} 
+                variants={itemVariants}
                 className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col items-center text-center transition-all hover:shadow-2xl hover:-translate-y-2 group"
               >
                 {/* Avatar */}
                 <div className={`w-28 h-28 rounded-full bg-gradient-to-br ${member.gradient} p-1 mb-6 group-hover:scale-110 transition-transform`}>
                   <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={member.avatar} 
+                    <img
+                      src={member.avatar}
                       alt={member.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
-                
+
                 {/* Info */}
                 <h3 className="text-2xl font-bold mb-1">{member.name}</h3>
                 <p className="text-primary font-semibold mb-2">{member.role}</p>
@@ -241,7 +240,7 @@ const AboutUs = () => {
                 <p className="text-muted-foreground leading-relaxed text-sm">
                   {member.description}
                 </p>
-                
+
                 {/* Social Links */}
                 <div className="flex gap-3 mt-6">
                   <a href="#" className="p-2 rounded-lg bg-gray-100 hover:bg-primary/10 hover:text-primary transition-colors">
@@ -257,7 +256,7 @@ const AboutUs = () => {
               </motion.div>
             ))}
           </motion.div>
-          
+
 
         </div>
       </section>
@@ -265,7 +264,7 @@ const AboutUs = () => {
       {/* Our Mission & Values */}
       <section className="py-24 relative z-10">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -276,8 +275,8 @@ const AboutUs = () => {
               We're guided by a clear purpose and strong principles that drive everything we do.
             </p>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="show"
@@ -293,7 +292,7 @@ const AboutUs = () => {
                 To make quality healthcare accessible to everyone by connecting patients with the right providers through technology.
               </p>
             </motion.div>
-            
+
             <motion.div variants={itemVariants} className="bg-white p-10 rounded-3xl shadow-sm border border-primary/5 flex flex-col items-center text-center transition-all hover:shadow-xl hover:-translate-y-2 group">
               <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center mb-8 -rotate-3 group-hover:rotate-0 transition-transform">
                 <Heart className="h-10 w-10 text-cyan-500" />
@@ -320,15 +319,15 @@ const AboutUs = () => {
       {/* Core Values */}
       <section className="py-24 container mx-auto px-4 relative z-10">
         <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           whileInView={{ opacity: 1, y: 0 }}
-           viewport={{ once: true }}
-           className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Values</h2>
           <div className="w-20 h-1.5 bg-gradient-to-r from-primary to-cyan-500 mx-auto rounded-full" />
         </motion.div>
-        
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
             { icon: CheckCircle, title: "Quality First", desc: "We partner only with accredited labs and verified doctors.", color: "text-green-500" },
@@ -336,7 +335,7 @@ const AboutUs = () => {
             { icon: Award, title: "Transparency", desc: "No hidden charges, clear communication, and honest pricing.", color: "text-orange-500" },
             { icon: Shield, title: "Data Security", desc: "Your health records are encrypted and kept 100% confidential.", color: "text-purple-500" }
           ].map((value, idx) => (
-            <motion.div 
+            <motion.div
               key={idx}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -388,12 +387,12 @@ const AboutUs = () => {
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Experience Better Healthcare?</h2>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Join thousands of users who trust Ekitsa for their diagnostic 
+            Join thousands of users who trust Ekitsa for their diagnostic
             and consultation needs.
           </p>
-          <Button 
-            size="lg" 
-            className="rounded-xl px-10 h-14 text-lg font-bold shadow-xl shadow-primary/20 bg-gradient-to-r from-primary to-cyan-500 hover:opacity-90" 
+          <Button
+            size="lg"
+            className="rounded-xl px-10 h-14 text-lg font-bold shadow-xl shadow-primary/20 bg-gradient-to-r from-primary to-cyan-500 hover:opacity-90"
             onClick={() => navigate("/signup")}
           >
             Get Started Now

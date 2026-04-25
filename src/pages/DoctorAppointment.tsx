@@ -69,32 +69,32 @@ const DoctorAppointment = () => {
         const { data } = await doctorsAPI.getAllDoctors();
         if (data) {
            // Map Supabase data to Doctor interface
-           const mappedDoctors = data.map((d: any) => ({
-             id: d.id,
-             name: d.name,
-             specialty: d.specialty,
-             hospital: d.hospital,
-             location: d.location,
-             city: d.city,
-             rating: d.rating,
-             reviewCount: Math.floor(Math.random() * 100) + 20, // Mock review count
-             fee: d.fee,
-             image: d.image_url, // For local interface
-             imageUrl: d.image_url, // For DoctorCard
-             experience: d.experience,
-             languages: d.languages || ["English", "Hindi"],
-             education: "MBBS, MD", // Mock education/qualifications
-             qualifications: "MBBS, MD", // For DoctorCard
-             about: d.bio,
-             availability: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-             verified: d.verified,
-             nextAvailable: "Today",
-             availableToday: true,
-             consultationOptions: (d.consultation_options || ['in-person']) as ("video" | "in-person" | "phone")[],
-             discountedFee: Math.floor(d.fee * 0.8 / 100) * 100, // Mock discount
-             distance: parseFloat((Math.random() * 10).toFixed(1)), // Mock distance
-             gender: (d.gender || "male") as "male" | "female"
-           }));
+            const mappedDoctors = data.map((d: any) => ({
+              id: d.id,
+              name: d.name,
+              specialty: d.specialty,
+              hospital: d.hospital || 'Ekitsa Virtual Clinic',
+              location: d.location || 'Online',
+              city: d.city,
+              rating: d.rating || 4.9,
+              reviewCount: d.reviews || 12,
+              fee: d.fee || 500,
+              image: d.image_url,
+              imageUrl: d.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${d.name}`,
+              experience: d.experience || '5+ years',
+              languages: d.languages || ["English", "Hindi"],
+              education: d.qualifications || "MBBS, MD",
+              qualifications: d.qualifications || "MBBS, MD",
+              about: d.bio || `Dr. ${d.name} is a dedicated healthcare professional.`,
+              availability: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+              verified: d.verified ?? true,
+              nextAvailable: "Today",
+              availableToday: true,
+              consultationOptions: (d.consultation_options || ['in-person', 'video']) as ("video" | "in-person" | "phone")[],
+              discountedFee: Math.floor((d.fee || 500) * 0.8 / 100) * 100,
+              distance: parseFloat((Math.random() * 10).toFixed(1)),
+              gender: (d.gender || "male") as "male" | "female"
+            }));
            
            setDoctors(mappedDoctors);
            // Extract unique cities
@@ -143,17 +143,14 @@ const DoctorAppointment = () => {
   
   const filteredDoctors = doctors.filter(doctor => {
     const matchesSearch = searchQuery.trim() === "" || 
-      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.hospital.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.location.toLowerCase().includes(searchQuery.toLowerCase());
+      (doctor.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (doctor.specialty?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (doctor.hospital?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (doctor.location?.toLowerCase().includes(searchQuery.toLowerCase()));
       
     const matchesSpecialty = selectedSpecialty === "all" || doctor.specialty === selectedSpecialty;
     
-    // Loose match for city since format might vary
-    const matchesCity = doctor.city.includes(location.split(',')[0]);
-    
-    return matchesSearch && matchesSpecialty && matchesCity;
+    return matchesSearch && matchesSpecialty;
   });
   
   const handleBookAppointment = async (doctorId: string) => {
@@ -282,16 +279,10 @@ const DoctorAppointment = () => {
                   </div>
                   <p className="text-muted-foreground text-lg">Book appointments with top specialists near you</p>
                   
-                  {/* Location */}
-                  <div className="flex items-center gap-2 mt-4">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <Button 
-                      variant="ghost" 
-                      className="text-sm font-medium hover:bg-white/50 -ml-2"
-                      onClick={() => setLocationDialogOpen(true)}
-                    >
-                      {location} <span className="text-primary ml-1 font-semibold">Change</span>
-                    </Button>
+                  {/* Location hidden as per user request to remove location filtering */}
+                  <div className="flex items-center gap-2 mt-4 text-primary font-bold text-sm">
+                    <MapPin className="h-4 w-4" />
+                    <span>Serving Patients Nationwide</span>
                   </div>
                 </div>
                 

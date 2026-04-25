@@ -6,6 +6,7 @@ import { healthRecordsAPI } from "@/services/api";
 import HealthRecordsList from "@/components/health/HealthRecordsList";
 import HealthAnalytics from "@/components/health/HealthAnalytics";
 import AddHealthRecordForm from "@/components/health/AddHealthRecordForm";
+import PrescriptionModal from "@/components/health/PrescriptionModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ interface HealthRecord {
   description?: string;
   fileUrl?: string;
   tags?: string[];
+  isDigital?: boolean;
+  medicines?: any[];
+  signature_url?: string;
 }
 
 const HealthRecords = () => {
@@ -28,6 +32,7 @@ const HealthRecords = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('records');
   const [isAddingRecord, setIsAddingRecord] = useState(false);
+  const [selectedPrescription, setSelectedPrescription] = useState<HealthRecord | null>(null);
   
   useEffect(() => {
     const fetchHealthRecords = async () => {
@@ -47,8 +52,13 @@ const HealthRecords = () => {
   }, []);
   
   const handleViewRecord = (id: string) => {
-    toast.info(`Viewing record ${id}`);
-    // You can implement a detailed view or modal here
+    const record = (records.length > 0 ? records : demoRecords).find(r => r._id === id);
+    if (record?.isDigital) {
+      setSelectedPrescription(record);
+    } else {
+      toast.info(`Viewing details for ${record?.title}`);
+      // Show file modal or something else for non-digital
+    }
   };
   
   const handleDeleteRecord = async (id: string) => {
@@ -190,6 +200,12 @@ const HealthRecords = () => {
           </Tabs>
         )}
       </main>
+
+      <PrescriptionModal 
+        isOpen={!!selectedPrescription}
+        prescription={selectedPrescription}
+        onClose={() => setSelectedPrescription(null)}
+      />
     </div>
   );
 };

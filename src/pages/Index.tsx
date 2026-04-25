@@ -24,9 +24,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import SearchBar from "@/components/SearchBar";
 import { motion } from "framer-motion";
+import { doctorsAPI } from "@/services/api";
+import { useEffect, useState } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await doctorsAPI.getAllDoctors();
+        setDoctors(response.data);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setIsLoadingDoctors(false);
+      }
+    };
+    fetchDoctors();
+  }, []);
   
   const handleHomeSearch = (query: string, category?: string) => {
     if (category === "doctors") {
@@ -348,6 +366,82 @@ const Index = () => {
               </div>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Top Doctors Section */}
+      <section className="py-24 container mx-auto px-4 relative z-10">
+        <div className="text-center mb-16">
+          <Badge variant="secondary" className="mb-4 text-sm px-5 py-1.5 rounded-full font-medium">Expert Care</Badge>
+          <h2 className="text-5xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:to-slate-400 tracking-tight">Top Rated Doctors</h2>
+          <p className="text-muted-foreground text-xl max-w-2xl mx-auto">Consult with verified specialists across all major departments.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          {doctors.length > 0 ? (
+            doctors.slice(0, 4).map((doctor, index) => (
+              <motion.div
+                key={doctor.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                whileHover={{ y: -10 }}
+                className="group bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 transition-all cursor-pointer"
+                onClick={() => navigate(`/doctors`)}
+              >
+                <div className="aspect-[4/5] relative overflow-hidden">
+                  <img 
+                    src={doctor.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${doctor.name}`} 
+                    alt={doctor.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-3 py-1.5 rounded-2xl flex items-center gap-1.5 shadow-lg border border-white/20">
+                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-xs font-black">4.9</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <Badge variant="outline" className="mb-2 text-[10px] uppercase font-black tracking-widest text-primary border-primary/20">
+                    {doctor.specialty}
+                  </Badge>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors">Dr. {doctor.name}</h3>
+                  <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
+                    <MapPin className="h-3 w-3" />
+                    <span>{doctor.city || 'Bengaluru'}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Consultation</p>
+                      <p className="text-lg font-black text-slate-900 dark:text-white">₹{doctor.fee || '500'}</p>
+                    </div>
+                    <Button size="sm" className="rounded-xl shadow-lg shadow-primary/20 font-bold">
+                      Book
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            [1, 2, 3, 4].map(i => (
+              <div key={i} className="h-96 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800 animate-pulse" />
+            ))
+          )}
+        </div>
+
+        <div className="text-center mt-12">
+          <Button 
+            variant="ghost" 
+            size="lg" 
+            onClick={() => navigate("/doctors")}
+            className="text-primary font-black hover:bg-primary/5 rounded-2xl group"
+          >
+            View All Specialists
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
+          </Button>
         </div>
       </section>
 

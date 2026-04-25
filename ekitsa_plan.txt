@@ -1,0 +1,55 @@
+EKITSA PROJECT COMPLETION PLAN (2-3 HOURS/DAY)
+Total Estimated Duration: 18-22 Days
+
+CORE TECHNOLOGIES & THIRD-PARTY INTEGRATIONS:
+- OCR: Tesseract.js (Free, Client-side browser OCR)
+- Notifications: Supabase Realtime (In-app alerts using existing free tier)
+- Localization: react-i18next (Multi-language standard)
+- DB/Backend: Supabase (PostgreSQL)
+- Analytics: Recharts (Standard visualization)
+
+--------------------------------------------------------------------------------
+PHASE 1: DOCTOR PORTAL & DASHBOARD (COMPLETED)
+- Doctor Dashboard with Statistics.
+- Appointment Management (Filter/Search/Update).
+- Status: READY FOR DEMO.
+
+--------------------------------------------------------------------------------
+PHASE 2: CLINICAL TOOLS (COMPLETED)
+- Digital Prescription System:
+  - Structured templates for medicines and dosage.
+  - Digital signature and save to patient record.
+- OCR for Health Records:
+  - Integration of Tesseract.js.
+  - Automatic detection of medicines/tests from uploaded prescriptions.
+- Voice-to-Text:
+  - Basic browser-based transcription for doctor notes.
+- Status: PRODUCTION READY.
+
+--------------------------------------------------------------------------------
+PHASE 3: ADMIN & OPTIMIZATION (6-8 DAYS)
+- Full Admin Oversight:
+  - Registration approval workflows for doctors/labs.
+  - Platform-wide revenue monitoring.
+  - Estimated: 4 days.
+- Real-time Notifications:
+  - Integration of Supabase Realtime for instant appointment alerts.
+  - Pop-up and persistent notification tray (Bell icon).
+  - Estimated: 3 days.
+
+--------------------------------------------------------------------------------
+PHASE 4: LOCALIZATION & POLISH (4-5 DAYS)
+- Full Localization:
+  - Extract all hardcoded strings.
+  - Implementation of English/Hindi switcher (using react-i18next).
+  - Estimated: 3 days.
+- Final Polish & Optimization:
+  - Loading optimizations and visual touch-ups.
+  - Final QA check.
+  - Estimated: 2 days.
+
+--------------------------------------------------------------------------------
+SUMMARY OF WEEKLY FOCUS:
+Week 1: Clinical Tools (Start Phase 2)
+Week 2: Clinical Tools Finish & Admin Setup
+Week 3: Notifications, Localization & Delivery

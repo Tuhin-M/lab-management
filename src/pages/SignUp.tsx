@@ -6,13 +6,38 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowRight, User, FlaskConical, Sparkles, CheckCircle2, Shield, Clock, Home, HeartPulse } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, User, FlaskConical, Sparkles, CheckCircle2, Shield, Clock, Home, HeartPulse, Stethoscope } from "lucide-react";
 import { authAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { motion } from "framer-motion";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+const specialties = [
+  "General Physician",
+  "Cardiology",
+  "Dermatology",
+  "Neurology",
+  "Pediatrics",
+  "Orthopedics",
+  "Gynecology",
+  "Ophthalmology",
+  "Gastroenterology",
+  "Psychiatry",
+  "ENT Specialist",
+  "Diabetologist",
+  "Urology",
+  "Oncology",
+  "Dentist"
+];
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -20,7 +45,9 @@ const signUpSchema = z.object({
   phone: z.string().min(10, { message: "Phone number must be at least 10 digits" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   confirmPassword: z.string(),
-  role: z.enum(["user", "lab_owner"]),
+  role: z.enum(["user", "lab_owner", "doctor"]),
+  specialty: z.string().optional(),
+  city: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -50,6 +77,8 @@ const SignUp = () => {
         // Priority 2: Role-based dashboard
         if (userRole === "lab_owner") {
           navigate("/lab-dashboard");
+        } else if (userRole === "doctor") {
+          navigate("/doctor-dashboard");
         } else {
           navigate("/profile");
         }
@@ -67,6 +96,8 @@ const SignUp = () => {
       password: "",
       confirmPassword: "",
       role: "user",
+      specialty: "",
+      city: "",
     },
   });
 
@@ -80,7 +111,9 @@ const SignUp = () => {
         email: data.email,
         phone: data.phone,
         password: data.password,
-        role: data.role
+        role: data.role,
+        specialty: data.specialty,
+        city: data.city
       });
 
       if (response) {
@@ -95,6 +128,8 @@ const SignUp = () => {
 
         if (response.role === "lab_owner") {
           navigate("/lab-dashboard");
+        } else if (response.role === "doctor") {
+          navigate("/doctor-dashboard");
         } else {
           navigate("/profile");
         }
@@ -137,11 +172,8 @@ const SignUp = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Link to="/" className="flex items-center gap-3 mb-10">
-              <div className="h-12 w-12 rounded-2xl bg-primary/20 backdrop-blur-sm flex items-center justify-center border border-primary/30">
-                <HeartPulse className="h-7 w-7 text-primary" />
-              </div>
-              <span className="text-2xl font-bold tracking-tight">Ekitsa</span>
+            <Link to="/" className="mb-10 block">
+              <img src="/images/ekitsa_logo.png" alt="Ekitsa Logo" className="h-20 w-auto" />
             </Link>
             
             <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
@@ -250,7 +282,7 @@ const SignUp = () => {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {/* Role Selection */}
-                <FormField
+                 <FormField
                   control={form.control}
                   name="role"
                   render={({ field }) => (
@@ -260,7 +292,7 @@ const SignUp = () => {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="grid grid-cols-2 gap-3"
+                          className="grid grid-cols-1 md:grid-cols-3 gap-3"
                         >
                           <FormItem>
                             <FormControl>
@@ -268,9 +300,20 @@ const SignUp = () => {
                             </FormControl>
                             <FormLabel className="relative flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer">
                               <User className="mb-2 h-6 w-6 text-primary" />
-                              <span className="font-semibold text-sm">Patient / User</span>
-                              <span className="text-[11px] text-muted-foreground">Book tests & appointments</span>
+                              <span className="font-semibold text-sm">Patient</span>
                               {field.value === 'user' && (
+                                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                              )}
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroupItem value="doctor" className="peer sr-only" />
+                            </FormControl>
+                            <FormLabel className="relative flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer">
+                              <Stethoscope className="mb-2 h-6 w-6 text-primary" />
+                              <span className="font-semibold text-sm">Doctor</span>
+                              {field.value === 'doctor' && (
                                 <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
                               )}
                             </FormLabel>
@@ -282,7 +325,6 @@ const SignUp = () => {
                             <FormLabel className="relative flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-all cursor-pointer">
                               <FlaskConical className="mb-2 h-6 w-6 text-primary" />
                               <span className="font-semibold text-sm">Lab Owner</span>
-                              <span className="text-[11px] text-muted-foreground">Manage labs & tests</span>
                               {field.value === 'lab_owner' && (
                                 <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
                               )}
@@ -294,6 +336,52 @@ const SignUp = () => {
                     </FormItem>
                   )}
                 />
+
+                {form.watch('role') === 'doctor' && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="specialty"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Specialty</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 bg-white border-slate-200 rounded-xl">
+                                <SelectValue placeholder="Select specialty" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                              {specialties.map((specialty) => (
+                                <SelectItem key={specialty} value={specialty} className="rounded-lg">
+                                  {specialty}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Kolkata" {...field} className="h-11 bg-white border-slate-200 rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField

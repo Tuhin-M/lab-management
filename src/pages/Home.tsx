@@ -9,10 +9,29 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { doctorsAPI } from "@/services/api";
+import { useEffect } from "react";
+
 const Home = () => {
   const navigate = useNavigate();
   const [selectedCity, setSelectedCity] = useState("Bengaluru");
   const [searchQuery, setSearchQuery] = useState("");
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await doctorsAPI.getAllDoctors();
+        setDoctors(response.data);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setIsLoadingDoctors(false);
+      }
+    };
+    fetchDoctors();
+  }, []);
 
   const handleLabSearch = () => {
     navigate("/labs", { state: { city: selectedCity, query: searchQuery } });
@@ -204,6 +223,57 @@ const Home = () => {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Top Doctors Section */}
+      <section className="py-16 container mx-auto px-4">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold">Top Rated Doctors</h2>
+          <Button variant="outline" onClick={() => navigate("/doctors")} className="gap-2">
+            View All <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {doctors.length > 0 ? (
+            doctors.slice(0, 4).map(doctor => (
+              <Card key={doctor.id} className="overflow-hidden hover:shadow-lg transition-all group rounded-3xl border-slate-100">
+                <CardContent className="p-0">
+                  <div className="aspect-[4/5] bg-slate-100 relative overflow-hidden">
+                    <img 
+                      src={doctor.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${doctor.name}`} 
+                      alt={doctor.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 right-3">
+                      <div className="bg-white/90 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-[10px] font-bold">4.9</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-slate-900 group-hover:text-primary transition-colors">Dr. {doctor.name}</h3>
+                    <p className="text-xs text-primary font-bold uppercase tracking-wider mt-1">{doctor.specialty}</p>
+                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-50">
+                      <div className="flex-1">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">Consultation</p>
+                        <p className="text-sm font-bold text-slate-900">₹{doctor.consultation_fee || '500'}</p>
+                      </div>
+                      <Button size="sm" onClick={() => navigate(`/doctor-booking/${doctor.id}`)} className="rounded-xl shadow-md shadow-primary/20">
+                        Book
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            [1, 2, 3, 4].map(i => (
+              <div key={i} className="h-80 rounded-3xl bg-slate-100 animate-pulse" />
+            ))
+          )}
         </div>
       </section>
 

@@ -16,6 +16,9 @@ interface HealthRecordProps {
     description?: string;
     fileUrl?: string;
     tags?: string[];
+    isDigital?: boolean;
+    medicines?: any[];
+    signature_url?: string;
   };
   onView: (id: string) => void;
   onDelete: (id: string) => void;
@@ -53,7 +56,7 @@ const getReadableType = (recordType: string) => {
 
 const HealthRecordCard: React.FC<HealthRecordProps> = ({ record, onView, onDelete }) => {
   return (
-    <Card className="mb-4 overflow-hidden hover:shadow-md transition-shadow">
+    <Card className={`mb-4 overflow-hidden hover:shadow-md transition-shadow ${record.isDigital ? 'border-primary/20 bg-primary/5' : ''}`}>
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">
           <div className="p-4 md:p-6 flex-grow">
@@ -63,6 +66,11 @@ const HealthRecordCard: React.FC<HealthRecordProps> = ({ record, onView, onDelet
                 <span className="text-xs font-medium px-2 py-1 rounded-full bg-muted">
                   {getReadableType(record.recordType)}
                 </span>
+                {record.isDigital && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-white uppercase tracking-wider">
+                    Digital
+                  </span>
+                )}
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Calendar className="h-3 w-3 mr-1" />
@@ -77,12 +85,29 @@ const HealthRecordCard: React.FC<HealthRecordProps> = ({ record, onView, onDelet
                 {record.description}
               </p>
             )}
+
+            {record.isDigital && record.medicines && record.medicines.length > 0 && (
+              <div className="mt-4 p-3 bg-white/60 rounded-xl border border-primary/10">
+                <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-tight">Prescribed Medicines</p>
+                <div className="space-y-2">
+                  {record.medicines.slice(0, 2).map((m, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="font-medium">{m.medicine_name || m.name}</span>
+                      <span className="text-slate-500 text-xs">{m.dosage} • {m.frequency}</span>
+                    </div>
+                  ))}
+                  {record.medicines.length > 2 && (
+                    <p className="text-xs text-primary font-medium">+{record.medicines.length - 2} more medicines</p>
+                  )}
+                </div>
+              </div>
+            )}
             
             <div className="mt-3 space-y-1 text-sm">
               {record.doctorName && (
                 <div className="flex items-center text-muted-foreground">
                   <User className="h-3 w-3 mr-2" />
-                  <span>Dr. {record.doctorName}</span>
+                  <span>{record.isDigital ? '' : 'Dr. '}{record.doctorName}</span>
                 </div>
               )}
               
@@ -110,16 +135,17 @@ const HealthRecordCard: React.FC<HealthRecordProps> = ({ record, onView, onDelet
             
             <div className="flex justify-between mt-4">
               <Button 
-                variant="outline" 
+                variant={record.isDigital ? "default" : "outline"}
                 size="sm" 
                 onClick={() => onView(record._id)}
+                className="rounded-xl"
               >
-                View Details
+                {record.isDigital ? 'View Prescription' : 'View Details'}
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-destructive hover:text-destructive" 
+                className="text-destructive hover:text-destructive rounded-xl" 
                 onClick={() => onDelete(record._id)}
               >
                 Delete
@@ -127,28 +153,31 @@ const HealthRecordCard: React.FC<HealthRecordProps> = ({ record, onView, onDelet
             </div>
           </div>
           
-          {record.fileUrl && (
+          {record.fileUrl ? (
             <div className="w-full md:w-32 bg-muted flex items-center justify-center">
               <div className="p-2">
                 <img 
                   src={record.fileUrl} 
                   alt={record.title} 
-                  className="w-full h-auto object-cover" 
+                  className="w-full h-auto object-cover rounded-lg" 
                   onError={(e) => {
-                    // If image fails to load, replace with a file icon
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
-                      const icon = document.createElement('div');
-                      icon.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
-                      icon.className = 'text-muted-foreground';
-                      parent.appendChild(icon);
+                      parent.innerHTML = '<div class="text-muted-foreground"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>';
                     }
                   }}
                 />
               </div>
             </div>
-          )}
+          ) : record.isDigital && record.signature_url ? (
+            <div className="w-full md:w-32 bg-primary/5 flex items-center justify-center border-l border-primary/10">
+              <div className="p-2 text-center">
+                <img src={record.signature_url} alt="Signature" className="w-20 h-auto opacity-60 grayscale" />
+                <p className="text-[10px] text-primary/60 font-bold mt-1 uppercase">Signed</p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

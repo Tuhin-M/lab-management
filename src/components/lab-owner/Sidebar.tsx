@@ -28,15 +28,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <aside className="bg-white border-r border-slate-200 h-screen w-64 flex flex-col py-8 px-4 sticky top-0 z-20 shadow-sm">
-      <div className="px-4 mb-10">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="rounded-full bg-primary w-10 h-10 flex items-center justify-center shadow-sm shadow-primary/20">
-            <span className="text-white font-bold text-base">E</span>
-          </div>
-          <span className="font-bold text-xl tracking-tight text-slate-900">Ekitsa</span>
-        </Link>
-      </div>
-
       <nav className="flex-1 space-y-1">
         {linksToShow.map((link) => {
           const isActive = activeTab === link.tab;

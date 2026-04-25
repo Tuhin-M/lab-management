@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import UserMenu from "@/components/navbar/UserMenu";
 import NavLinks from "@/components/navbar/NavLinks";
+import NotificationTray from "@/components/NotificationTray";
 import { 
   TestTube, 
   User, 
@@ -98,6 +99,7 @@ const GlobalNavbar: React.FC = () => {
 
         {/* User Actions */}
         <div className="flex items-center space-x-2">
+          {isAuthenticated && <NotificationTray />}
           {isAuthenticated && currentUser ? (
             <UserMenu currentUser={currentUser} onLogout={handleLogout} />
           ) : (
@@ -189,7 +191,17 @@ const GlobalNavbar: React.FC = () => {
                               <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/lab-dashboard") ? 'bg-black/10' : ''}`}>
                                 <LayoutDashboard className="h-5 w-5" />
                               </div>
-                              <span className="text-base tracking-tight">Dashboard</span>
+                              <span className="text-base tracking-tight">Lab Dashboard</span>
+                            </Link>
+                          </SheetClose>
+                        )}
+                        {userRole === 'doctor' && (
+                          <SheetClose asChild>
+                            <Link to="/doctor-dashboard" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/doctor-dashboard") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                              <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/doctor-dashboard") ? 'bg-black/10' : ''}`}>
+                                <LayoutDashboard className="h-5 w-5" />
+                              </div>
+                              <span className="text-base tracking-tight">Doctor Dashboard</span>
                             </Link>
                           </SheetClose>
                         )}

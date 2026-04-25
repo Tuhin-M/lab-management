@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { storageService } from '@/services/storage';
+import { ocrService } from '@/services/ocrService';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,7 +14,7 @@ import {
   FormMessage
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Eye, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -86,6 +88,32 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
       } else {
         setFilePreview(null);
       }
+    }
+  };
+
+  const handleScan = async () => {
+    if (!file) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      const text = await ocrService.extractText(file);
+      const medicines = ocrService.parseMedicines(text);
+      
+      if (medicines.length > 0) {
+        form.setValue('description', `Detected items:\n${medicines.join('\n')}\n\nOriginal Note:\n${form.getValues('description') || ''}`);
+        setTags([...new Set([...tags, ...medicines.slice(0, 3)])]);
+        toast.success('Scan complete! Data extracted.');
+      } else {
+        toast.info('Scan complete, but no clear medicines detected.');
+      }
+    } catch (error) {
+      console.error('OCR Error:', error);
+      toast.error('Failed to scan image');
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -301,7 +329,21 @@ const AddHealthRecordForm: React.FC<AddHealthRecordFormProps> = ({ onSubmit, onC
                 type="file"
                 onChange={handleFileChange}
                 className="mb-2"
+                accept="image/*"
               />
+              {file && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleScan}
+                  disabled={isScanning}
+                  className="mb-4 flex items-center gap-2"
+                >
+                  {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                  {isScanning ? 'Scanning...' : 'Auto-scan Image'}
+                </Button>
+              )}
               {filePreview && (
                 <div className="mt-2 relative w-32 h-32 border rounded overflow-hidden">
                   <img

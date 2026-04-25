@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface Analytics {
   overview: {
@@ -66,6 +67,8 @@ interface User {
 const AdminDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [labs, setLabs] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,7 +77,68 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchAnalytics();
     fetchUsers();
+    fetchLabs();
+    fetchDoctors();
   }, []);
+
+  const fetchLabs = async () => {
+    try {
+      const { data, error } = await supabase.from('labs').select('*');
+      if (error) throw error;
+      setLabs(data || []);
+    } catch (err) {
+      console.error('Failed to fetch labs:', err);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    try {
+      const { data, error } = await supabase.from('doctors').select('*');
+      if (error) throw error;
+      setDoctors(data || []);
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err);
+    }
+  };
+
+  const toggleDoctorVerification = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('doctors')
+        .update({ verified: !currentStatus })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success(`Doctor ${!currentStatus ? 'verified' : 'unverified'} successfully`);
+      fetchDoctors();
+    } catch (err) {
+      toast.error('Failed to update verification status');
+    }
+  };
+
+  const toggleLabApproval = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'approved' ? 'pending' : 'approved';
+    try {
+      // Assuming 'status' column exists in labs, if not we use a boolean like 'verified'
+      const { error } = await supabase
+        .from('labs')
+        .update({ status: newStatus })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success(`Lab ${newStatus} successfully`);
+      fetchLabs();
+    } catch (err) {
+      // Try 'verified' column if 'status' fails
+      try {
+        await supabase.from('labs').update({ verified: currentStatus !== 'approved' }).eq('id', id);
+        toast.success('Lab status updated');
+        fetchLabs();
+      } catch (innerErr) {
+        toast.error('Failed to update lab status');
+      }
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -85,15 +149,22 @@ const AdminDashboard: React.FC = () => {
         { count: totalLabs },
         { count: totalBookings },
         { count: totalAppointments },
-        { data: profiles }
+        { data: profiles },
+        { data: appointments },
+        { data: bookings }
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('doctors').select('*', { count: 'exact', head: true }),
         supabase.from('labs').select('*', { count: 'exact', head: true }),
         supabase.from('test_bookings').select('*', { count: 'exact', head: true }),
         supabase.from('appointments').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('role')
+        supabase.from('profiles').select('role'),
+        supabase.from('appointments').select('amount').eq('status', 'completed'),
+        supabase.from('test_bookings').select('total_amount').eq('status', 'completed')
       ]);
+
+      const totalRevenue = (appointments?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0) +
+                           (bookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0);
 
       const usersByRole: Record<string, number> = {};
       profiles?.forEach((p) => {
@@ -110,10 +181,10 @@ const AdminDashboard: React.FC = () => {
           totalAppointments: totalAppointments || 0,
         },
         recent30Days: {
-          bookings: 0, 
-          appointments: 0, 
-          revenue: 0, 
-          transactions: 0 
+          bookings: totalBookings || 0, 
+          appointments: totalAppointments || 0, 
+          revenue: totalRevenue, 
+          transactions: (appointments?.length || 0) + (bookings?.length || 0)
         },
         breakdowns: {
           usersByRole,
@@ -390,20 +461,104 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="labs">
             <Card>
-              <CardContent className="py-12 text-center">
-                <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Ekitsa</h3>
-                <p className="text-muted-foreground">Coming soon - Manage lab registrations and approvals</p>
+              <CardHeader>
+                <CardTitle>Lab Approval & Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Lab Name</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {labs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No labs found</TableCell>
+                      </TableRow>
+                    ) : (
+                      labs.map((lab) => (
+                        <TableRow key={lab.id}>
+                          <TableCell className="font-medium">{lab.name}</TableCell>
+                          <TableCell>{lab.address_city || 'N/A'}</TableCell>
+                          <TableCell>{lab.phone || lab.email || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge variant={lab.status === 'approved' || lab.verified ? 'default' : 'secondary'}>
+                              {lab.status || (lab.verified ? 'Approved' : 'Pending')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant={lab.status === 'approved' || lab.verified ? "outline" : "default"}
+                                className="h-8"
+                                onClick={() => toggleLabApproval(lab.id, lab.status)}
+                              >
+                                {lab.status === 'approved' || lab.verified ? 'Revoke' : 'Approve'}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="doctors">
             <Card>
-              <CardContent className="py-12 text-center">
-                <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Doctor Management</h3>
-                <p className="text-muted-foreground">Coming soon - Manage doctor registrations and approvals</p>
+              <CardHeader>
+                <CardTitle>Doctor Verification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Doctor Name</TableHead>
+                      <TableHead>Specialty</TableHead>
+                      <TableHead>Experience</TableHead>
+                      <TableHead>Verified</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {doctors.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No doctors found</TableCell>
+                      </TableRow>
+                    ) : (
+                      doctors.map((doctor) => (
+                        <TableRow key={doctor.id}>
+                          <TableCell className="font-medium">{doctor.name}</TableCell>
+                          <TableCell>{doctor.specialty}</TableCell>
+                          <TableCell>{doctor.experience} Years</TableCell>
+                          <TableCell>
+                            <Badge variant={doctor.verified ? 'outline' : 'secondary'} className={doctor.verified ? 'text-green-600 border-green-200' : ''}>
+                              {doctor.verified ? 'Verified' : 'Pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant={doctor.verified ? "outline" : "default"}
+                              className="h-8"
+                              onClick={() => toggleDoctorVerification(doctor.id, doctor.verified)}
+                            >
+                              {doctor.verified ? 'Unverify' : 'Verify'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>

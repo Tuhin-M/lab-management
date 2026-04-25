@@ -31,6 +31,10 @@ const DoctorChat = lazy(() => import("./pages/DoctorChat"));
 const HealthRecords = lazy(() => import("./pages/HealthRecords"));
 const LabComparison = lazy(() => import("./pages/LabComparison"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
+const ManageAppointments = lazy(() => import("./pages/doctor/ManageAppointments"));
+const CreatePrescription = lazy(() => import("./pages/doctor/CreatePrescription"));
+const DoctorSettings = lazy(() => import("./pages/doctor/DoctorSettings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
@@ -78,6 +82,13 @@ function App() {
           <Route path="/labs/:id" element={<LabDetail />} />
           <Route path="/test-booking/:id" element={<TestBooking />} />
           <Route path="/health-records" element={<HealthRecords />} />
+          
+          {/* Doctor Routes */}
+          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor/appointments" element={<ManageAppointments />} />
+          <Route path="/doctor/prescription/:appointmentId" element={<CreatePrescription />} />
+          <Route path="/doctor/settings" element={<DoctorSettings />} />
+          <Route path="/doctor/*" element={<DoctorDashboard />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />

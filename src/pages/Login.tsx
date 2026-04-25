@@ -46,11 +46,8 @@ const Login = () => {
         }
         
         // Otherwise use default role-based redirect
-        if (userRole === "lab_owner") {
-          navigate("/lab-dashboard");
-        } else {
-          navigate("/profile");
-        }
+        // Always redirect to home screen as per user request
+        navigate("/");
       }
     };
     checkAuth();
@@ -85,6 +82,8 @@ const Login = () => {
         // Priority 2: Role-based default dashboard
         if (response.role === 'lab_owner') {
           navigate('/lab-dashboard');
+        } else if (response.role === 'doctor') {
+          navigate('/doctor-dashboard');
         } else {
           navigate('/profile');
         }
@@ -128,11 +127,8 @@ const Login = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Link to="/" className="flex items-center gap-3 mb-12">
-              <div className="h-12 w-12 rounded-2xl bg-primary/20 backdrop-blur-sm flex items-center justify-center border border-primary/30">
-                <HeartPulse className="h-7 w-7 text-primary" />
-              </div>
-              <span className="text-2xl font-bold tracking-tight">Ekitsa</span>
+            <Link to="/" className="mb-12 block">
+              <img src="/images/ekitsa_logo.png" alt="Ekitsa Logo" className="h-20 w-auto" />
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">

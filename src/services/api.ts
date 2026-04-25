@@ -66,6 +66,32 @@ export const authAPI = {
           console.warn('Could not save profile name:', profileError);
         }
 
+        // If doctor, also create record in doctors table
+        if (userData.role === 'doctor') {
+          const { error: doctorError } = await supabase
+            .from('doctors')
+            .upsert({
+              id: data.user.id,
+              name: userData.name,
+              specialty: userData.specialty || 'General Physician',
+              city: userData.city || 'Kolkata',
+              experience: 5, // Using integer to match screenshot
+              rating: 4.9,
+              reviews: 12,
+              image_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.name}`,
+              bio: `Dr. ${userData.name} is a dedicated healthcare professional.`,
+              qualifications: 'MBBS, MD', // Matching screenshot column
+              fee: 500,
+              verified: true,
+              hospital: 'Ekitsa Virtual Clinic',
+              location: 'Online'
+            });
+          
+          if (doctorError) {
+            console.warn('Could not create doctor record in "doctors" table:', doctorError);
+          }
+        }
+
         const role = userData.role || 'user';
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
@@ -440,28 +466,180 @@ export const userAPI = {
 };
 
 // Health records API calls
+// Health records API calls
 export const healthRecordsAPI = {
   getAllRecords: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    // Assuming we have a health_records table (not in schema yet, but good to placeholder)
-    // or we store it in a JSONB column in profiles for now
-    return { data: [] };
+    // Fetch personal health records
+    const { data: records, error: rError } = await supabase
+      .from('health_records')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (rError) throw rError;
+
+    // Fetch digital prescriptions from doctors
+    const { data: prescriptions, error: pError } = await supabase
+      .from('prescriptions')
+      .select('*, doctors(name), prescription_medicines(*)')
+      .eq('patient_id', user.id);
+
+    if (pError) throw pError;
+
+    // Map prescriptions to health record format
+    const mappedPrescriptions = prescriptions.map(p => ({
+      id: p.id,
+      _id: p.id, // For compatibility
+      recordType: 'prescription',
+      title: p.diagnosis || 'Prescription',
+      date: p.created_at,
+      doctorName: p.doctors?.name || 'Doctor',
+      description: p.notes,
+      isDigital: true,
+      medicines: p.prescription_medicines,
+      signature_url: p.signature_url
+    }));
+
+    // Combine and sort
+    const combined = [
+      ...records.map(r => ({ ...r, _id: r.id, recordType: r.record_type, doctorName: r.doctor_name, hospitalName: r.hospital_name, fileUrl: r.file_url })),
+      ...mappedPrescriptions
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { data: combined };
   },
   getRecordById: async (id: string) => {
-    return { data: null };
+    const { data, error } = await supabase
+      .from('health_records')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
-  createRecord: async (data: any) => {
-    return { data: data };
+  createRecord: async (recordData: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from('health_records')
+      .insert({
+        user_id: user.id,
+        record_type: recordData.recordType,
+        title: recordData.title,
+        date: recordData.date,
+        doctor_name: recordData.doctorName,
+        hospital_name: recordData.hospitalName,
+        description: recordData.description,
+        file_url: recordData.fileUrl,
+        tags: recordData.tags || [],
+        ocr_data: recordData.ocrData || null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
-  updateRecord: async (id: string, data: any) => {
-    return { data: data };
+  updateRecord: async (id: string, recordData: any) => {
+    const { data, error } = await supabase
+      .from('health_records')
+      .update(recordData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
   },
   deleteRecord: async (id: string) => {
+    const { error } = await supabase
+      .from('health_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
     return { success: true };
   },
 };
+
+// Prescription API calls
+export const prescriptionsAPI = {
+  getPatientPrescriptions: async (patientId: string) => {
+    const { data, error } = await supabase
+      .from('prescriptions')
+      .select('*, prescription_medicines(*)')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { data };
+  },
+
+  getDoctorPrescriptions: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from('prescriptions')
+      .select('*, prescription_medicines(*)')
+      .eq('doctor_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { data };
+  },
+
+  createPrescription: async (prescriptionData: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // 1. Create prescription entry
+    const { data: prescription, error: pError } = await supabase
+      .from('prescriptions')
+      .insert({
+        doctor_id: user.id,
+        patient_id: prescriptionData.patientId,
+        appointment_id: prescriptionData.appointmentId,
+        notes: prescriptionData.notes,
+        clinical_findings: prescriptionData.clinicalFindings,
+        diagnosis: prescriptionData.diagnosis,
+        signature_url: prescriptionData.signatureUrl,
+        age: prescriptionData.age,
+        gender: prescriptionData.gender,
+        weight: prescriptionData.weight,
+        height: prescriptionData.height
+      })
+      .select()
+      .single();
+
+    if (pError) throw pError;
+
+    // 2. Create medicine entries
+    if (prescriptionData.medicines && prescriptionData.medicines.length > 0) {
+      const medicinesToInsert = prescriptionData.medicines.map((m: any) => ({
+        prescription_id: prescription.id,
+        medicine_name: m.name,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        duration: m.duration,
+        instructions: m.instructions
+      }));
+
+      const { error: mError } = await supabase
+        .from('prescription_medicines')
+        .insert(medicinesToInsert);
+
+      if (mError) throw mError;
+    }
+
+    return { data: prescription };
+  }
+};
+
 
 // Blog related API calls
 export const blogAPI = {
@@ -1058,5 +1236,47 @@ export const doctorChatAPI = {
   getVideoCallToken: async (chatId: string) => {
     // Mock token
     return { data: { token: 'mock-token' } };
+  }
+};
+
+// Notifications API
+export const notificationsAPI = {
+  send: async ({ userId, title, message, type = 'info' }: { userId: string, title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error' }) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type,
+          is_read: false
+        });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Failed to send notification:', err);
+    }
+  },
+
+  getUserNotifications: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [] };
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { data };
+  },
+
+  markAsRead: async (id: string) => {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id);
+    if (error) throw error;
   }
 };
