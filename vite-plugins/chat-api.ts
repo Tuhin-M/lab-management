@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyA6fm9EFlGw3PQrj9k4oFPaNGQGSdJUrAY';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 interface ChatRequest {
     message: string;
@@ -42,6 +42,13 @@ export function chatApiPlugin(): Plugin {
                         res.statusCode = 400;
                         res.setHeader('Content-Type', 'application/json');
                         res.end(JSON.stringify({ error: 'Message is required' }));
+                        return;
+                    }
+
+                    if (!GEMINI_API_KEY) {
+                        res.statusCode = 500;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.end(JSON.stringify({ error: 'API key not configured' }));
                         return;
                     }
 
@@ -88,9 +95,9 @@ Be concise, friendly, and professional. Help users with:
                         { role: 'user', parts: [{ text: message }] },
                     ];
 
-                    // Call Gemini API
+                    // Call Gemini API (gemini-2.0-flash-exp was shut down Dec 2025)
                     const geminiResponse = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
