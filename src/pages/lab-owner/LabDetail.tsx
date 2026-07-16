@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, MapPin, Phone, Mail, Globe, Shield, Calendar } from "lucide-react";
-import { labOwnerAPI } from "@/services/api";
+import { labOwnerAPI, labsAPI } from "@/services/api";
 import { toast } from "sonner";
 import AppointmentsList from "@/components/lab-owner/AppointmentsList";
 import { Button } from "@/components/ui/button";
@@ -23,79 +23,49 @@ const LabDetail = () => {
     const fetchLabData = async () => {
       try {
         setLoading(true);
-        // In a real app, this would be a real API call
-        // For now we'll simulate with mock data
+        const dbLab = await labsAPI.getLabById(id!);
 
-        // Mock lab data for demonstration
-        const mockLab = {
-          _id: id,
-          name: 'Central Diagnostics',
-          description: 'A leading diagnostic center providing high-quality lab tests and healthcare services.',
+        const mappedLab = {
+          _id: dbLab.id,
+          name: dbLab.name,
+          description: dbLab.description || 'No description provided.',
           address: {
-            street: '123 Main Street',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            zipCode: '400001'
+            street: dbLab.address_street || '',
+            city: dbLab.address_city || '',
+            state: dbLab.address_state || ''
           },
           contactInfo: {
-            phone: '9876543210',
-            email: 'contact@centraldiagnostics.com',
-            website: 'www.centraldiagnostics.com'
+            phone: dbLab.phone || '—',
+            email: dbLab.email || '—',
+            website: dbLab.website || ''
           },
-          certifications: ['NABL', 'ISO 9001:2015'],
+          certifications: dbLab.facilities && dbLab.facilities.length > 0 ? dbLab.facilities : (dbLab.accredited ? ['NABL Accredited'] : []),
           operatingHours: {
-            weekdays: {
-              open: '08:00',
-              close: '20:00'
-            },
-            weekends: {
-              open: '09:00',
-              close: '17:00'
-            }
+            weekdays: { open: '08:00', close: '20:00' },
+            weekends: { open: '09:00', close: '17:00' }
           },
-          image: '/placeholder.svg',
-          rating: 4.5,
-          tests: new Array(12),
+          image: dbLab.image_url || null,
+          rating: dbLab.rating || null,
           status: 'active'
         };
 
-        setLab(mockLab);
+        setLab(mappedLab);
 
-        // Mock appointments data
-        const mockAppointments = [
-          {
-            _id: 'appt1',
-            patientName: 'Rahul Sharma',
-            testName: 'Complete Blood Count',
-            date: '2025-04-15',
-            time: '10:30 AM',
-            status: 'scheduled',
-            paymentStatus: 'paid',
-            amount: 1200
-          },
-          {
-            _id: 'appt2',
-            patientName: 'Priya Patel',
-            testName: 'Lipid Profile',
-            date: '2025-04-16',
-            time: '11:00 AM',
-            status: 'completed',
-            paymentStatus: 'paid',
-            amount: 1500
-          },
-          {
-            _id: 'appt3',
-            patientName: 'Amit Kumar',
-            testName: 'Thyroid Profile',
-            date: '2025-04-17',
-            time: '09:15 AM',
-            status: 'scheduled',
-            paymentStatus: 'pending',
-            amount: 800
-          }
-        ];
-
-        setAppointments(mockAppointments);
+        // Fetch real bookings for this lab
+        const { data: bookingsData } = await labOwnerAPI.getLabBookings(id!);
+        const normalized = (bookingsData || []).map((b: any) => ({
+          _id: b.id,
+          patientName: b.patient_name || 'Unknown Patient',
+          testName: Array.isArray(b.tests) && b.tests.length > 0
+            ? b.tests.map((t: any) => t.name).join(', ')
+            : 'N/A',
+          date: b.booking_date,
+          time: b.booking_time || '',
+          status: b.status || 'scheduled',
+          paymentStatus: b.payment_status || 'pending',
+          amount: b.total_amount || 0
+        }));
+        setAppointments(normalized);
 
         // Fetch real tests
         const { data: labTests } = await labOwnerAPI.getLabTests(id!);

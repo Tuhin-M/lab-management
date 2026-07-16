@@ -855,6 +855,7 @@ export interface LabCreateRequest {
   workingHours: LabWorkingHours;
   staff: LabStaff;
   services: string[];
+  image_url?: string;
 }
 
 interface LabCreateResponse {
@@ -880,7 +881,7 @@ export const labOwnerAPI = {
       .select('*', { count: 'exact', head: true })
       .in('lab_id', labIds);
 
-    return { data: { totalBookings: count || 0, revenue: 0, labs: labIds.length } };
+    return { data: { totalBookings: count || 0, totalAppointments: count || 0, totalLabs: labIds.length, labs: labIds.length, revenue: 0, totalRevenue: 0, pendingAppointments: 0 } };
   },
 
   getOwnedLabs: async () => {
@@ -1007,17 +1008,15 @@ export const labOwnerAPI = {
         owner_id: user.id,
         name: labData.name,
         description: labData.description,
-        // Mapping address fields
         address_street: labData.address.street,
         address_city: labData.address.city,
         address_state: labData.address.state,
         address_zip: labData.address.zipCode,
-
-        // Mapping other fields
         phone: labData.contact.phone,
         email: labData.contact.email,
-        facilities: labData.facilities,
-        // ... mapped fields
+        facilities: labData.facilities || [],
+        image_url: labData.image_url || null,
+        accredited: labData.certifications && labData.certifications.length > 0,
       })
       .select()
       .single();

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Upload, Loader2, X } from "lucide-react";
-import { labOwnerAPI } from "@/services/api";
+import { labOwnerAPI, LabCreateRequest } from "@/services/api";
 import { storageService } from "@/services/storage";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -108,19 +108,44 @@ const AddLab = () => {
         if (url) labImageUrls.push(url);
       }
 
-      const payload = {
-        ...data,
-        logo: logoUrl || '/images/ekitsa_logo.png',
-        images: labImageUrls.length > 0 ? labImageUrls : ['/placeholder.svg']
+      const primaryImage = labImageUrls.length > 0 ? labImageUrls[0] : (logoUrl || '/placeholder.svg');
+
+      const payload: LabCreateRequest = {
+        name: data.name,
+        description: data.description,
+        establishedDate: "",
+        registrationNumber: "",
+        address: {
+          street: data.address.street,
+          city: data.address.city,
+          state: data.address.state,
+          zipCode: data.address.zipCode,
+          country: 'India',
+          landmark: ''
+        },
+        contact: {
+          email: data.contactInfo.email,
+          phone: data.contactInfo.phone,
+          website: data.contactInfo.website || '',
+          emergencyContact: ''
+        },
+        facilities: [],
+        certifications: data.certifications ? [data.certifications] : [],
+        workingHours: {
+          weekdays: '09:00 - 18:00',
+          weekends: '10:00 - 14:00',
+          holidays: 'Closed'
+        },
+        staff: {
+          pathologists: 0,
+          technicians: 0,
+          receptionists: 0
+        },
+        services: [],
+        image_url: primaryImage
       };
 
-      const res = await fetch('/api/labs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!res.ok) throw new Error('Failed to add lab');
+      await labOwnerAPI.addLab(payload);
       toast.success('Lab added successfully');
       navigate('/lab-dashboard');
     } catch (error) {

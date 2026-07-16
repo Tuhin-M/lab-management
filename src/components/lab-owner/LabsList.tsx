@@ -9,13 +9,18 @@ interface Lab {
   id: string;
   _id?: string;
   name: string;
-  address: any;
+  address?: any;
+  // Raw Supabase flat columns
+  address_street?: string;
+  address_city?: string;
+  address_state?: string;
   image?: string;
+  image_url?: string;
   images?: string[];
   logo?: string;
-  rating: number;
-  tests: any[];
-  status: string;
+  rating?: number;
+  tests?: any[];
+  status?: string;
 }
 
 interface LabsListProps {
@@ -28,13 +33,17 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
 
   const getLabId = (lab: Lab) => lab.id || lab._id || '';
 
-  const formatAddress = (address: any) => {
-    if (typeof address === 'string') return address;
-    if (address && typeof address === 'object') {
-      const parts = [address.street, address.city, address.state].filter(Boolean);
-      return parts.join(', ') || 'No address provided';
+  const formatAddress = (lab: Lab) => {
+    // Prefer nested object shape
+    if (lab.address && typeof lab.address === 'object') {
+      const parts = [lab.address.street, lab.address.city, lab.address.state].filter(Boolean);
+      if (parts.length) return parts.join(', ');
     }
-    return 'No address provided';
+    // Fallback to raw Supabase flat columns
+    const parts = [lab.address_street, lab.address_city, lab.address_state].filter(Boolean);
+    if (parts.length) return parts.join(', ');
+    if (typeof lab.address === 'string' && lab.address) return lab.address;
+    return '';
   };
 
   return (
@@ -51,7 +60,7 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
             <Card key={labId} className="overflow-hidden group hover:shadow-lg transition-shadow duration-300">
               <div className="h-44 overflow-hidden relative">
                 <img
-                  src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || "https://images.unsplash.com/photo-1579152276503-391494578b94?w=500&auto=format"}
+                  src={lab.image || lab.image_url || (Array.isArray(lab.images) && lab.images[0]) || "https://images.unsplash.com/photo-1579152276503-391494578b94?w=500&auto=format"}
                   alt={lab.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
@@ -75,7 +84,7 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg leading-tight">{lab.name}</CardTitle>
                 <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                  {formatAddress(lab.address)}
+                  {formatAddress(lab)}
                 </p>
               </CardHeader>
               <CardContent className="pb-4">
@@ -95,7 +104,7 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => navigate(`/lab/${labId}`, { state: { lab } })}
+                  onClick={() => navigate(`/lab-owner/lab/${labId}`, { state: { lab } })}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" /> Details
                 </Button>
