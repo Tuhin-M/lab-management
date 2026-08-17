@@ -28,7 +28,12 @@ import { LabOnboardingModal } from "@/components/lab-owner/LabOnboardingModal";
 import type { LabCreateRequest } from "@/components/lab-owner/LabOnboardingModal";
 import TeamManagement from "@/components/lab-owner/TeamManagement";
 import { AppointmentCalendar } from "@/components/lab-owner/AppointmentCalendar";
-import BillingDashboard from "@/components/lab-owner/BillingDashboard"; // Added
+import BillingDashboard from "@/components/lab-owner/BillingDashboard";
+import BookingsManager from "@/components/lab-owner/BookingsManager";
+import InventoryManager from "@/components/lab-owner/InventoryManager";
+import ReportsAnalytics from "@/components/lab-owner/ReportsAnalytics";
+import SettingsPage from "@/components/lab-owner/SettingsPage";
+import SupportCenter from "@/components/lab-owner/SupportCenter";
 
 // Common Components
 import { Button } from "@/components/common/Button";
@@ -410,29 +415,33 @@ const LabDashboard = () => {
             </div>
           )}
 
-          {/* New Modules Placeholder Logic */}
-          {['inventory', 'reports', 'settings', 'support', 'bookings'].includes(activeTab) && (
-            <div className="max-w-6xl mx-auto px-4 py-4">
-              <div className="text-center py-24 bg-white/50 backdrop-blur-sm rounded-[3rem] border-2 border-dashed border-slate-200 shadow-xl shadow-slate-200/20 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
-                <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 animate-pulse">
-                  {/* Find icon from sidebarLinks - we'd need access to it, but for now we'll use a generic icon or hardcode based on tab */}
-                  {activeTab === 'billing' && <CreditCard size={48} />}
-                  {activeTab === 'inventory' && <Package size={48} />}
-                  {activeTab === 'reports' && <BarChart3 size={48} />}
-                  {activeTab === 'settings' && <Settings size={48} />}
-                  {activeTab === 'bookings' && <ClipboardList size={48} />}
-                  {activeTab === 'support' && <LifeBuoy size={48} />}
-                </div>
-                <h2 className="text-3xl font-extrabold text-slate-900 mb-4 capitalize">{activeTab} Module</h2>
-                <p className="text-slate-500 text-lg max-w-md mx-auto mb-10 leading-relaxed">
-                  The {activeTab} engine is currently being optimized for high-performance laboratory management.
-                </p>
-                <div className="flex justify-center gap-4">
-                  <Button variant="outline" className="rounded-xl px-8 h-12 font-bold mb-2">Technical Specs</Button>
-                  <Button className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20">Join Early Access</Button>
-                </div>
-              </div>
+          {activeTab === "bookings" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <BookingsManager />
+            </div>
+          )}
+
+          {activeTab === "inventory" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <InventoryManager />
+            </div>
+          )}
+
+          {activeTab === "reports" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <ReportsAnalytics />
+            </div>
+          )}
+
+          {activeTab === "settings" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <SettingsPage />
+            </div>
+          )}
+
+          {activeTab === "support" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <SupportCenter />
             </div>
           )}
         </main>

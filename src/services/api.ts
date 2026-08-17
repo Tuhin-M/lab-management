@@ -845,6 +845,7 @@ interface LabWorkingHours {
 
 export interface LabCreateRequest {
   name: string;
+  type?: string;
   description: string;
   establishedDate: string;
   registrationNumber: string;

@@ -63,6 +63,19 @@ export const LabOnboardingModal = ({
     { value: 'Hospital', label: 'Hospital' }
   ];
 
+  const stateOptions = [
+    { value: 'Andhra Pradesh', label: 'Andhra Pradesh' },
+    { value: 'Delhi', label: 'Delhi' },
+    { value: 'Gujarat', label: 'Gujarat' },
+    { value: 'Karnataka', label: 'Karnataka' },
+    { value: 'Kerala', label: 'Kerala' },
+    { value: 'Maharashtra', label: 'Maharashtra' },
+    { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+    { value: 'Telangana', label: 'Telangana' },
+    { value: 'West Bengal', label: 'West Bengal' },
+    { value: 'Other', label: 'Other' }
+  ];
+
   const facilityOptions = [
     'Home Collection', 'Digital Reports', 'Ambulance Service', 'NABL Accredited',
     '24/7 Emergency', 'Wheelchair Accessible', 'Parking Available', 'Phlebotomy Services'
@@ -164,11 +177,12 @@ export const LabOnboardingModal = ({
               onChange={(e) => handleInputChange('city', e.target.value)}
               placeholder="e.g. Mumbai"
             />
-            <InputGroup
+            <Select
               label="State*"
               value={labData.state}
-              onChange={(e) => handleInputChange('state', e.target.value)}
-              placeholder="e.g. Maharashtra"
+              options={stateOptions}
+              onValueChange={(val) => handleInputChange('state', val)}
+              placeholder="Select state"
             />
           </div>
 

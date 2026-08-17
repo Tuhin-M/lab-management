@@ -205,14 +205,16 @@ const GlobalNavbar: React.FC = () => {
                             </Link>
                           </SheetClose>
                         )}
-                        <SheetClose asChild>
-                          <Link to="/profile" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/profile") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
-                            <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/profile") ? 'bg-black/10' : ''}`}>
-                              <User className="h-5 w-5" />
-                            </div>
-                            <span className="text-base tracking-tight">My Profile</span>
-                          </Link>
-                        </SheetClose>
+                        {userRole !== 'lab_owner' && (
+                          <SheetClose asChild>
+                            <Link to="/profile" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/profile") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                              <div className={`p-2 rounded-xl bg-muted group-hover:bg-primary/20 group-hover:text-primary transition-all duration-300 ${isActive("/profile") ? 'bg-black/10' : ''}`}>
+                                <User className="h-5 w-5" />
+                              </div>
+                              <span className="text-base tracking-tight">My Profile</span>
+                            </Link>
+                          </SheetClose>
+                        )}
                       </div>
                     )}
                   </nav>

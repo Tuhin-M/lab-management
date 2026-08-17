@@ -24,7 +24,7 @@ type SidebarProps = {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const role = authAPI.getCurrentUserRole();
-  const linksToShow = sidebarLinks.filter(link => !(role === "lab_owner" && link.tab === "bookings"));
+  const linksToShow = sidebarLinks;
 
   return (
     <aside className="bg-white border-r border-slate-200 h-screen w-64 flex flex-col py-8 px-4 sticky top-0 z-20 shadow-sm">

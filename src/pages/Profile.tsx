@@ -11,10 +11,13 @@ import { authAPI } from "@/services/api";
 import { motion } from "framer-motion";
 import LoadingFallback from "@/utils/LoadingFallback";
 
+import { Navigate } from "react-router-dom";
+
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const role = authAPI.getCurrentUserRole();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -33,6 +36,10 @@ const Profile = () => {
 
   if (loading) {
     return <LoadingFallback />;
+  }
+
+  if (role === "lab_owner") {
+    return <Navigate to="/lab-dashboard" replace />;
   }
 
   return (
