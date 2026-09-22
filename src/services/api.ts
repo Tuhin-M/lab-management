@@ -288,8 +288,12 @@ export const labsAPI = {
     // Correct join: labs -> lab_tests -> tests
     let query = supabase.from('labs').select('*, lab_tests(*, tests(*))');
 
-    if (params?.city) {
+    if (params?.city && params.city !== 'All Locations' && params.city !== 'All Cities') {
       query = query.ilike('address_city', `%${params.city}%`);
+    }
+
+    if (params?.state && params.state !== 'All States') {
+      query = query.ilike('address_state', `%${params.state}%`);
     }
 
     const { data, error } = await query;
@@ -949,9 +953,49 @@ export const labOwnerAPI = {
         ...lt.tests,
         price: lt.price,
         discountPrice: lt.discounted_price,
+        turnaround_time: lt.turnaround_time || lt.tests?.turnaround_time || '',
+        duration: lt.duration || lt.tests?.duration || '',
         labTestId: lt.id
       }))
     };
+  },
+
+  deleteLabTest: async (labTestId: string) => {
+    const { error } = await supabase.from('lab_tests').delete().eq('id', labTestId);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  updateLabTest: async (labTestId: string, testId: string, testData: any) => {
+    // 1. Update global test record (name, category, sample_type, description, parameters)
+    const { error: testError } = await supabase
+      .from('tests')
+      .update({
+        name: testData.name,
+        category: testData.category,
+        sample_type: testData.sampleType,
+        description: testData.description,
+        parameters: testData.parameters,
+      })
+      .eq('id', testId);
+    if (testError) throw testError;
+
+    // 2. Update the lab-specific lab_tests row (price, discount, turnaround, duration)
+    const { data, error: labTestError } = await supabase
+      .from('lab_tests')
+      .update({
+        price: testData.price,
+        discounted_price: testData.discount
+          ? Math.round(testData.price * (1 - testData.discount / 100))
+          : testData.price,
+        turnaround_time: testData.turnaroundTime,
+        duration: testData.duration,
+      })
+      .eq('id', labTestId)
+      .select()
+      .single();
+    if (labTestError) throw labTestError;
+    return { data };
   },
 
   addTestToLab: async (labId: string, testData: any) => {
@@ -1024,6 +1068,52 @@ export const labOwnerAPI = {
 
     if (error) throw error;
     return { id: data.id, name: data.name, message: "Lab created successfully" };
+  },
+
+  updateLab: async (id: string, labData: any): Promise<any> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const updatePayload: any = {};
+    if (labData.name !== undefined) updatePayload.name = labData.name;
+    if (labData.description !== undefined) updatePayload.description = labData.description;
+    
+    const phone = labData.contact?.phone || labData.contactInfo?.phone || labData.phone;
+    if (phone !== undefined) updatePayload.phone = phone;
+
+    const email = labData.contact?.email || labData.contactInfo?.email || labData.email;
+    if (email !== undefined) updatePayload.email = email;
+
+    if (labData.address) {
+      if (labData.address.street !== undefined) updatePayload.address_street = labData.address.street;
+      if (labData.address.city !== undefined) updatePayload.address_city = labData.address.city;
+      if (labData.address.state !== undefined) updatePayload.address_state = labData.address.state;
+      if (labData.address.zipCode !== undefined) updatePayload.address_zip = labData.address.zipCode;
+    }
+
+    if (labData.facilities !== undefined) {
+      updatePayload.facilities = labData.facilities;
+    }
+
+    if (labData.image_url !== undefined) {
+      updatePayload.image_url = labData.image_url;
+    }
+
+    if (labData.certifications !== undefined) {
+      updatePayload.accredited = Array.isArray(labData.certifications)
+        ? labData.certifications.length > 0
+        : Boolean(labData.certifications);
+    }
+
+    const { data, error } = await supabase
+      .from('labs')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { id: data.id, name: data.name, message: "Lab updated successfully", data };
   },
 };
 

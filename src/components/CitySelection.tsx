@@ -3,6 +3,8 @@ import { MapPin, ChevronDown } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
 import { cn } from "@/lib/utils";
 
+import { POPULAR_CITIES } from "@/data/indianLocations";
+
 interface CitySelectionProps {
   selectedCity: string;
   onCityChange: (value: string) => void;
@@ -14,19 +16,7 @@ const CitySelection: React.FC<CitySelectionProps> = ({
   onCityChange,
   className = '',
 }) => {
-  const cities = [
-    'All Locations',
-    'Mumbai',
-    'Delhi',
-    'Bengaluru',
-    'Chennai',
-    'Kolkata',
-    'Hyderabad',
-    'Pune',
-    'Ahmedabad',
-    'Jaipur',
-    'Lucknow'
-  ];
+  const cities = ['All Locations', ...POPULAR_CITIES];
 
   return (
     <div className={className}>

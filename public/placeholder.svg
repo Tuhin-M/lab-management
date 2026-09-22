@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.05" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)" />
+  <circle cx="400" cy="220" r="140" fill="url(#glow)" />
+  
+  <!-- Modern Medical/Lab Icon -->
+  <g transform="translate(350, 160)" stroke="#2dd4bf" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 10 v30" />
+    <path d="M25 10 h50" />
+    <path d="M35 40 L10 95 A 15 15 0 0 0 23 115 h54 A 15 15 0 0 0 90 95 L 65 40 Z" />
+    <path d="M20 85 h60" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4 4" />
+    <circle cx="35" cy="98" r="4" fill="#38bdf8" stroke="none" />
+    <circle cx="60" cy="95" r="3" fill="#2dd4bf" stroke="none" />
+  </g>
+  
+  <text x="400" y="325" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="0.5">
+    Diagnostic Laboratory
+  </text>
+  <text x="400" y="355" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="14" text-anchor="middle">
+    Verified Healthcare Facility
+  </text>
+</svg>

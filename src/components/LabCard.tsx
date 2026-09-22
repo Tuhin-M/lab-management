@@ -4,6 +4,7 @@ import { MapPin, Clock, Star, Check, BadgePercent, Award } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 
 export interface Lab {
   id: string;
@@ -20,6 +21,8 @@ export interface Lab {
   imageUrl: string;
   accreditation?: string;
   yearEstablished?: number;
+  city?: string;
+  state?: string;
 }
 
 interface LabCardProps {
@@ -37,7 +40,7 @@ const LabCard = ({ lab, onSelect }: LabCardProps) => {
       <div className="relative h-48 overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" 
-          style={{ backgroundImage: `url(${lab.imageUrl || '/placeholder.svg'})` }}
+          style={{ backgroundImage: `url(${lab.imageUrl || DEFAULT_LAB_IMAGE})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-95" />
         

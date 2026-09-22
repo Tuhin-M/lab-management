@@ -14,7 +14,8 @@ import {
   BadgePercent,
   Plus,
   Loader2,
-  X
+  X,
+  Pencil
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Test } from "@/components/TestResult";
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { labsAPI, authAPI, labOwnerAPI } from "@/services/api";
+import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 
 const LabDetail = () => {
   const { toast } = useToast();
@@ -172,16 +174,29 @@ const LabDetail = () => {
       </div>
 
       <main className="container mx-auto py-8 px-4 relative z-10">
-        <Link to="/lab-tests" className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors group">
-          <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Back to Results
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/lab-tests" className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to Results
+          </Link>
+          {isOwner && params.id && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-2 font-semibold border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => navigate(`/lab-owner/edit-lab/${params.id}`)}
+            >
+              <Pencil className="h-4 w-4" />
+              <span>Edit Lab Details</span>
+            </Button>
+          )}
+        </div>
 
         {/* Lab Hero */}
         <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-8 group h-[350px]">
           <div 
             className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-            style={{ backgroundImage: `url(${lab.image || lab.imageUrl || "https://images.unsplash.com/photo-1587370560942-ad2a04eabb6d?q=80&w=2070&auto=format&fit=crop"})` }}
+            style={{ backgroundImage: `url(${lab.image || lab.imageUrl || lab.image_url || DEFAULT_LAB_IMAGE})` }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent/10" />
           

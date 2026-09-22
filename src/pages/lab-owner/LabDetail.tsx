@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, MapPin, Phone, Mail, Globe, Shield, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Mail, Globe, Shield, Calendar, Pencil, FlaskConical, Clock, Droplet, Plus, Trash2, Timer, Edit2 } from "lucide-react";
 import { labOwnerAPI, labsAPI } from "@/services/api";
 import { toast } from "sonner";
 import AppointmentsList from "@/components/lab-owner/AppointmentsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 
 const LabDetail = () => {
   const navigate = useNavigate();
@@ -86,6 +87,20 @@ const LabDetail = () => {
     toast.success('Appointments refreshed');
   };
 
+  const handleDeleteTest = async (labTestId: string, testName: string) => {
+    if (!window.confirm(`Are you sure you want to remove "${testName}" from this laboratory?`)) {
+      return;
+    }
+    try {
+      await labOwnerAPI.deleteLabTest(labTestId);
+      toast.success(`Removed "${testName}" successfully`);
+      setTests((prev) => prev.filter((t) => (t.labTestId || t.id) !== labTestId));
+    } catch (err) {
+      console.error("Failed to delete test:", err);
+      toast.error("Failed to remove test");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -127,21 +142,40 @@ const LabDetail = () => {
             <span className="font-semibold">Back to Dashboard</span>
           </Button>
           <h1 className="text-xl font-bold text-slate-900">Lab Administration</h1>
-          <div className="w-24" /> {/* Spacer */}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => navigate(`/lab-owner/edit-lab/${id}`)}
+            className="rounded-xl gap-2 font-semibold shadow-md shadow-primary/20"
+          >
+            <Pencil size={15} />
+            <span>Edit Lab Details</span>
+          </Button>
         </header>
       )}
 
       <main className="flex-1 p-6 md:p-10 relative z-10">
         <div className="container max-w-6xl mx-auto">
           {hideNavbar && (
-            <Button
-              variant="ghost"
-              className="mb-8 -ml-4 rounded-xl text-slate-500 hover:text-primary transition-colors group"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-5 w-5 mr-3 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-semibold">Exit Lab View</span>
-            </Button>
+            <div className="flex items-center justify-between mb-8">
+              <Button
+                variant="ghost"
+                className="-ml-4 rounded-xl text-slate-500 hover:text-primary transition-colors group"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-5 w-5 mr-3 group-hover:-translate-x-1 transition-transform" />
+                <span className="font-semibold">Exit Lab View</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate(`/lab-owner/edit-lab/${id}`)}
+                className="rounded-xl gap-2 font-semibold shadow-md shadow-primary/20"
+              >
+                <Pencil size={15} />
+                <span>Edit Lab Details</span>
+              </Button>
+            </div>
           )}
 
           <div className="grid gap-8 lg:grid-cols-3 items-start">
@@ -150,9 +184,12 @@ const LabDetail = () => {
               <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
                 <div className="aspect-video overflow-hidden relative group">
                   <img
-                    src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || "/placeholder.svg"}
+                    src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || DEFAULT_LAB_IMAGE}
                     alt={lab.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_LAB_IMAGE;
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   
@@ -252,10 +289,11 @@ const LabDetail = () => {
                   <div className="pt-6 flex gap-3">
                     <Button
                       variant="outline"
-                      className="flex-1 rounded-xl h-11 text-xs font-bold"
+                      className="flex-1 rounded-xl h-11 text-xs font-bold gap-1.5"
                       onClick={() => navigate(`/lab-owner/edit-lab/${id}`)}
                     >
-                      Settings
+                      <Pencil size={14} />
+                      Edit Details
                     </Button>
                     <Button
                       className="flex-1 rounded-xl h-11 text-xs font-bold shadow-lg shadow-primary/20"
@@ -310,59 +348,141 @@ const LabDetail = () => {
 
                 <TabsContent value="tests" className="mt-0 focus-visible:outline-none">
                   <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
-                    <CardHeader className="px-8 pt-8 pb-6">
-                      <div className="flex justify-between items-center">
+                    <CardHeader className="px-8 pt-8 pb-6 border-b border-slate-100">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                          <h3 className="text-xl font-bold text-slate-900">Available Tests</h3>
-                          <p className="text-sm text-slate-500 mt-1">Configure your laboratory's service offerings.</p>
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-xl font-bold text-slate-900">Available Tests</h3>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200/60">
+                              {tests.length} {tests.length === 1 ? 'test' : 'tests'} active
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-500 mt-1">Configure and manage your laboratory's service offerings and pricing.</p>
                         </div>
                         <Button
-                          className="rounded-xl font-bold px-6 shadow-lg shadow-primary/20"
+                          className="rounded-xl font-bold px-6 shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-[1.02] transition-transform"
                           onClick={() => navigate(`/lab-owner/${id}/add-test`)}
                         >
-                          + New Test
+                          <Plus className="w-4 h-4" /> Add New Test
                         </Button>
                       </div>
                     </CardHeader>
                     <CardContent className="p-8">
                       {tests.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {tests.map((test) => (
-                            <div key={test.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-lg hover:shadow-slate-200/50 transition-all group">
-                              <div className="flex justify-between items-start mb-3">
+                          {tests.map((test) => {
+                            const testId = test.labTestId || test.id;
+                            const hasDiscount = test.discountPrice && Number(test.discountPrice) < Number(test.price);
+                            const finalPrice = hasDiscount ? test.discountPrice : test.price;
+                            const discountPercent = hasDiscount ? Math.round(((test.price - test.discountPrice) / test.price) * 100) : 0;
+
+                            return (
+                              <div
+                                key={testId}
+                                className="group relative flex flex-col justify-between p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-teal-500/40 hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300"
+                              >
                                 <div>
-                                  <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors">{test.name}</h4>
-                                  <p className="text-xs text-slate-500">{test.category}</p>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3 min-w-0">
+                                      <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200 border border-teal-100/60">
+                                        <FlaskConical className="w-5 h-5" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors text-base truncate">
+                                          {test.name}
+                                        </h4>
+                                        <span className="inline-block text-xs font-medium text-slate-500">
+                                          {test.category || "Diagnostic Test"}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        onClick={() => navigate(`/lab-owner/${id}/edit-test/${testId}`)}
+                                        className="text-slate-300 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors shrink-0"
+                                        title="Edit test details"
+                                      >
+                                        <Edit2 className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteTest(testId, test.name)}
+                                        className="text-slate-300 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors shrink-0"
+                                        title="Remove test from lab"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {test.description && test.description.trim() !== "" && (
+                                    <p className="text-xs text-slate-500 line-clamp-2 mt-2.5 pl-0.5">
+                                      {test.description}
+                                    </p>
+                                  )}
+
+                                  {/* Badges: only render when string exists and is non-empty */}
+                                  <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                                    {test.sample_type && test.sample_type.trim() !== "" && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">
+                                        <Droplet className="w-3 h-3 text-teal-600" />
+                                        {test.sample_type}
+                                      </span>
+                                    )}
+                                    {test.turnaround_time && test.turnaround_time.trim() !== "" && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-teal-50 text-teal-700 px-2.5 py-1 rounded-lg border border-teal-100">
+                                        <Clock className="w-3 h-3 text-teal-600" />
+                                        {test.turnaround_time}
+                                      </span>
+                                    )}
+                                    {test.duration && test.duration.trim() !== "" && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-100">
+                                        <Timer className="w-3 h-3 text-amber-600" />
+                                        {test.duration}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-right">
-                                  <p className="font-bold text-primary">₹{test.price}</p>
-                                  {test.discountPrice && test.discountPrice < test.price && (
-                                    <p className="text-[10px] text-green-600 font-bold">Offer: ₹{test.discountPrice}</p>
+
+                                <div className="flex items-center justify-between pt-3.5 mt-4 border-t border-slate-100">
+                                  <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Price</span>
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="text-lg font-extrabold text-slate-900">
+                                        ₹{finalPrice}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-xs text-slate-400 line-through">
+                                          ₹{test.price}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {hasDiscount && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      {discountPercent}% OFF
+                                    </span>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex gap-2">
-                                <span className="text-[10px] bg-white px-2 py-1 rounded-lg border border-slate-100 font-medium">{test.sample_type}</span>
-                                <span className="text-[10px] bg-white px-2 py-1 rounded-lg border border-slate-100 font-medium">{test.turnaround_time}</span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
-                        <div className="text-center py-20 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md mx-auto mb-6 text-slate-300">
-                            <Shield size={40} />
+                        <div className="text-center py-20 bg-slate-50/70 rounded-[2rem] border-2 border-dashed border-slate-200">
+                          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md mx-auto mb-6 text-teal-500/80">
+                            <FlaskConical size={36} />
                           </div>
-                          <h4 className="text-lg font-bold text-slate-900 mb-2">No active tests found</h4>
-                          <p className="text-sm text-slate-500 max-w-xs mx-auto mb-8">
-                            Start adding tests to your laboratory menu to allow patients to book appointments.
+                          <h4 className="text-lg font-bold text-slate-900 mb-2">No active tests added yet</h4>
+                          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
+                            Publish test offerings, pricing, and turnaround times so patients can find and book tests at your laboratory.
                           </p>
                           <Button
-                            variant="outline"
-                            className="rounded-xl font-bold px-8 bg-white"
+                            className="rounded-xl font-bold px-8 shadow-lg shadow-primary/20"
                             onClick={() => navigate(`/lab-owner/${id}/add-test`)}
                           >
-                            Configure Menu
+                            <Plus className="w-4 h-4 mr-2" /> Add Your First Test
                           </Button>
                         </div>
                       )}

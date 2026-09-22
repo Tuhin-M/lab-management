@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { labsAPI } from "@/services/api";
 import { Loader2 } from "lucide-react";
+import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 
 const LabTests = () => {
   const { toast } = useToast();
@@ -39,6 +40,8 @@ const LabTests = () => {
     rating: 0,
     maxDistance: 10,
     openNow: false,
+    state: "",
+    city: "",
     facilities: {
       "Home Collection": false,
       "Digital Reports": false,
@@ -67,22 +70,33 @@ const LabTests = () => {
         }));
         setAllTests(mappedTests);
 
-        // Fetch all labs
-        const labsData = await labsAPI.getAllLabs({ city: selectedCity });
-        const mappedLabs: Lab[] = labsData.map((l: any) => ({
-          id: l.id,
-          name: l.name,
-          address: l.address ? `${l.address.street}, ${l.address.city}` : "Address not available",
-          distance: Math.random() * 5, // Simulated distance for now as backend doesn't have lat/long
-          rating: l.rating || 0,
-          reviewCount: l.reviews?.length || 0,
-          price: l.tests?.[0]?.price || 0, // Simplified price for listing
-          waitTime: "15-20 min", // Simulated
-          openNow: true, // Simulated
-          facilities: l.certifications || [], // Mapping certifications to facilities for now
-          imageUrl: l.image_url || "/placeholder.svg",
-          accreditation: l.certifications?.[0],
-        }));
+        // Fetch all labs with active city and state filters
+        const activeCity = filters.city || (selectedCity === "All Locations" ? "" : selectedCity);
+        const labsData = await labsAPI.getAllLabs({ city: activeCity, state: filters.state });
+        const mappedLabs: Lab[] = labsData.map((l: any) => {
+          const labCity = l.address_city || (typeof l.address === 'object' ? l.address?.city : undefined);
+          const labState = l.address_state || (typeof l.address === 'object' ? l.address?.state : undefined);
+          const formattedAddress = l.address && typeof l.address === 'object'
+            ? [l.address.street, l.address.city, l.address.state].filter(Boolean).join(', ')
+            : [l.address_street, l.address_city, l.address_state].filter(Boolean).join(', ') || (typeof l.address === 'string' ? l.address : "Address not available");
+
+          return {
+            id: l.id,
+            name: l.name,
+            address: formattedAddress,
+            distance: Math.random() * 5, // Simulated distance for now as backend doesn't have lat/long
+            rating: l.rating || 0,
+            reviewCount: l.reviews?.length || 0,
+            price: l.tests?.[0]?.price || 0, // Simplified price for listing
+            waitTime: "15-20 min", // Simulated
+            openNow: true, // Simulated
+            facilities: l.facilities || l.certifications || [],
+            imageUrl: l.image_url || DEFAULT_LAB_IMAGE,
+            accreditation: l.certifications?.[0],
+            city: labCity,
+            state: labState,
+          };
+        });
         setAllLabs(mappedLabs);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -97,12 +111,13 @@ const LabTests = () => {
     };
 
     fetchInitialData();
-  }, [selectedCity, toast]);
-
+  }, [selectedCity, filters.city, filters.state, toast]);
 
   // Handle city change
   const handleCityChange = (city: string) => {
-    setSelectedCity(city === "All Locations" ? "" : city);
+    const nextCity = city === "All Locations" ? "" : city;
+    setSelectedCity(nextCity);
+    setFilters((prev) => ({ ...prev, city: nextCity }));
     // Reset search and results when city changes
     setSearchQuery("");
     setSearchResults([]);
@@ -172,14 +187,32 @@ const LabTests = () => {
   // Handle filter change
   const handleFilterChange = (newFilters: LabFiltersState) => {
     setFilters(newFilters);
+    if (newFilters.city !== undefined && newFilters.city !== (selectedCity === "All Locations" ? "" : selectedCity)) {
+      setSelectedCity(newFilters.city || "All Locations");
+    }
   };
 
   // Handle reset filters
   const handleResetFilters = () => {
-    setSelectedCity("");
+    setSelectedCity("All Locations");
     setSearchQuery("");
     setSelectedTest(null);
     setSelectedLab(null);
+    setFilters({
+      rating: 0,
+      maxDistance: 10,
+      openNow: false,
+      state: "",
+      city: "",
+      facilities: {
+        "Home Collection": false,
+        "Digital Reports": false,
+        "NABL Accredited": false,
+        "Open 24x7": false,
+        "Free Home Delivery": false,
+        "Insurance Accepted": false,
+      },
+    });
     toast({
       title: "Filters Reset",
       description: "Showing all labs across all locations",
@@ -192,6 +225,20 @@ const LabTests = () => {
 
     // Filter labs
     let filtered = [...allLabs];
+
+    if (filters.state) {
+      filtered = filtered.filter((lab) =>
+        (lab.state && lab.state.toLowerCase().includes(filters.state!.toLowerCase())) ||
+        lab.address.toLowerCase().includes(filters.state!.toLowerCase())
+      );
+    }
+
+    if (filters.city) {
+      filtered = filtered.filter((lab) =>
+        (lab.city && lab.city.toLowerCase().includes(filters.city!.toLowerCase())) ||
+        lab.address.toLowerCase().includes(filters.city!.toLowerCase())
+      );
+    }
 
     if (filters.openNow) {
       filtered = filtered.filter((lab) => lab.openNow);
@@ -571,7 +618,7 @@ const LabTests = () => {
                   <div
                     className="h-48 bg-cover bg-center w-full"
                     style={{
-                      backgroundImage: `url(${selectedLab.imageUrl || "/placeholder.svg"})`,
+                      backgroundImage: `url(${selectedLab.imageUrl || DEFAULT_LAB_IMAGE})`,
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />

@@ -1,19 +1,22 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Upload, Loader2, X, FlaskConical, MapPin, Phone } from "lucide-react";
-import { labOwnerAPI, LabCreateRequest } from "@/services/api";
+import { ArrowLeft, Upload, Loader2, X, FlaskConical, MapPin, Phone, CheckCircle2 } from "lucide-react";
+import { labOwnerAPI, labsAPI, LabCreateRequest } from "@/services/api";
 import { storageService } from "@/services/storage";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+import { INDIAN_STATES, getCitiesByState } from "@/data/indianLocations";
+import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 
 // --- Validation Schema ---
 const labSchema = z.object({
@@ -33,9 +36,8 @@ const labSchema = z.object({
       .min(5, { message: "Street address must be at least 5 characters" })
       .max(200, { message: "Street address too long" }),
     city: z
-      .string()
-      .min(2, { message: "City name must be at least 2 characters" })
-      .regex(/^[a-zA-Z\s]+$/, { message: "City name must contain only letters" }),
+      .string({ required_error: "Please select a city" })
+      .min(1, { message: "City is required" }),
     state: z.string({ required_error: "Please select a state" }).min(1, { message: "State is required" }),
     zipCode: z
       .string()
@@ -61,23 +63,18 @@ const labSchema = z.object({
 
 type LabFormValues = z.infer<typeof labSchema>;
 
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
-  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
-  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi",
-  "Jammu & Kashmir", "Ladakh", "Puducherry", "Chandigarh"
-];
-
 const AddLab = () => {
   const navigate = useNavigate();
-  const [logoFile, setLogoFile] = React.useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
-  const [labImages, setLabImages] = React.useState<File[]>([]);
-  const [labImagePreviews, setLabImagePreviews] = React.useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
+
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [labImages, setLabImages] = useState<File[]>([]);
+  const [labImagePreviews, setLabImagePreviews] = useState<string[]>([]);
+  const [existingImage, setExistingImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingLab, setIsLoadingLab] = useState(false);
 
   const form = useForm<LabFormValues>({
     resolver: zodResolver(labSchema),
@@ -91,6 +88,53 @@ const AddLab = () => {
       certifications: "",
     },
   });
+
+  const selectedState = form.watch("address.state");
+  const availableCities = selectedState ? getCitiesByState(selectedState) : [];
+
+  // Load existing lab data if editing
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchLabDetails = async () => {
+      try {
+        setIsLoadingLab(true);
+        const lab = await labsAPI.getLabById(id);
+        if (lab) {
+          form.reset({
+            name: lab.name || "",
+            type: lab.type || "Diagnostic",
+            description: lab.description || "",
+            address: {
+              street: lab.address_street || lab.address?.street || "",
+              city: lab.address_city || lab.address?.city || "",
+              state: lab.address_state || lab.address?.state || "",
+              zipCode: lab.address_zip || lab.address?.zipCode || "",
+            },
+            contactInfo: {
+              phone: lab.phone || lab.contact?.phone || "",
+              email: lab.email || lab.contact?.email || "",
+              website: lab.website || lab.contact?.website || "",
+            },
+            certifications: Array.isArray(lab.certifications)
+              ? lab.certifications.join(", ")
+              : (Array.isArray(lab.facilities) ? lab.facilities.join(", ") : ""),
+          });
+
+          if (lab.image_url) {
+            setExistingImage(lab.image_url);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load lab details:", error);
+        toast.error("Failed to load existing lab details");
+      } finally {
+        setIsLoadingLab(false);
+      }
+    };
+
+    fetchLabDetails();
+  }, [id, form]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -157,46 +201,74 @@ const AddLab = () => {
       }
 
       const primaryImage =
-        labImageUrls.length > 0 ? labImageUrls[0] : logoUrl || "/placeholder.svg";
+        labImageUrls.length > 0
+          ? labImageUrls[0]
+          : logoUrl || existingImage || DEFAULT_LAB_IMAGE;
 
-      const payload: LabCreateRequest = {
-        name: data.name,
-        type: data.type,
-        description: data.description,
-        establishedDate: "",
-        registrationNumber: "",
-        address: {
-          street: data.address.street,
-          city: data.address.city,
-          state: data.address.state,
-          zipCode: data.address.zipCode,
-          country: "India",
-          landmark: "",
-        },
-        contact: {
-          email: data.contactInfo.email,
-          phone: data.contactInfo.phone,
-          website: data.contactInfo.website || "",
-          emergencyContact: "",
-        },
-        facilities: [],
-        certifications: data.certifications ? [data.certifications] : [],
-        workingHours: {
-          weekdays: "09:00 - 18:00",
-          weekends: "10:00 - 14:00",
-          holidays: "Closed",
-        },
-        staff: { pathologists: 0, technicians: 0, receptionists: 0 },
-        services: [],
-        image_url: primaryImage,
-      };
+      if (isEditMode && id) {
+        await labOwnerAPI.updateLab(id, {
+          name: data.name,
+          type: data.type,
+          description: data.description,
+          address: {
+            street: data.address.street,
+            city: data.address.city,
+            state: data.address.state,
+            zipCode: data.address.zipCode,
+          },
+          contact: {
+            email: data.contactInfo.email,
+            phone: data.contactInfo.phone,
+            website: data.contactInfo.website || "",
+          },
+          certifications: data.certifications
+            ? data.certifications.split(",").map((c: string) => c.trim()).filter(Boolean)
+            : [],
+          image_url: primaryImage,
+        });
 
-      await labOwnerAPI.addLab(payload);
-      toast.success("Lab registered successfully!");
-      navigate("/lab-dashboard");
+        toast.success("Lab details updated successfully!");
+        navigate(`/lab-owner/lab/${id}`);
+      } else {
+        const payload: LabCreateRequest = {
+          name: data.name,
+          type: data.type,
+          description: data.description,
+          establishedDate: "",
+          registrationNumber: "",
+          address: {
+            street: data.address.street,
+            city: data.address.city,
+            state: data.address.state,
+            zipCode: data.address.zipCode,
+            country: "India",
+            landmark: "",
+          },
+          contact: {
+            email: data.contactInfo.email,
+            phone: data.contactInfo.phone,
+            website: data.contactInfo.website || "",
+            emergencyContact: "",
+          },
+          facilities: [],
+          certifications: data.certifications ? [data.certifications] : [],
+          workingHours: {
+            weekdays: "09:00 - 18:00",
+            weekends: "10:00 - 14:00",
+            holidays: "Closed",
+          },
+          staff: { pathologists: 0, technicians: 0, receptionists: 0 },
+          services: [],
+          image_url: primaryImage,
+        };
+
+        await labOwnerAPI.addLab(payload);
+        toast.success("Lab registered successfully!");
+        navigate("/lab-dashboard");
+      }
     } catch (error) {
-      console.error("Failed to add lab:", error);
-      toast.error("Failed to register lab. Please check your details and try again.");
+      console.error("Failed to save lab:", error);
+      toast.error(isEditMode ? "Failed to update lab details." : "Failed to register lab.");
     } finally {
       setIsSubmitting(false);
     }
@@ -214,6 +286,17 @@ const AddLab = () => {
     </div>
   );
 
+  if (isLoadingLab) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center">
+          <div className="h-12 w-12 border-t-2 border-primary rounded-full animate-spin"></div>
+          <p className="mt-4 text-slate-600 font-medium">Loading lab details...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/50 relative overflow-hidden pt-20">
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -229,22 +312,28 @@ const AddLab = () => {
             <Button
               variant="ghost"
               className="mb-4 -ml-4 hover:bg-transparent text-slate-500 hover:text-primary transition-colors group"
-              onClick={() => navigate("/lab-dashboard")}
+              onClick={() => isEditMode ? navigate(`/lab-owner/lab/${id}`) : navigate("/lab-dashboard")}
             >
               <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              Back to Dashboard
+              {isEditMode ? "Back to Lab Details" : "Back to Dashboard"}
             </Button>
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Register Your Laboratory</h1>
-            <p className="text-slate-500 mt-2 text-lg">Fields marked with <span className="text-red-500">*</span> are required.</p>
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
+              {isEditMode ? "Edit Laboratory Details" : "Register Your Laboratory"}
+            </h1>
+            <p className="text-slate-500 mt-2 text-lg">
+              {isEditMode
+                ? "Update your facility information, location, and contact parameters."
+                : "Fields marked with * are required."}
+            </p>
           </div>
           <div className="hidden md:block">
             <div className="bg-white p-6 rounded-3xl shadow-xl shadow-primary/5 border border-slate-100 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <Upload size={24} />
+                {isEditMode ? <CheckCircle2 size={24} /> : <Upload size={24} />}
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-900">Quick Setup</p>
-                <p className="text-xs text-slate-500">Takes less than 2 minutes</p>
+                <p className="text-sm font-bold text-slate-900">{isEditMode ? "Active Facility" : "Quick Setup"}</p>
+                <p className="text-xs text-slate-500">{isEditMode ? "Ready to update" : "Takes less than 2 minutes"}</p>
               </div>
             </div>
           </div>
@@ -464,29 +553,6 @@ const AddLab = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <FormField
                           control={form.control}
-                          name="address.city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-slate-700 font-semibold">
-                                City <span className="text-red-500">*</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
-                                  placeholder="Mumbai"
-                                  {...field}
-                                  onChange={(e) => {
-                                    const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
-                                    field.onChange(val);
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
                           name="address.state"
                           render={({ field }) => (
                             <FormItem>
@@ -494,13 +560,47 @@ const AddLab = () => {
                                 State <span className="text-red-500">*</span>
                               </FormLabel>
                               <FormControl>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select
+                                  onValueChange={(val) => {
+                                    field.onChange(val);
+                                    form.setValue("address.city", "", { shouldValidate: true });
+                                  }}
+                                  value={field.value}
+                                >
                                   <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50/50">
                                     <SelectValue placeholder="Select state" />
                                   </SelectTrigger>
                                   <SelectContent className="rounded-xl border-slate-200 max-h-64 overflow-y-auto">
                                     {INDIAN_STATES.map((state) => (
                                       <SelectItem key={state} value={state}>{state}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="address.city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-slate-700 font-semibold">
+                                City <span className="text-red-500">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  disabled={!selectedState}
+                                >
+                                  <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50/50">
+                                    <SelectValue placeholder={selectedState ? "Select city" : "Select state first"} />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-xl border-slate-200 max-h-64 overflow-y-auto">
+                                    {availableCities.map((city) => (
+                                      <SelectItem key={city} value={city}>{city}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -582,10 +682,10 @@ const AddLab = () => {
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Registering...
+                            {isEditMode ? "Saving Changes..." : "Registering..."}
                           </>
                         ) : (
-                          "Register Laboratory"
+                          isEditMode ? "Save Changes" : "Register Laboratory"
                         )}
                       </Button>
                     </div>
@@ -601,6 +701,14 @@ const AddLab = () => {
               <CardContent className="p-6">
                 <h4 className="font-bold text-slate-800 mb-4">Lab Photos <span className="text-slate-400 font-normal text-xs">(max 5)</span></h4>
                 <div className="grid grid-cols-1 gap-4">
+                  {existingImage && labImagePreviews.length === 0 && (
+                    <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 group">
+                      <img src={existingImage} alt="Current Lab Photo" className="w-full h-full object-cover" />
+                      <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        Current Photo
+                      </div>
+                    </div>
+                  )}
                   {labImagePreviews.map((preview, index) => (
                     <div key={index} className="relative aspect-video rounded-xl overflow-hidden group">
                       <img src={preview} alt={`Lab ${index}`} className="w-full h-full object-cover" />

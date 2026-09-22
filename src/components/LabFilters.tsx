@@ -16,6 +16,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { INDIAN_STATES, getCitiesByState } from "@/data/indianLocations";
 
 export interface LabFiltersProps {
   onSortChange: (sortOption: string) => void;
@@ -33,12 +35,16 @@ export interface LabFiltersState {
   maxDistance: number;
   openNow: boolean;
   facilities: Record<string, boolean>;
+  state?: string;
+  city?: string;
 }
 
 const defaultFilters: LabFiltersState = {
   rating: 0,
   maxDistance: 10,
   openNow: false,
+  state: "",
+  city: "",
   facilities: {
     "Home Collection": false,
     "Digital Reports": false,
@@ -62,6 +68,7 @@ const LabFilters = ({
   const [filters, setFilters] = useState<LabFiltersState>(initialFilters || defaultFilters);
   const [sortOption, setSortOption] = useState(initialSortOption);
   const [expandedSections, setExpandedSections] = useState({
+    location: true,
     sort: true,
     rating: true,
     distance: true,
@@ -90,6 +97,22 @@ const LabFilters = ({
     onFilterChange(updatedFilters);
   };
 
+  const handleStateChange = (state: string) => {
+    const nextState = state === "ALL" ? "" : state;
+    const updatedFilters = {
+      ...filters,
+      state: nextState,
+      city: "", // Reset city when state changes
+    };
+    setFilters(updatedFilters);
+    onFilterChange(updatedFilters);
+  };
+
+  const handleCityChange = (city: string) => {
+    const nextCity = city === "ALL" ? "" : city;
+    handleFilterChange({ city: nextCity });
+  };
+
   const handleFacilityChange = (facility: string, checked: boolean) => {
     handleFilterChange({
       facilities: {
@@ -106,10 +129,14 @@ const LabFilters = ({
     });
   };
 
+  const availableCities = filters.state ? getCitiesByState(filters.state) : [];
+
   const activeFiltersCount = 
     (filters.rating > 0 ? 1 : 0) + 
     (filters.maxDistance < 10 ? 1 : 0) + 
     (filters.openNow ? 1 : 0) + 
+    (filters.state ? 1 : 0) + 
+    (filters.city ? 1 : 0) + 
     Object.values(filters.facilities).filter(Boolean).length;
 
   const showResetButton = activeFiltersCount > 0 || isExternalFilterActive;
@@ -135,10 +162,12 @@ const LabFilters = ({
                size="sm" 
                className="h-8 px-2 text-xs hover:bg-destructive/10 hover:text-destructive transition-colors rounded-lg"
                onClick={() => {
-                 const resetFilters = {
+                 const resetFilters: LabFiltersState = {
                    rating: 0,
                    maxDistance: 10,
                    openNow: false,
+                   state: "",
+                   city: "",
                    facilities: Object.keys(filters.facilities).reduce(
                      (acc, facility) => ({ ...acc, [facility]: false }),
                      {} as Record<string, boolean>
@@ -158,6 +187,64 @@ const LabFilters = ({
       )}
 
       <div className="space-y-5">
+        {/* Location Filter */}
+        <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
+          <Collapsible open={expandedSections.location}>
+            <CollapsibleTrigger asChild onClick={() => toggleSection("location")}>
+              <div className="flex items-center justify-between p-4 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-sm">Location</span>
+                  {(filters.state || filters.city) && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px] bg-primary/10 text-primary border-primary/20">
+                      {filters.city || filters.state}
+                    </Badge>
+                  )}
+                </div>
+                {expandedSections.location ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">State</label>
+                <Select value={filters.state || "ALL"} onValueChange={handleStateChange}>
+                  <SelectTrigger className="w-full h-10 rounded-xl border-border/50 text-xs bg-background/50">
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 overflow-y-auto rounded-xl">
+                    <SelectItem value="ALL">All States</SelectItem>
+                    {INDIAN_STATES.map((state) => (
+                      <SelectItem key={state} value={state} className="text-xs">
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">City</label>
+                <Select
+                  value={filters.city || "ALL"}
+                  onValueChange={handleCityChange}
+                  disabled={!filters.state}
+                >
+                  <SelectTrigger className="w-full h-10 rounded-xl border-border/50 text-xs bg-background/50">
+                    <SelectValue placeholder={filters.state ? "All Cities in State" : "Select state first"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 overflow-y-auto rounded-xl">
+                    <SelectItem value="ALL">All Cities</SelectItem>
+                    {availableCities.map((city) => (
+                      <SelectItem key={city} value={city} className="text-xs">
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
         {/* Sort Options */}
         <div className="bg-card/40 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm overflow-hidden group hover:bg-card/60 transition-colors">
         <Collapsible open={expandedSections.sort} className="">
