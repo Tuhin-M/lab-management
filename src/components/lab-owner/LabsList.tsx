@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, ExternalLink, Pencil, MapPin, FlaskConical, Star, ShieldCheck, Building2 } from "lucide-react";
+import { Trash2, ExternalLink, Pencil, MapPin, FlaskConical, Star, ShieldCheck, Building2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { DEFAULT_LAB_IMAGE } from "@/constants/images";
+import ExcelUploadModal from "@/components/lab-owner/ExcelUploadModal";
 
 interface Lab {
   id: string;
@@ -26,10 +27,12 @@ interface Lab {
 interface LabsListProps {
   labs: Lab[];
   onDeleteLab: (id: string) => void;
+  onRefresh?: () => void;
 }
 
-const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
+const LabsList = ({ labs, onDeleteLab, onRefresh }: LabsListProps) => {
   const navigate = useNavigate();
+  const [uploadModalLab, setUploadModalLab] = useState<{ id: string; name: string } | null>(null);
 
   const getLabId = (lab: Lab) => lab.id || lab._id || '';
 
@@ -159,41 +162,66 @@ const LabsList = ({ labs, onDeleteLab }: LabsListProps) => {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex items-center justify-between gap-2 pt-3 mt-auto border-t border-slate-100">
-                  <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col gap-2 pt-3 mt-auto border-t border-slate-100">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 rounded-xl text-xs font-semibold text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all duration-200 h-8 px-2.5 gap-1.5"
+                        onClick={() => navigate(`/lab-owner/lab/${labId}`, { state: { lab } })}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        <span>Details</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200/90 text-slate-800 transition-all duration-200 h-8 px-2.5 gap-1.5"
+                        onClick={() => navigate(`/lab-owner/edit-lab/${labId}`)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 shrink-0" />
+                        <span>Edit</span>
+                      </Button>
+                    </div>
                     <Button
-                      variant="outline"
                       size="sm"
-                      className="flex-1 rounded-xl text-xs font-semibold text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all duration-200 h-8 px-2.5 gap-1.5"
-                      onClick={() => navigate(`/lab-owner/lab/${labId}`, { state: { lab } })}
+                      variant="ghost"
+                      className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                      onClick={() => onDeleteLab(labId)}
+                      title="Delete Lab"
                     >
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                      <span>Details</span>
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200/90 text-slate-800 transition-all duration-200 h-8 px-2.5 gap-1.5"
-                      onClick={() => navigate(`/lab-owner/edit-lab/${labId}`)}
-                    >
-                      <Pencil className="h-3.5 w-3.5 shrink-0" />
-                      <span>Edit</span>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+
                   <Button
+                    variant="outline"
                     size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                    onClick={() => onDeleteLab(labId)}
-                    title="Delete Lab"
+                    className="w-full rounded-xl text-xs font-bold text-teal-700 border-teal-200/80 bg-teal-50/50 hover:bg-teal-100/70 hover:border-teal-300 transition-all duration-200 h-8 gap-1.5 shadow-sm"
+                    onClick={() => setUploadModalLab({ id: labId, name: lab.name })}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-teal-600" />
+                    <span>Upload Excel Price List</span>
                   </Button>
                 </div>
               </div>
             </div>
           );
         })
+      )}
+
+      {/* Excel Upload Modal */}
+      {uploadModalLab && (
+        <ExcelUploadModal
+          isOpen={!!uploadModalLab}
+          onClose={() => setUploadModalLab(null)}
+          labId={uploadModalLab.id}
+          labName={uploadModalLab.name}
+          onSuccess={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
       )}
     </div>
   );

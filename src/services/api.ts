@@ -1043,6 +1043,227 @@ export const labOwnerAPI = {
     return { data };
   },
 
+  bulkUploadTests: async (
+    labId: string,
+    testsToUpload: Array<{
+      name: string;
+      category?: string;
+      sampleType?: string;
+      description?: string;
+      parameters?: any[];
+      rate: number;
+      discountPercent?: number;
+      turnaroundTime?: string;
+      duration?: string;
+    }>,
+    options: {
+      updateExisting?: boolean;
+    } = {},
+    onProgress?: (progress: {
+      phase: 'syncing_catalog' | 'mapping_lab' | 'completed';
+      current: number;
+      total: number;
+      percentage: number;
+      message: string;
+    }) => void
+  ) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Authentication required to upload tests. Please log in as a lab owner.");
+
+    // 1. Fetch all existing global tests
+    const { data: existingTests, error: fetchErr } = await supabase
+      .from('tests')
+      .select('id, name')
+      .range(0, 4999);
+
+    if (fetchErr) throw fetchErr;
+
+    const nameToIdMap = new Map<string, string>();
+    existingTests?.forEach((t: any) => {
+      if (t.name) nameToIdMap.set(t.name.trim().toLowerCase(), t.id);
+    });
+
+    // 2. Identify new tests that need to be created in global catalog
+    const newTestsMap = new Map<string, (typeof testsToUpload)[0]>();
+    for (const test of testsToUpload) {
+      const key = test.name.trim().toLowerCase();
+      if (!nameToIdMap.has(key) && !newTestsMap.has(key)) {
+        newTestsMap.set(key, test);
+      }
+    }
+
+    const newTestsList = Array.from(newTestsMap.values());
+    const CHUNK_SIZE = 40;
+
+    // 3. Batch insert new tests into 'tests' table
+    for (let i = 0; i < newTestsList.length; i += CHUNK_SIZE) {
+      const chunk = newTestsList.slice(i, i + CHUNK_SIZE);
+      const insertRecords = chunk.map((t) => ({
+        name: t.name.trim(),
+        category: t.category || 'Biochemistry',
+        sample_type: t.sampleType || 'Blood',
+        description: t.description || `Diagnostic laboratory test for ${t.name.trim()}.`,
+        parameters: t.parameters || [{ name: t.name.trim() }],
+        market_price: t.rate,
+      }));
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from('tests')
+        .insert(insertRecords)
+        .select('id, name');
+
+      if (insertErr) {
+        // Fallback to single inserts if chunk fails
+        for (const singleRec of insertRecords) {
+          try {
+            const { data: sData } = await supabase
+              .from('tests')
+              .insert(singleRec)
+              .select('id, name')
+              .single();
+            if (sData) nameToIdMap.set(sData.name.trim().toLowerCase(), sData.id);
+          } catch (e) {
+            console.warn('Failed to insert test:', singleRec.name, e);
+          }
+        }
+      } else if (inserted) {
+        inserted.forEach((t: any) => {
+          nameToIdMap.set(t.name.trim().toLowerCase(), t.id);
+        });
+      }
+
+      const currentCount = Math.min(i + CHUNK_SIZE, newTestsList.length);
+      const pct = Math.round((currentCount / (newTestsList.length || 1)) * 50);
+      onProgress?.({
+        phase: 'syncing_catalog',
+        current: currentCount,
+        total: newTestsList.length,
+        percentage: pct,
+        message: `Cataloging test definitions (${currentCount}/${newTestsList.length})...`,
+      });
+    }
+
+    // 4. Fetch existing tests in this lab
+    const { data: existingLabTests, error: labFetchErr } = await supabase
+      .from('lab_tests')
+      .select('id, test_id, price')
+      .eq('lab_id', labId)
+      .range(0, 4999);
+
+    if (labFetchErr) throw labFetchErr;
+
+    const existingLabTestMap = new Map<string, any>();
+    existingLabTests?.forEach((lt: any) => {
+      existingLabTestMap.set(lt.test_id, lt);
+    });
+
+    const labTestsToInsert: any[] = [];
+    const labTestsToUpdate: any[] = [];
+
+    // Deduplicate by testId inside the current upload batch so we don't insert duplicate (lab_id, test_id)
+    const processedLabTestIds = new Set<string>();
+
+    for (const test of testsToUpload) {
+      const key = test.name.trim().toLowerCase();
+      const testId = nameToIdMap.get(key);
+      if (!testId || processedLabTestIds.has(testId)) continue;
+      processedLabTestIds.add(testId);
+
+      const discount = test.discountPercent || 0;
+      const discountedPrice = discount > 0 ? Math.round(test.rate * (1 - discount / 100)) : test.rate;
+
+      if (existingLabTestMap.has(testId)) {
+        if (options.updateExisting !== false) {
+          const existing = existingLabTestMap.get(testId);
+          labTestsToUpdate.push({
+            id: existing.id,
+            price: test.rate,
+            discounted_price: discountedPrice,
+            turnaround_time: test.turnaroundTime || '24 hours',
+            duration: test.duration || '15 mins',
+          });
+        }
+      } else {
+        labTestsToInsert.push({
+          lab_id: labId,
+          test_id: testId,
+          price: test.rate,
+          discounted_price: discountedPrice,
+          turnaround_time: test.turnaroundTime || '24 hours',
+          duration: test.duration || '15 mins',
+        });
+      }
+    }
+
+    // 5. Batch insert into 'lab_tests'
+    let insertedCount = 0;
+    for (let i = 0; i < labTestsToInsert.length; i += CHUNK_SIZE) {
+      const chunk = labTestsToInsert.slice(i, i + CHUNK_SIZE);
+      const { error: ltInsertErr } = await supabase
+        .from('lab_tests')
+        .insert(chunk);
+
+      if (ltInsertErr) {
+        for (const singleRec of chunk) {
+          try {
+            await supabase.from('lab_tests').insert(singleRec);
+            insertedCount++;
+          } catch (e) {
+            console.warn('Failed to link test to lab:', singleRec, e);
+          }
+        }
+      } else {
+        insertedCount += chunk.length;
+      }
+
+      const currentCount = Math.min(i + CHUNK_SIZE, labTestsToInsert.length);
+      const pct = 50 + Math.round((currentCount / (labTestsToInsert.length || 1)) * 45);
+      onProgress?.({
+        phase: 'mapping_lab',
+        current: currentCount,
+        total: labTestsToInsert.length,
+        percentage: pct,
+        message: `Activating tests in laboratory menu (${currentCount}/${labTestsToInsert.length})...`,
+      });
+    }
+
+    // 6. Update existing if any
+    let updatedCount = 0;
+    for (const updateItem of labTestsToUpdate) {
+      try {
+        await supabase
+          .from('lab_tests')
+          .update({
+            price: updateItem.price,
+            discounted_price: updateItem.discounted_price,
+            turnaround_time: updateItem.turnaround_time,
+            duration: updateItem.duration,
+          })
+          .eq('id', updateItem.id);
+        updatedCount++;
+      } catch (e) {
+        console.warn('Failed to update lab test:', updateItem, e);
+      }
+    }
+
+    onProgress?.({
+      phase: 'completed',
+      current: testsToUpload.length,
+      total: testsToUpload.length,
+      percentage: 100,
+      message: `Completed successfully! Added ${insertedCount} tests, updated ${updatedCount} tests.`,
+    });
+
+    return {
+      success: true,
+      totalProcessed: testsToUpload.length,
+      addedToCatalog: newTestsList.length,
+      addedToLab: insertedCount,
+      updatedInLab: updatedCount,
+      errors: [],
+    };
+  },
+
   addLab: async (labData: LabCreateRequest): Promise<LabCreateResponse> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");

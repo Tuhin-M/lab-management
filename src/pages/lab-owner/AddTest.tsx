@@ -25,8 +25,9 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { Info, Trash2, ArrowLeft, FlaskConical, Plus } from "lucide-react";
+import { Info, Trash2, ArrowLeft, FlaskConical, Plus, FileSpreadsheet } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
+import ExcelUploadModal from "@/components/lab-owner/ExcelUploadModal";
 
 // --- Validation Schema ---
 const testSchema = z.object({
@@ -102,6 +103,7 @@ const CATEGORIES = [
 const AddTest = () => {
   const navigate = useNavigate();
   const { labId } = useParams<{ labId: string }>();
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const form = useForm<TestFormValues>({
     resolver: zodResolver(testSchema),
@@ -178,6 +180,28 @@ const AddTest = () => {
                   Fields marked <span className="text-red-500">*</span> are required.
                 </p>
               </div>
+            </div>
+
+            {/* Quick Bulk Import Callout */}
+            <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Have a price list spreadsheet?</h4>
+                  <p className="text-xs text-slate-600">
+                    Bulk import hundreds of tests instantly from Excel (supports IQDx format).
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                onClick={() => setShowUploadModal(true)}
+                className="shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs h-9 px-4 shadow-sm"
+              >
+                Upload Excel Sheet
+              </Button>
             </div>
           </CardHeader>
 
@@ -501,6 +525,19 @@ const AddTest = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Excel Price List Upload Modal */}
+      <ExcelUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        labId={labId || ""}
+        labName="Your Laboratory"
+        onSuccess={() => {
+          if (labId) {
+            navigate(`/lab-owner/lab/${labId}/tests`);
+          }
+        }}
+      />
     </div>
   );
 };

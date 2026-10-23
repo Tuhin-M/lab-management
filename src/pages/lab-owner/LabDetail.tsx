@@ -1,13 +1,36 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, MapPin, Phone, Mail, Globe, Shield, Calendar, Pencil, FlaskConical, Clock, Droplet, Plus, Trash2, Timer, Edit2 } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Shield,
+  Calendar,
+  Pencil,
+  FlaskConical,
+  Clock,
+  Droplet,
+  Plus,
+  Trash2,
+  Timer,
+  Edit2,
+  FileSpreadsheet,
+  Search,
+  LayoutGrid,
+  List,
+  CheckCircle2
+} from "lucide-react";
 import { labOwnerAPI, labsAPI } from "@/services/api";
 import { toast } from "sonner";
 import AppointmentsList from "@/components/lab-owner/AppointmentsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { DEFAULT_LAB_IMAGE } from "@/constants/images";
+import ExcelUploadModal from "@/components/lab-owner/ExcelUploadModal";
 
 const LabDetail = () => {
   const navigate = useNavigate();
@@ -17,7 +40,68 @@ const LabDetail = () => {
   const [lab, setLab] = useState<any>(null);
   const [appointments, setAppointments] = useState([]);
   const [tests, setTests] = useState<any[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const hideNavbar = location.state?.fromDashboard;
+
+  // Search, filter & view state for tests
+  const [testSearchQuery, setTestSearchQuery] = useState("");
+  const [testCategoryFilter, setTestCategoryFilter] = useState("ALL");
+  const [testViewMode, setTestViewMode] = useState<"grid" | "table">("grid");
+
+  // Pagination
+  const TESTS_PER_PAGE = 10;
+  const [testPage, setTestPage] = useState(1);
+
+  // Determine active tab from URL path
+  const initialTab = location.pathname.endsWith('/tests') ? 'tests' : 'appointments';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Formatting helpers
+  const formatTurnaround = (val?: string) => {
+    if (!val || val.trim() === '') return '';
+    const trimmed = val.trim();
+    if (/^\d+$/.test(trimmed)) return `${trimmed} hrs`;
+    return trimmed;
+  };
+
+  const formatDuration = (val?: string) => {
+    if (!val || val.trim() === '') return '';
+    const trimmed = val.trim();
+    if (/^\d+$/.test(trimmed)) return `${trimmed} mins`;
+    return trimmed;
+  };
+
+  // Distinct categories available in current lab
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    tests.forEach((t) => {
+      if (t.category) cats.add(t.category);
+    });
+    return Array.from(cats).sort();
+  }, [tests]);
+
+  // Filtered tests based on search and category
+  const filteredLabTests = useMemo(() => {
+    return tests.filter((t) => {
+      const matchesSearch =
+        !testSearchQuery ||
+        t.name.toLowerCase().includes(testSearchQuery.toLowerCase()) ||
+        (t.category && t.category.toLowerCase().includes(testSearchQuery.toLowerCase())) ||
+        (t.sample_type && t.sample_type.toLowerCase().includes(testSearchQuery.toLowerCase()));
+
+      const matchesCategory =
+        testCategoryFilter === "ALL" || t.category === testCategoryFilter;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [tests, testSearchQuery, testCategoryFilter]);
+
+  // Reset to page 1 when search/filter changes
+  const totalTestPages = Math.ceil(filteredLabTests.length / TESTS_PER_PAGE);
+  const paginatedTests = filteredLabTests.slice(
+    (testPage - 1) * TESTS_PER_PAGE,
+    testPage * TESTS_PER_PAGE
+  );
 
   useEffect(() => {
     // Check if we should hide the navbar
@@ -178,10 +262,11 @@ const LabDetail = () => {
             </div>
           )}
 
-          <div className="grid gap-8 lg:grid-cols-3 items-start">
+          <div className={`grid gap-8 items-start ${activeTab === 'tests' ? 'lg:grid-cols-[280px_1fr]' : 'lg:grid-cols-3'}`}>
             {/* Left Column: Lab Info Card */}
             <div className="lg:col-span-1">
               <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
+                {activeTab !== 'tests' && (
                 <div className="aspect-video overflow-hidden relative group">
                   <img
                     src={lab.image || (Array.isArray(lab.images) && lab.images[0]) || DEFAULT_LAB_IMAGE}
@@ -202,6 +287,7 @@ const LabDetail = () => {
                     />
                   </div>
                 </div>
+                )}
 
                 <CardHeader className="pt-6 pb-2 px-6">
                   <div className="flex items-center justify-between mb-2">
@@ -228,7 +314,7 @@ const LabDetail = () => {
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Location</p>
                         <p className="text-sm font-medium text-slate-700">
-                          {lab.address.street}, {lab.address.city}, {lab.address.state}
+                          {[lab.address?.street, lab.address?.city, lab.address?.state].filter(Boolean).join(', ') || 'Location details pending'}
                         </p>
                       </div>
                     </div>
@@ -307,8 +393,8 @@ const LabDetail = () => {
             </div>
 
             {/* Right Column: Dynamic Content Tabs */}
-            <div className="lg:col-span-2">
-              <Tabs defaultValue="appointments" className="w-full">
+            <div className={activeTab !== 'tests' ? 'lg:col-span-2' : ''}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="bg-white/50 backdrop-blur p-1 rounded-2xl border border-slate-200 mb-6 h-auto">
                   <TabsTrigger value="appointments" className="rounded-xl py-3 px-6 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:shadow-slate-200/50 font-bold text-sm">
                     Appointments
@@ -347,143 +433,387 @@ const LabDetail = () => {
                 </TabsContent>
 
                 <TabsContent value="tests" className="mt-0 focus-visible:outline-none">
-                  <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white">
-                    <CardHeader className="px-8 pt-8 pb-6 border-b border-slate-100">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <Card className="border border-slate-200/90 shadow-2xl shadow-slate-200/60 rounded-[2.5rem] overflow-hidden bg-white">
+                    <CardHeader className="px-8 pt-8 pb-6 border-b border-slate-200 bg-slate-50/80">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-3">
-                            <h3 className="text-xl font-bold text-slate-900">Available Tests</h3>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200/60">
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Available Tests</h3>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-300">
                               {tests.length} {tests.length === 1 ? 'test' : 'tests'} active
                             </span>
                           </div>
-                          <p className="text-sm text-slate-500 mt-1">Configure and manage your laboratory's service offerings and pricing.</p>
+                          <p className="text-sm font-medium text-slate-600 mt-1">
+                            Configure and manage your laboratory's diagnostic catalog, test pricing, and turnarounds.
+                          </p>
                         </div>
-                        <Button
-                          className="rounded-xl font-bold px-6 shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-[1.02] transition-transform"
-                          onClick={() => navigate(`/lab-owner/${id}/add-test`)}
-                        >
-                          <Plus className="w-4 h-4" /> Add New Test
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            variant="outline"
+                            className="rounded-xl font-bold px-4 h-11 border-teal-300 text-teal-800 bg-teal-50 hover:bg-teal-100 flex items-center gap-2 shadow-sm transition-all"
+                            onClick={() => setShowUploadModal(true)}
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-teal-700" />
+                            <span>Upload Excel Price List</span>
+                          </Button>
+                          <Button
+                            className="rounded-xl font-bold px-5 h-11 shadow-lg shadow-teal-600/20 flex items-center gap-2 hover:scale-[1.02] transition-transform bg-teal-600 hover:bg-teal-700 text-white"
+                            onClick={() => navigate(`/lab-owner/${id}/add-test`)}
+                          >
+                            <Plus className="w-4 h-4" /> Add New Test
+                          </Button>
+                        </div>
                       </div>
+
+                      {/* Search & Filter Toolbar */}
+                      {tests.length > 0 && (
+                        <div className="mt-6 pt-5 border-t border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                          <div className="flex flex-1 flex-wrap items-center gap-3">
+                            <div className="relative flex-1 min-w-[240px] max-w-md">
+                              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <Input
+                                placeholder="Search test name, code, or specimen..."
+                                value={testSearchQuery}
+                                onChange={(e) => { setTestSearchQuery(e.target.value); setTestPage(1); }}
+                                className="pl-10 h-10 rounded-xl bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 font-medium focus-visible:ring-teal-500 text-sm shadow-sm"
+                              />
+                            </div>
+
+                            {availableCategories.length > 1 && (
+                              <select
+                                value={testCategoryFilter}
+                                onChange={(e) => { setTestCategoryFilter(e.target.value); setTestPage(1); }}
+                                className="h-10 rounded-xl border border-slate-300 bg-white px-3.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              >
+                                <option value="ALL">All Departments ({tests.length})</option>
+                                {availableCategories.map((cat) => (
+                                  <option key={cat} value={cat}>
+                                    {cat}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2.5 self-end sm:self-center">
+                            <span className="text-xs font-bold text-slate-500">
+                              {filteredLabTests.length === 0 ? '0' : `${(testPage - 1) * TESTS_PER_PAGE + 1}–${Math.min(testPage * TESTS_PER_PAGE, filteredLabTests.length)}`} of {filteredLabTests.length}
+                            </span>
+                            <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                              <button
+                                onClick={() => setTestViewMode('grid')}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  testViewMode === 'grid'
+                                    ? 'bg-teal-50 text-teal-700 font-bold'
+                                    : 'text-slate-400 hover:text-slate-700'
+                                }`}
+                                title="Grid View"
+                              >
+                                <LayoutGrid className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setTestViewMode('table')}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  testViewMode === 'table'
+                                    ? 'bg-teal-50 text-teal-700 font-bold'
+                                    : 'text-slate-400 hover:text-slate-700'
+                                }`}
+                                title="Table View"
+                              >
+                                <List className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardHeader>
+
                     <CardContent className="p-8">
-                      {tests.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {tests.map((test) => {
+                      {tests.length === 0 ? (
+                        <div className="text-center py-20 bg-slate-50/70 rounded-[2rem] border-2 border-dashed border-slate-200">
+                          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md mx-auto mb-6 text-teal-600">
+                            <FlaskConical size={36} />
+                          </div>
+                          <h4 className="text-xl font-extrabold text-slate-900 mb-2">No active tests added yet</h4>
+                          <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto mb-6">
+                            Publish test offerings, pricing, and turnaround times so patients can find and book tests at your laboratory.
+                          </p>
+                          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <Button
+                              className="rounded-xl font-bold px-7 h-11 bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20 gap-2"
+                              onClick={() => setShowUploadModal(true)}
+                            >
+                              <FileSpreadsheet className="w-4 h-4" /> Upload Excel Price List (IQDx)
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="rounded-xl font-bold px-6 h-11 border-slate-300 text-slate-700 hover:bg-slate-50"
+                              onClick={() => navigate(`/lab-owner/${id}/add-test`)}
+                            >
+                              <Plus className="w-4 h-4 mr-2" /> Add Single Test
+                            </Button>
+                          </div>
+                        </div>
+                      ) : filteredLabTests.length === 0 ? (
+                        <div className="text-center py-16 bg-slate-50 rounded-2xl border border-slate-200">
+                          <Search className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                          <h4 className="text-base font-bold text-slate-800">No matching tests found</h4>
+                          <p className="text-xs text-slate-500 mt-1 mb-4">
+                            Try adjusting your search query or department filter.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTestSearchQuery('');
+                              setTestCategoryFilter('ALL');
+                            }}
+                            className="rounded-xl text-xs font-bold"
+                          >
+                            Reset Filters
+                          </Button>
+                        </div>
+                      ) : testViewMode === 'table' ? (
+                        /* Table View */
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-slate-700 font-extrabold uppercase text-xs tracking-wider border-b border-slate-200">
+                              <tr>
+                                <th className="py-3.5 px-4">Test Name</th>
+                                <th className="py-3.5 px-4">Department</th>
+                                <th className="py-3.5 px-4">Specimen</th>
+                                <th className="py-3.5 px-4">Turnaround</th>
+                                <th className="py-3.5 px-4 text-right">Price</th>
+                                <th className="py-3.5 px-4 text-center">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {paginatedTests.map((test) => {
+                                const testId = test.labTestId || test.id;
+                                const hasDiscount = test.discountPrice && Number(test.discountPrice) < Number(test.price);
+                                const finalPrice = hasDiscount ? Number(test.discountPrice) : Number(test.price);
+                                const discountPercent = hasDiscount
+                                  ? Math.round(((Number(test.price) - Number(test.discountPrice)) / Number(test.price)) * 100)
+                                  : 0;
+
+                                const formattedTAT = formatTurnaround(test.turnaround_time);
+
+                                return (
+                                  <tr key={testId} className="hover:bg-teal-50/30 transition-colors">
+                                    <td className="py-3.5 px-4">
+                                      <p className="font-extrabold text-slate-900 text-sm">{test.name}</p>
+                                      {test.description && (
+                                        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{test.description}</p>
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 px-4">
+                                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                        {test.category || 'Diagnostic'}
+                                      </span>
+                                    </td>
+                                    <td className="py-3.5 px-4">
+                                      {test.sample_type ? (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                                          <Droplet className="w-3.5 h-3.5 text-blue-600" />
+                                          {test.sample_type}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 text-xs">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 px-4">
+                                      {formattedTAT ? (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                                          <Clock className="w-3 h-3 text-teal-600" />
+                                          {formattedTAT}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 text-xs">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right">
+                                      <span className="font-black text-slate-900 text-base">₹{finalPrice.toLocaleString()}</span>
+                                      {hasDiscount && (
+                                        <span className="block text-xs font-semibold text-slate-400 line-through">
+                                          ₹{Number(test.price).toLocaleString()}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-center">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <button
+                                          onClick={() => navigate(`/lab-owner/${id}/edit-test/${testId}`)}
+                                          className="p-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-teal-50 hover:text-teal-700 border border-slate-200 transition-colors"
+                                          title="Edit test"
+                                        >
+                                          <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTest(testId, test.name)}
+                                          className="p-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 transition-colors"
+                                          title="Delete test"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        /* Grid View - Clear, Spacious Cards (single column for readability) */
+                        <div className="space-y-4">
+                          {paginatedTests.map((test) => {
                             const testId = test.labTestId || test.id;
                             const hasDiscount = test.discountPrice && Number(test.discountPrice) < Number(test.price);
-                            const finalPrice = hasDiscount ? test.discountPrice : test.price;
-                            const discountPercent = hasDiscount ? Math.round(((test.price - test.discountPrice) / test.price) * 100) : 0;
+                            const finalPrice = hasDiscount ? Number(test.discountPrice) : Number(test.price);
+                            const discountPercent = hasDiscount
+                              ? Math.round(((Number(test.price) - Number(test.discountPrice)) / Number(test.price)) * 100)
+                              : 0;
+
+                            const formattedTAT = formatTurnaround(test.turnaround_time);
+                            const formattedDuration = formatDuration(test.duration);
 
                             return (
                               <div
                                 key={testId}
-                                className="group relative flex flex-col justify-between p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-teal-500/40 hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300"
+                                className="group flex items-start gap-5 p-5 rounded-2xl border border-slate-200 bg-white hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/10 transition-all duration-200"
                               >
-                                <div>
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3 min-w-0">
-                                      <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200 border border-teal-100/60">
-                                        <FlaskConical className="w-5 h-5" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors text-base truncate">
-                                          {test.name}
-                                        </h4>
-                                        <span className="inline-block text-xs font-medium text-slate-500">
-                                          {test.category || "Diagnostic Test"}
-                                        </span>
-                                      </div>
-                                    </div>
+                                {/* Flask Icon */}
+                                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-200/80 shadow-sm group-hover:scale-105 transition-transform mt-0.5">
+                                  <FlaskConical className="w-5 h-5" />
+                                </div>
 
-                                    {/* Action buttons */}
-                                    <div className="flex items-center gap-1.5">
-                                      <button
-                                        onClick={() => navigate(`/lab-owner/${id}/edit-test/${testId}`)}
-                                        className="text-slate-300 hover:text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-colors shrink-0"
-                                        title="Edit test details"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteTest(testId, test.name)}
-                                        className="text-slate-300 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors shrink-0"
-                                        title="Remove test from lab"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
+                                {/* Main Content */}
+                                <div className="flex-1 min-w-0">
+                                  {/* Name + Dept badge */}
+                                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    <h4 className="text-base font-extrabold text-slate-900 leading-tight">
+                                      {test.name}
+                                    </h4>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                                      {test.category || "Diagnostic"}
+                                    </span>
                                   </div>
 
+                                  {/* Description */}
                                   {test.description && test.description.trim() !== "" && (
-                                    <p className="text-xs text-slate-500 line-clamp-2 mt-2.5 pl-0.5">
+                                    <p className="text-sm text-slate-500 leading-relaxed mb-2">
                                       {test.description}
                                     </p>
                                   )}
 
-                                  {/* Badges: only render when string exists and is non-empty */}
-                                  <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                                  {/* Meta badges */}
+                                  <div className="flex flex-wrap items-center gap-2 mt-2">
                                     {test.sample_type && test.sample_type.trim() !== "" && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">
-                                        <Droplet className="w-3 h-3 text-teal-600" />
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-800 px-2.5 py-1 rounded-lg border border-blue-200">
+                                        <Droplet className="w-3 h-3 text-blue-600" />
                                         {test.sample_type}
                                       </span>
                                     )}
-                                    {test.turnaround_time && test.turnaround_time.trim() !== "" && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-teal-50 text-teal-700 px-2.5 py-1 rounded-lg border border-teal-100">
+                                    {formattedTAT && (
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-teal-50 text-teal-800 px-2.5 py-1 rounded-lg border border-teal-200">
                                         <Clock className="w-3 h-3 text-teal-600" />
-                                        {test.turnaround_time}
+                                        {formattedTAT}
                                       </span>
                                     )}
-                                    {test.duration && test.duration.trim() !== "" && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-100">
+                                    {formattedDuration && (
+                                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200">
                                         <Timer className="w-3 h-3 text-amber-600" />
-                                        {test.duration}
+                                        {formattedDuration}
                                       </span>
                                     )}
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between pt-3.5 mt-4 border-t border-slate-100">
-                                  <div>
-                                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Price</span>
-                                    <div className="flex items-baseline gap-2">
-                                      <span className="text-lg font-extrabold text-slate-900">
-                                        ₹{finalPrice}
-                                      </span>
+                                {/* Right: Price + Actions */}
+                                <div className="flex flex-col items-end gap-3 shrink-0 ml-2">
+                                  <div className="text-right">
+                                    <div className="flex items-baseline gap-1.5 justify-end">
+                                      <span className="text-xl font-black text-slate-900">₹{finalPrice.toLocaleString()}</span>
                                       {hasDiscount && (
-                                        <span className="text-xs text-slate-400 line-through">
-                                          ₹{test.price}
-                                        </span>
+                                        <span className="text-xs font-semibold text-slate-400 line-through">₹{Number(test.price).toLocaleString()}</span>
                                       )}
                                     </div>
+                                    {hasDiscount && (
+                                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                        {discountPercent}% OFF
+                                      </span>
+                                    )}
                                   </div>
-                                  {hasDiscount && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                      {discountPercent}% OFF
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => navigate(`/lab-owner/${id}/edit-test/${testId}`)}
+                                      className="p-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-teal-50 hover:text-teal-700 border border-slate-200 hover:border-teal-300 transition-all"
+                                      title="Edit test"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTest(testId, test.name)}
+                                      className="p-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-700 border border-slate-200 hover:border-red-300 transition-all"
+                                      title="Delete test"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-                      ) : (
-                        <div className="text-center py-20 bg-slate-50/70 rounded-[2rem] border-2 border-dashed border-slate-200">
-                          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-md mx-auto mb-6 text-teal-500/80">
-                            <FlaskConical size={36} />
+                      )}
+
+                      {/* Pagination Controls */}
+                      {totalTestPages > 1 && (
+                        <div className="flex items-center justify-between pt-5 mt-4 border-t border-slate-200">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Page {testPage} of {totalTestPages} &nbsp;·&nbsp; {filteredLabTests.length} tests
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setTestPage(p => Math.max(1, p - 1))}
+                              disabled={testPage === 1}
+                              className="px-3 h-8 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              ← Prev
+                            </button>
+                            {Array.from({ length: totalTestPages }, (_, i) => i + 1)
+                              .filter(p => p === 1 || p === totalTestPages || Math.abs(p - testPage) <= 1)
+                              .reduce<(number | 'e')[]>((acc, p, idx, arr) => {
+                                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('e');
+                                acc.push(p);
+                                return acc;
+                              }, [])
+                              .map((p, idx) =>
+                                p === 'e' ? (
+                                  <span key={`el-${idx}`} className="px-1 text-slate-400 text-xs">…</span>
+                                ) : (
+                                  <button
+                                    key={p}
+                                    onClick={() => setTestPage(p as number)}
+                                    className={`w-8 h-8 rounded-lg text-xs font-bold border transition-colors ${
+                                      testPage === p
+                                        ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {p}
+                                  </button>
+                                )
+                              )
+                            }
+                            <button
+                              onClick={() => setTestPage(p => Math.min(totalTestPages, p + 1))}
+                              disabled={testPage === totalTestPages}
+                              className="px-3 h-8 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Next →
+                            </button>
                           </div>
-                          <h4 className="text-lg font-bold text-slate-900 mb-2">No active tests added yet</h4>
-                          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-                            Publish test offerings, pricing, and turnaround times so patients can find and book tests at your laboratory.
-                          </p>
-                          <Button
-                            className="rounded-xl font-bold px-8 shadow-lg shadow-primary/20"
-                            onClick={() => navigate(`/lab-owner/${id}/add-test`)}
-                          >
-                            <Plus className="w-4 h-4 mr-2" /> Add Your First Test
-                          </Button>
                         </div>
                       )}
                     </CardContent>
@@ -521,6 +851,23 @@ const LabDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Excel Price List Upload Modal */}
+      <ExcelUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        labId={id || ""}
+        labName={lab?.name || "Laboratory"}
+        onSuccess={async () => {
+          try {
+            const { data: refreshedTests } = await labOwnerAPI.getLabTests(id!);
+            setTests(refreshedTests || []);
+            setActiveTab("tests");
+          } catch (e) {
+            console.error("Failed to reload tests:", e);
+          }
+        }}
+      />
     </div>
   );
 };
