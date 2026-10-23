@@ -33,7 +33,8 @@ import {
   X,
   Phone,
   CreditCard,
-  Building2
+  Building2,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { userAPI, authAPI } from "@/services/api";
 
 // Define types for different order types
 interface BaseOrder {
@@ -397,6 +399,9 @@ const OrderCard = ({
 
 const Orders = () => {
   const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Load orders from localStorage or use initial data
   const [appointmentOrders, setAppointmentOrders] = useState<DoctorOrder[]>(() => {
@@ -412,6 +417,131 @@ const Orders = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Fetch real orders from Supabase on mount
+  const fetchRealOrders = async (showToast = false) => {
+    try {
+      if (showToast) setRefreshing(true);
+      const isAuth = await authAPI.isAuthenticated();
+      if (!isAuth) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // 1. Fetch real lab test bookings from Supabase
+      const { data: dbBookings } = await userAPI.getTestBookings();
+      if (dbBookings && Array.isArray(dbBookings)) {
+        const mappedLabOrders: LabOrder[] = dbBookings.map((b: any) => {
+          const testNames = Array.isArray(b.tests) && b.tests.length > 0
+            ? b.tests.map((t: any) => t.name || t)
+            : ['Diagnostic Test'];
+
+          const rawStatus = (b.status || 'scheduled').toLowerCase();
+          
+          let uiStatus = 'processing';
+          if (rawStatus === 'completed') uiStatus = 'completed';
+          else if (rawStatus === 'cancelled') uiStatus = 'cancelled';
+          else uiStatus = 'processing';
+
+          const trackingSteps = [
+            { 
+              id: 1, 
+              label: "Order Placed", 
+              completed: true, 
+              date: b.created_at ? new Date(b.created_at).toISOString().split('T')[0] : b.booking_date 
+            },
+            { 
+              id: 2, 
+              label: "Sample Collection", 
+              completed: ['sample_collected', 'in_progress', 'completed'].includes(rawStatus) 
+            },
+            { 
+              id: 3, 
+              label: "Testing in Progress", 
+              completed: ['in_progress', 'completed'].includes(rawStatus) 
+            },
+            { 
+              id: 4, 
+              label: "Results Processing", 
+              completed: rawStatus === 'completed' 
+            },
+            { 
+              id: 5, 
+              label: "Report Ready", 
+              completed: rawStatus === 'completed' 
+            },
+          ];
+
+          return {
+            id: b.id,
+            type: "lab" as const,
+            status: uiStatus,
+            lab: b.labs?.name || 'Diagnostic Laboratory',
+            tests: testNames,
+            date: b.booking_date || new Date().toISOString().split('T')[0],
+            time: b.booking_time || '09:00 AM',
+            paymentStatus: b.payment_status || 'pending',
+            amount: b.total_amount || 0,
+            address: b.home_collection 
+              ? 'Home Sample Collection' 
+              : (b.labs ? `${b.labs.name}, ${b.labs.address_city || ''}` : 'Lab Visit'),
+            trackingSteps,
+            reportUrl: rawStatus === 'completed' ? '#' : undefined
+          };
+        });
+
+        if (mappedLabOrders.length > 0) {
+          setLabOrders(prev => {
+            const dbIds = new Set(mappedLabOrders.map(o => o.id));
+            const uniqueLocal = prev.filter(o => !dbIds.has(o.id));
+            return [...mappedLabOrders, ...uniqueLocal];
+          });
+        }
+      }
+
+      // 2. Fetch real doctor appointments
+      const { data: dbAppointments } = await userAPI.getAppointments();
+      if (dbAppointments && Array.isArray(dbAppointments)) {
+        const mappedDocOrders: DoctorOrder[] = dbAppointments.map((a: any) => ({
+          id: a.id,
+          type: "doctor" as const,
+          status: a.status === 'confirmed' ? 'upcoming' : a.status || 'upcoming',
+          doctor: a.doctors?.name || 'Doctor Consultation',
+          specialty: a.doctors?.specialty || 'General Physician',
+          hospital: a.doctors?.city ? `${a.doctors.city} Health Center` : 'Medical Center',
+          date: a.appointment_date || new Date().toISOString().split('T')[0],
+          time: a.appointment_time || '10:00 AM',
+          paymentStatus: a.payment_status || 'paid',
+          amount: a.amount || 500,
+          address: a.doctors?.city ? `${a.doctors.city} Clinic` : 'Medical Clinic',
+          prescriptionUrl: a.status === 'completed' ? '#' : undefined
+        }));
+
+        if (mappedDocOrders.length > 0) {
+          setAppointmentOrders(prev => {
+            const dbIds = new Set(mappedDocOrders.map(o => o.id));
+            const uniqueLocal = prev.filter(o => !dbIds.has(o.id));
+            return [...mappedDocOrders, ...uniqueLocal];
+          });
+        }
+      }
+
+      if (showToast) {
+        toast.success("Orders and appointment status refreshed!");
+      }
+    } catch (err) {
+      console.warn("Could not sync remote orders, using local storage:", err);
+      if (showToast) toast.error("Failed to refresh orders");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealOrders();
+  }, []);
   
   // Save orders to localStorage whenever they change
   useEffect(() => {
@@ -424,12 +554,20 @@ const Orders = () => {
   
   const allOrders: Order[] = [...appointmentOrders, ...labOrders];
   
-  // Filter orders based on active tab
-  const filteredOrders = activeTab === "all" 
+  // Filter orders based on active tab and search query
+  const tabOrders = activeTab === "all" 
     ? allOrders 
     : activeTab === "doctor" 
       ? appointmentOrders 
       : labOrders;
+
+  const filteredOrders = tabOrders.filter(o => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const title = o.type === "doctor" ? o.doctor : o.lab;
+    const sub = o.type === "doctor" ? o.specialty : o.tests.join(", ");
+    return title.toLowerCase().includes(q) || sub.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
+  });
 
   const handleCancelClick = (order: Order) => {
     setSelectedOrder(order);
@@ -441,22 +579,34 @@ const Orders = () => {
     setDetailsDialogOpen(true);
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!selectedOrder) return;
     
-    if (selectedOrder.type === "doctor") {
-      setAppointmentOrders(prev => 
-        prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
-      );
-    } else {
-      setLabOrders(prev => 
-        prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
-      );
+    try {
+      if (selectedOrder.type === "doctor") {
+        if (selectedOrder.id.length > 20) {
+          await userAPI.cancelAppointment(selectedOrder.id);
+        }
+        setAppointmentOrders(prev => 
+          prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
+        );
+      } else {
+        if (selectedOrder.id.length > 20) {
+          await userAPI.cancelTestBooking(selectedOrder.id);
+        }
+        setLabOrders(prev => 
+          prev.map(o => o.id === selectedOrder.id ? { ...o, status: "cancelled" } : o)
+        );
+      }
+      
+      toast.success(`${selectedOrder.type === "doctor" ? "Appointment" : "Order"} cancelled successfully`);
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      toast.error("Failed to cancel order. Please try again.");
+    } finally {
+      setCancelDialogOpen(false);
+      setSelectedOrder(null);
     }
-    
-    toast.success(`${selectedOrder.type === "doctor" ? "Appointment" : "Order"} cancelled successfully`);
-    setCancelDialogOpen(false);
-    setSelectedOrder(null);
   };
 
   return (
@@ -487,21 +637,37 @@ const Orders = () => {
                       </div>
                       <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Orders</h1>
                     </div>
-                    <p className="text-muted-foreground">Track your past and upcoming appointments and lab tests</p>
+                    <p className="text-muted-foreground">Track your diagnostic tests, sample collection, and report statuses in real time</p>
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filter
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => fetchRealOrders(true)}
+                      disabled={refreshing}
+                      className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm font-semibold text-slate-700"
+                    >
+                      <RefreshCw className={`mr-2 h-4 w-4 text-primary ${refreshing ? 'animate-spin' : ''}`} />
+                      Refresh
                     </Button>
-                    <div className="relative hidden sm:block">
+                    <div className="relative min-w-[220px]">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <input 
                         type="text" 
-                        placeholder="Search orders..." 
-                        className="h-9 w-full rounded-xl border border-input bg-white/80 backdrop-blur-sm px-3 py-1 pl-9 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search orders, tests..." 
+                        className="h-9 w-full rounded-xl border border-input bg-white/80 backdrop-blur-sm px-3 py-1 pl-9 pr-8 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" 
                       />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

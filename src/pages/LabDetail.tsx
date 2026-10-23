@@ -15,7 +15,10 @@ import {
   Plus,
   Loader2,
   X,
-  Pencil
+  Pencil,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Test } from "@/components/TestResult";
@@ -42,6 +45,9 @@ const LabDetail = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isOwner, setIsOwner] = useState(false);
   const isLabOwner = authAPI.getCurrentUserRole() === "lab_owner";
+  const [testSearchQuery, setTestSearchQuery] = useState("");
+  const [testCategoryFilter, setTestCategoryFilter] = useState("all");
+  const [testPage, setTestPage] = useState(1);
 
   useEffect(() => {
     const fetchLabData = async () => {
@@ -349,71 +355,209 @@ const LabDetail = () => {
               </TabsContent>
 
               <TabsContent value="tests" className="space-y-6 focus-visible:outline-none">
-                <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-sm">
-                  <div>
-                    <h2 className="text-xl font-bold">Available Tests</h2>
-                    <p className="text-sm text-muted-foreground mt-1">Select a test to book an appointment</p>
-                  </div>
-                  {isOwner && (
-                    <Button onClick={() => navigate(`/lab-owner/${params.id}/add-test`)} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 rounded-xl">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Test
-                    </Button>
-                  )}
-                </div>
+                {(() => {
+                  const rawTests: any[] = lab.tests || [];
+                  const categories = Array.from(
+                    new Set(rawTests.map((t: any) => t.category?.name || t.category || "General").filter(Boolean))
+                  ).sort();
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(lab.tests || []).map((t: any) => {
-                    const isSelected = selectedTests.some(st => st.id === t.id);
-                    return (
-                      <div
-                        key={t.id}
-                        className={`group border rounded-2xl p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white/60 backdrop-blur-sm ${isSelected ? 'border-primary ring-2 ring-primary/10 bg-primary/5' : 'border-white/20 hover:border-primary/30'}`}
-                        onClick={() => handleTestSelect(t)}
-                      >
+                  const filtered = rawTests.filter((t: any) => {
+                    if (testSearchQuery.trim()) {
+                      const q = testSearchQuery.toLowerCase();
+                      const matchName = t.name?.toLowerCase().includes(q);
+                      const matchDesc = t.description?.toLowerCase().includes(q);
+                      if (!matchName && !matchDesc) return false;
+                    }
+                    if (testCategoryFilter !== "all") {
+                      const cat = t.category?.name || t.category || "General";
+                      if (cat !== testCategoryFilter) return false;
+                    }
+                    return true;
+                  });
+
+                  const PAGE_SIZE = 10;
+                  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+                  const currentPage = Math.min(testPage, totalPages);
+                  const pagedTests = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="font-bold text-lg group-hover:text-primary transition-colors pr-2">{t.name}</h3>
-                            <Badge variant="secondary" className="bg-white/50 backdrop-blur border text-xs font-semibold">
-                              {t.category?.name || "General"}
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-bold text-slate-900">Available Tests</h2>
+                            <Badge variant="outline" className="bg-teal-50 text-teal-800 border-teal-200 font-semibold text-xs">
+                              {filtered.length} {filtered.length === 1 ? 'test' : 'tests'}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-6 leading-relaxed">{t.description}</p>
+                          <p className="text-sm text-slate-500 mt-1">Select diagnostic tests to add to your appointment</p>
                         </div>
-                        <div className="flex justify-between items-end pt-4 border-t border-dashed border-gray-200">
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Price</p>
-                            <p className="font-black text-2xl text-primary flex items-baseline gap-1">
-                               ₹{t.price}
-                               <span className="text-xs font-normal text-muted-foreground line-through opacity-50">₹{Math.round(t.price * 1.2)}</span>
-                            </p>
+                        
+                        <div className="flex flex-wrap items-center gap-3">
+                          {/* Search bar */}
+                          <div className="relative min-w-[220px]">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <input
+                              type="text"
+                              value={testSearchQuery}
+                              onChange={(e) => {
+                                setTestSearchQuery(e.target.value);
+                                setTestPage(1);
+                              }}
+                              placeholder="Search test names..."
+                              className="w-full h-9 pl-9 pr-8 text-xs rounded-xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                            {testSearchQuery && (
+                              <button
+                                onClick={() => {
+                                  setTestSearchQuery("");
+                                  setTestPage(1);
+                                }}
+                                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
-                          <Button
-                            size="sm"
-                            variant={isSelected ? "secondary" : "default"}
-                            className={`rounded-xl px-6 h-10 font-bold shadow-md transition-all ${isSelected ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' : 'bg-primary hover:bg-primary/90 hover:shadow-primary/20 hover:scale-105'} `}
-                          >
-                            {isSelected ? (
-                              <>
-                                <CheckSquare className="h-4 w-4 mr-2" />
-                                Added
-                              </>
-                            ) : "Add"}
-                          </Button>
+
+                          {/* Category filter */}
+                          {categories.length > 1 && (
+                            <select
+                              value={testCategoryFilter}
+                              onChange={(e) => {
+                                setTestCategoryFilter(e.target.value);
+                                setTestPage(1);
+                              }}
+                              className="h-9 text-xs rounded-xl border border-slate-200 bg-white px-3 shadow-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="all">All Departments ({rawTests.length})</option>
+                              {categories.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </select>
+                          )}
+
+                          {isOwner && (
+                            <Button onClick={() => navigate(`/lab-owner/${params.id}/add-test`)} className="bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 rounded-xl text-xs h-9 font-bold">
+                              <Plus className="mr-1.5 h-4 w-4" />
+                              Add Test
+                            </Button>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                  {(!lab.tests || lab.tests.length === 0) && (
-                    <div className="col-span-2 py-16 text-center bg-white/50 rounded-2xl border border-dashed border-gray-300">
-                       <div className="bg-gray-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Plus className="h-8 w-8 text-gray-400" />
-                       </div>
-                      <p className="text-lg font-medium text-gray-600">No tests listed yet</p>
-                      <p className="text-sm text-gray-400">Check back later for available tests</p>
+
+                      {pagedTests.length === 0 ? (
+                        <div className="py-16 text-center bg-white/60 rounded-2xl border border-dashed border-slate-200">
+                          <p className="text-base font-semibold text-slate-700">No diagnostic tests found</p>
+                          <p className="text-xs text-slate-400 mt-1">Try resetting search or filter criteria</p>
+                          {(testSearchQuery || testCategoryFilter !== "all") && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => { setTestSearchQuery(""); setTestCategoryFilter("all"); setTestPage(1); }}
+                              className="mt-4 text-xs rounded-xl"
+                            >
+                              Clear filters
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {pagedTests.map((t: any) => {
+                            const isSelected = selectedTests.some(st => st.id === t.id);
+                            const hasDiscount = t.discountPrice && t.discountPrice < t.price;
+                            const displayPrice = hasDiscount ? t.discountPrice : t.price;
+
+                            return (
+                              <div
+                                key={t.id}
+                                className={`group border rounded-2xl p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 bg-white ${isSelected ? 'border-primary ring-2 ring-primary/20 bg-teal-50/20' : 'border-slate-200 hover:border-slate-300'}`}
+                                onClick={() => handleTestSelect(t)}
+                              >
+                                <div>
+                                  <div className="flex justify-between items-start mb-2 gap-2">
+                                    <h3 className="font-bold text-base text-slate-900 group-hover:text-primary transition-colors leading-snug">
+                                      {t.name}
+                                    </h3>
+                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200 text-[11px] font-semibold shrink-0">
+                                      {t.category?.name || t.category || "General"}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">{t.description || "Comprehensive clinical test conducted using standardized laboratory protocols."}</p>
+                                </div>
+                                <div className="flex justify-between items-end pt-3 border-t border-slate-100">
+                                  <div>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Price</p>
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="font-black text-2xl text-slate-900">
+                                        ₹{displayPrice}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-xs text-slate-400 line-through">
+                                          ₹{t.price}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant={isSelected ? "secondary" : "default"}
+                                    className={`rounded-xl px-5 h-9 font-bold shadow-sm transition-all text-xs ${isSelected ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-primary hover:bg-primary/90 text-white'} `}
+                                  >
+                                    {isSelected ? (
+                                      <>
+                                        <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+                                        Added
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plus className="h-3.5 w-3.5 mr-1" />
+                                        Add
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between bg-white/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-slate-200 shadow-sm mt-4">
+                          <p className="text-xs text-slate-500 font-medium">
+                            Showing <span className="font-bold text-slate-900">{(currentPage - 1) * PAGE_SIZE + 1}</span> to <span className="font-bold text-slate-900">{Math.min(currentPage * PAGE_SIZE, filtered.length)}</span> of <span className="font-bold text-slate-900">{filtered.length}</span> tests
+                          </p>
+
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={currentPage <= 1}
+                              onClick={() => setTestPage(prev => Math.max(1, prev - 1))}
+                              className="h-8 w-8 p-0 rounded-lg border-slate-200"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="text-xs font-semibold px-2 text-slate-700">
+                              Page {currentPage} of {totalPages}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={currentPage >= totalPages}
+                              onClick={() => setTestPage(prev => Math.min(totalPages, prev + 1))}
+                              className="h-8 w-8 p-0 rounded-lg border-slate-200"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
               </TabsContent>
 
               {!isLabOwner && (

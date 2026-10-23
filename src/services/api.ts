@@ -391,15 +391,18 @@ export const labsAPI = {
         patient_name: testData.patientName,
         patient_phone: testData.patientPhone,
         home_collection: testData.homeCollection || false,
-        status: 'confirmed',
-        // Storing test info as JSONB for flexibility
-        tests: testData.tests.map((t: any) => ({
+        status: testData.status || 'scheduled',
+        payment_status: testData.paymentStatus || 'pending',
+        // Storing test info as JSONB with rich metadata
+        tests: (testData.tests || []).map((t: any) => ({
           id: t.id,
           name: t.name,
-          price: t.price
+          price: t.price,
+          category: t.category,
+          description: t.description
         }))
       })
-      .select()
+      .select('*, labs(*)')
       .single();
 
     if (error) throw error;

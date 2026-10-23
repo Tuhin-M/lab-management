@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-import { labsAPI } from "@/services/api";
+import { labsAPI, authAPI } from "@/services/api";
 import LoadingFallback from "@/utils/LoadingFallback";
 
 // Types for booking data
@@ -172,6 +172,53 @@ const TestBooking = () => {
     },
   });
 
+  // Auto-fill logged-in profile data or restore pending booking
+  useEffect(() => {
+    const initUserData = async () => {
+      // 1. Check if returning from login with pending booking
+      const savedPending = sessionStorage.getItem("pending_booking");
+      if (savedPending) {
+        try {
+          const parsed = JSON.parse(savedPending);
+          if (parsed.bookingDetails) {
+            form.reset(parsed.bookingDetails);
+            setBookingDetails(parsed.bookingDetails);
+            setIsConfirmationOpen(true);
+          }
+          if (parsed.selectedTests) {
+            setSelectedTests(parsed.selectedTests);
+          }
+          sessionStorage.removeItem("pending_booking");
+          return;
+        } catch (e) {
+          console.warn("Failed to parse pending booking:", e);
+        }
+      }
+
+      // 2. Otherwise pre-fill from user profile
+      try {
+        const isAuth = await authAPI.isAuthenticated();
+        if (isAuth) {
+          const profileRes = await authAPI.getProfile();
+          const profile = profileRes?.data;
+          if (profile) {
+            if (profile.name) form.setValue("patientName", profile.name);
+            if (profile.phone) form.setValue("patientPhone", profile.phone);
+            if (profile.email) form.setValue("patientEmail", profile.email);
+            if (profile.address) form.setValue("address", profile.address);
+            if (profile.gender && ["male", "female", "other"].includes(profile.gender.toLowerCase())) {
+              form.setValue("patientGender", profile.gender.toLowerCase() as any);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not prefill user profile:", err);
+      }
+    };
+
+    initUserData();
+  }, []);
+
   const collectionType = form.watch("collectionType");
   const testTotal = priceFromState || selectedTests.reduce((sum, test) => sum + (test.price || 0), 0);
   const totalAmount = testTotal + (collectionType === "home" ? homeCollectionCharges : 0);
@@ -184,9 +231,23 @@ const TestBooking = () => {
   const confirmBooking = async () => {
     if (!bookingDetails) return;
 
+    // Check if user is logged in
+    const isAuth = await authAPI.isAuthenticated();
+    if (!isAuth) {
+      toast.info("Please log in or sign up to finalize your test booking.");
+      sessionStorage.setItem("pending_booking", JSON.stringify({
+        lab,
+        selectedTests,
+        bookingDetails,
+        totalAmount
+      }));
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
+
     try {
       // 1. Save to Database via API
-      await labsAPI.bookTest({
+      const dbBooking = await labsAPI.bookTest({
         labId: lab.id,
         tests: selectedTests,
         date: format(bookingDetails.testDate, "yyyy-MM-dd"),
@@ -195,18 +256,20 @@ const TestBooking = () => {
         patientName: bookingDetails.patientName,
         patientPhone: bookingDetails.patientPhone,
         homeCollection: bookingDetails.collectionType === "home",
+        status: "scheduled",
+        paymentStatus: "pending",
       });
 
-      // 2. Backward compatibility with localStorage for Orders page
+      // 2. Cache in localStorage for immediate client-side tracking
       const newOrder = {
-        id: `LAB-${Date.now()}`,
+        id: dbBooking?.id || `LAB-${Date.now()}`,
         type: "lab" as const,
-        status: "processing",
+        status: "scheduled",
         lab: lab.name,
         tests: selectedTests.map(t => t.name),
         date: format(bookingDetails.testDate, "yyyy-MM-dd"),
         time: bookingDetails.timeSlot.split(" - ")[0],
-        paymentStatus: "pending",
+        paymentStatus: dbBooking?.payment_status || "pending",
         amount: totalAmount,
         address: bookingDetails.collectionType === "home"
           ? bookingDetails.address || lab.address || "Home Collection"
@@ -228,11 +291,11 @@ const TestBooking = () => {
       localStorage.setItem('ekitsa_lab_orders', JSON.stringify(orders));
 
       setIsConfirmationOpen(false);
-      toast.success("Test booking confirmed! You will receive a confirmation on your phone.");
+      toast.success("Test booking confirmed! Your appointment has been scheduled.");
       navigate("/orders");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Booking error:", error);
-      toast.error("Failed to book test. Please try again.");
+      toast.error(error?.message || "Failed to book test. Please try again.");
     }
   };
 

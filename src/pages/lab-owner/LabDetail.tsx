@@ -141,6 +141,8 @@ const LabDetail = () => {
         const normalized = (bookingsData || []).map((b: any) => ({
           _id: b.id,
           patientName: b.patient_name || 'Unknown Patient',
+          phone: b.patient_phone || '',
+          homeCollection: !!b.home_collection,
           testName: Array.isArray(b.tests) && b.tests.length > 0
             ? b.tests.map((t: any) => t.name).join(', ')
             : 'N/A',
@@ -167,8 +169,28 @@ const LabDetail = () => {
   }, [id, location.state]);
 
   const refreshAppointments = async () => {
-    // In a real app, this would refresh appointment data
-    toast.success('Appointments refreshed');
+    if (!id) return;
+    try {
+      const { data: bookingsData } = await labOwnerAPI.getLabBookings(id);
+      const normalized = (bookingsData || []).map((b: any) => ({
+        _id: b.id,
+        patientName: b.patient_name || 'Unknown Patient',
+        phone: b.patient_phone || '',
+        homeCollection: !!b.home_collection,
+        testName: Array.isArray(b.tests) && b.tests.length > 0
+          ? b.tests.map((t: any) => t.name).join(', ')
+          : 'N/A',
+        date: b.booking_date,
+        time: b.booking_time || '',
+        status: b.status || 'scheduled',
+        paymentStatus: b.payment_status || 'pending',
+        amount: b.total_amount || 0
+      }));
+      setAppointments(normalized);
+      toast.success('Appointments list refreshed');
+    } catch (err) {
+      console.error('Failed to refresh appointments:', err);
+    }
   };
 
   const handleDeleteTest = async (labTestId: string, testName: string) => {

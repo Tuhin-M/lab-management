@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Phone, Home, Building2, Search, X } from "lucide-react";
 import { labOwnerAPI } from "@/services/api";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,15 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 interface Appointment {
   _id: string;
   patientName: string;
+  phone?: string;
+  homeCollection?: boolean;
   testName: string;
   date: string;
   time: string;
-  status: "scheduled" | "completed" | "cancelled";
-  paymentStatus: "paid" | "pending";
+  status: "scheduled" | "sample_collected" | "in_progress" | "completed" | "cancelled" | string;
+  paymentStatus: "paid" | "pending" | string;
   amount: number;
 }
 
@@ -25,8 +28,8 @@ interface AppointmentsListProps {
   labId: string;
   appointments: Appointment[];
   onStatusChange: () => void;
-  onSearch: (query: string) => void;
-  onFilter: (filter: {status?: string, date?: string}) => void;
+  onSearch?: (query: string) => void;
+  onFilter?: (filter: { status?: string; date?: string }) => void;
 }
 
 const AppointmentsList = ({ 
@@ -36,116 +39,256 @@ const AppointmentsList = ({
   onSearch,
   onFilter
 }: AppointmentsListProps) => {
-  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
   const handleStatusChange = async (appointmentId: string, status: string) => {
     try {
+      setUpdatingId(appointmentId);
       await labOwnerAPI.updateAppointmentStatus(appointmentId, status);
-      toast.success(`Appointment status updated to ${status}`);
+      toast.success(`Order status updated to "${status.replace('_', ' ')}"`);
       onStatusChange();
     } catch (error) {
       console.error('Error updating appointment status:', error);
       toast.error('Failed to update appointment status');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'scheduled':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">Scheduled</Badge>;
+      case 'confirmed':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold">Scheduled</Badge>;
+      case 'sample_collected':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-semibold">Sample Collected</Badge>;
+      case 'in_progress':
+        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-semibold">In Progress</Badge>;
       case 'completed':
-        return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">Completed</Badge>;
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold">Completed</Badge>;
       case 'cancelled':
-        return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">Cancelled</Badge>;
+        return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-semibold">Cancelled</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="capitalize">{status.replace('_', ' ')}</Badge>;
     }
   };
   
   const getPaymentBadge = (status: string) => {
     return status === 'paid' 
-      ? <Badge className="bg-green-100 text-green-800 border-green-300">Paid</Badge> 
-      : <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>;
+      ? <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-medium">Paid</Badge> 
+      : <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-medium">Pending</Badge>;
   };
 
+  // Client-side filtering for immediate snappy responsiveness
+  const filteredAppointments = appointments.filter((apt) => {
+    // Search query matches patient, phone, or test
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchesPatient = apt.patientName.toLowerCase().includes(q);
+      const matchesPhone = apt.phone?.toLowerCase().includes(q);
+      const matchesTest = apt.testName.toLowerCase().includes(q);
+      if (!matchesPatient && !matchesPhone && !matchesTest) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "scheduled" && (apt.status === "scheduled" || apt.status === "confirmed")) {
+        // match
+      } else if (apt.status !== statusFilter) {
+        return false;
+      }
+    }
+
+    // Date filter
+    if (selectedDate) {
+      const aptDate = new Date(apt.date).toISOString().split('T')[0];
+      const filterDateStr = format(selectedDate, "yyyy-MM-dd");
+      if (aptDate !== filterDateStr) return false;
+    }
+
+    return true;
+  });
+
   return (
-    <div className="bg-white rounded-md shadow">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h3 className="text-lg font-medium">Appointments</h3>
-        <div className="flex gap-2">
-          <Input 
-            placeholder="Search patients/tests" 
-            onChange={(e) => onSearch(e.target.value)}
-            className="w-64"
-          />
-          <Select onValueChange={(value) => onFilter({status: value})}>
-            <SelectTrigger className="w-32">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Header with Search and Filters */}
+      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900">Patient Appointments & Orders</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {filteredAppointments.length} {filteredAppointments.length === 1 ? 'order' : 'orders'} found
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search box */}
+          <div className="relative min-w-[200px]">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Search patient, test, phone..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                onSearch?.(e.target.value);
+              }}
+              className="pl-9 h-9 text-xs rounded-xl bg-white border-slate-200"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Status selector */}
+          <Select 
+            value={statusFilter} 
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              onFilter?.({ status: value });
+            }}
+          >
+            <SelectTrigger className="w-[140px] h-9 text-xs rounded-xl bg-white border-slate-200">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="sample_collected">Sample Collected</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Date Picker */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-40">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                <span>Date</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className={`h-9 text-xs rounded-xl border-slate-200 bg-white ${selectedDate ? 'text-primary border-primary/50' : 'text-slate-600'}`}
+              >
+                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                <span>{selectedDate ? format(selectedDate, "dd MMM yyyy") : "Date"}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="end">
               <Calendar 
                 mode="single" 
-                onSelect={(date) => onFilter({date: date?.toISOString()})}
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  onFilter?.({ date: date?.toISOString() });
+                }}
               />
+              {selectedDate && (
+                <div className="p-2 border-t text-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs w-full text-slate-600"
+                    onClick={() => setSelectedDate(undefined)}
+                  >
+                    Clear Date Filter
+                  </Button>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         </div>
       </div>
+
+      {/* Appointments Table */}
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-slate-50/80">
             <TableRow>
-              <TableHead>Patient Name</TableHead>
-              <TableHead>Test</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Time</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Action</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Patient Details</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Prescribed Tests</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Schedule</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Mode</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Amount</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Payment</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5">Status</TableHead>
+              <TableHead className="text-xs font-bold text-slate-700 py-3.5 text-right">Update Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {appointments.length === 0 ? (
+            {filteredAppointments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  No appointments found
+                <TableCell colSpan={8} className="text-center py-12 text-slate-500">
+                  <p className="font-semibold text-sm">No appointments matching current filters</p>
+                  <p className="text-xs text-slate-400 mt-1">Try resetting search or date filters</p>
                 </TableCell>
               </TableRow>
             ) : (
-              appointments.map((appointment) => (
-                <TableRow key={appointment._id}>
-                  <TableCell>{appointment.patientName}</TableCell>
-                  <TableCell>{appointment.testName}</TableCell>
-                  <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{appointment.time}</TableCell>
-                  <TableCell>₹{appointment.amount}</TableCell>
-                  <TableCell>{getPaymentBadge(appointment.paymentStatus)}</TableCell>
-                  <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                  <TableCell>
+              filteredAppointments.map((appointment) => (
+                <TableRow key={appointment._id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="py-3.5">
+                    <div>
+                      <span className="font-bold text-slate-900 block text-sm">{appointment.patientName}</span>
+                      {appointment.phone && (
+                        <span className="text-xs text-slate-500 inline-flex items-center gap-1 mt-0.5">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          {appointment.phone}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <span className="font-medium text-slate-800 text-sm max-w-[220px] block truncate" title={appointment.testName}>
+                      {appointment.testName}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <div className="text-xs">
+                      <span className="font-semibold text-slate-800 block">
+                        {new Date(appointment.date).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                      </span>
+                      <span className="text-slate-500 font-mono mt-0.5 block">{appointment.time || "Regular hours"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    {appointment.homeCollection ? (
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[11px] gap-1">
+                        <Home className="w-3 h-3" /> Home Visit
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[11px] gap-1">
+                        <Building2 className="w-3 h-3" /> Lab Center
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-3.5 font-bold text-slate-900 text-sm">
+                    ₹{appointment.amount.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    {getPaymentBadge(appointment.paymentStatus)}
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    {getStatusBadge(appointment.status)}
+                  </TableCell>
+                  <TableCell className="py-3.5 text-right">
                     <Select 
-                      defaultValue={appointment.status}
+                      disabled={updatingId === appointment._id}
+                      defaultValue={appointment.status === "confirmed" ? "scheduled" : appointment.status}
                       onValueChange={(value) => handleStatusChange(appointment._id, value)}
                     >
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Status" />
+                      <SelectTrigger className="w-[145px] h-8 text-xs font-semibold rounded-lg bg-white border-slate-200 ml-auto">
+                        <SelectValue placeholder="Update Status" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="end">
                         <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="sample_collected">Sample Collected</SelectItem>
+                        <SelectItem value="in_progress">Testing in Progress</SelectItem>
+                        <SelectItem value="completed">Completed / Ready</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
@@ -156,11 +299,6 @@ const AppointmentsList = ({
           </TableBody>
         </Table>
       </div>
-      {appointments.length > 0 && (
-        <div className="flex justify-end p-4 border-t">
-          <Button variant="outline" size="sm">View All</Button>
-        </div>
-      )}
     </div>
   );
 };
