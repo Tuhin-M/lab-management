@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { INDIAN_STATES, getCitiesByState } from "@/data/indianLocations";
+import { labsAPI } from "@/services/api";
 
 export interface LabFiltersProps {
   onSortChange: (sortOption: string) => void;
@@ -28,6 +28,11 @@ export interface LabFiltersProps {
   onClose?: () => void;
   onReset?: () => void;
   isExternalFilterActive?: boolean;
+  availableLocations?: {
+    cities: string[];
+    states: string[];
+    locations?: { city: string; state: string }[];
+  };
 }
 
 export interface LabFiltersState {
@@ -63,10 +68,39 @@ const LabFilters = ({
   isMobile = false,
   onClose,
   onReset,
-  isExternalFilterActive = false
+  isExternalFilterActive = false,
+  availableLocations: propAvailableLocations,
 }: LabFiltersProps) => {
   const [filters, setFilters] = useState<LabFiltersState>(initialFilters || defaultFilters);
   const [sortOption, setSortOption] = useState(initialSortOption);
+  const [fetchedLocations, setFetchedLocations] = useState<{
+    cities: string[];
+    states: string[];
+    locations?: { city: string; state: string }[];
+  }>({ cities: [], states: [], locations: [] });
+
+  useEffect(() => {
+    if (propAvailableLocations !== undefined) return;
+    let isMounted = true;
+    labsAPI.getAvailableLocations()
+      .then(res => {
+        if (isMounted) setFetchedLocations(res);
+      })
+      .catch(err => console.error("Error fetching available locations:", err));
+    return () => { isMounted = false; };
+  }, [propAvailableLocations]);
+
+  const activeLocations = propAvailableLocations !== undefined ? propAvailableLocations : fetchedLocations;
+  const availableStates = activeLocations.states || [];
+
+  const availableCities = filters.state && filters.state !== "ALL"
+    ? Array.from(new Set(
+        (activeLocations.locations || [])
+          .filter(l => l.state?.toLowerCase() === filters.state?.toLowerCase())
+          .map(l => l.city)
+      ))
+    : (activeLocations.cities || []);
+
   const [expandedSections, setExpandedSections] = useState({
     location: true,
     sort: true,
@@ -110,7 +144,20 @@ const LabFilters = ({
 
   const handleCityChange = (city: string) => {
     const nextCity = city === "ALL" ? "" : city;
-    handleFilterChange({ city: nextCity });
+    let nextState = filters.state;
+    if (nextCity && (!nextState || nextState === "ALL")) {
+      const match = activeLocations.locations?.find(l => l.city.toLowerCase() === nextCity.toLowerCase());
+      if (match?.state) {
+        nextState = match.state;
+      }
+    }
+    const updatedFilters = {
+      ...filters,
+      city: nextCity,
+      ...(nextState ? { state: nextState } : {})
+    };
+    setFilters(updatedFilters);
+    onFilterChange(updatedFilters);
   };
 
   const handleFacilityChange = (facility: string, checked: boolean) => {
@@ -128,8 +175,6 @@ const LabFilters = ({
       [section]: !expandedSections[section],
     });
   };
-
-  const availableCities = filters.state ? getCitiesByState(filters.state) : [];
 
   const activeFiltersCount = 
     (filters.rating > 0 ? 1 : 0) + 
@@ -213,7 +258,7 @@ const LabFilters = ({
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto rounded-xl">
                     <SelectItem value="ALL">All States</SelectItem>
-                    {INDIAN_STATES.map((state) => (
+                    {availableStates.map((state) => (
                       <SelectItem key={state} value={state} className="text-xs">
                         {state}
                       </SelectItem>
@@ -227,10 +272,9 @@ const LabFilters = ({
                 <Select
                   value={filters.city || "ALL"}
                   onValueChange={handleCityChange}
-                  disabled={!filters.state}
                 >
                   <SelectTrigger className="w-full h-10 rounded-xl border-border/50 text-xs bg-background/50">
-                    <SelectValue placeholder={filters.state ? "All Cities in State" : "Select state first"} />
+                    <SelectValue placeholder={filters.state ? "All Cities in State" : "All Cities"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto rounded-xl">
                     <SelectItem value="ALL">All Cities</SelectItem>

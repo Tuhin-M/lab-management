@@ -283,6 +283,55 @@ export const doctorsAPI = {
 
 // Lab Test related API calls
 export const labsAPI = {
+  // Get unique locations available in the database
+  getAvailableLocations: async () => {
+    const { data, error } = await supabase
+      .from('labs')
+      .select('address_city, address_state');
+
+    if (error) {
+      console.error('Error fetching available lab locations:', error);
+      return { cities: [], states: [], locations: [] };
+    }
+
+    const validLocations = (data || []).filter(
+      (l: any) => l.address_city && typeof l.address_city === 'string' && l.address_city.trim() !== ''
+    );
+
+    // Get unique cities (clean up extra spaces, case-preserving)
+    const cityMap = new Map<string, string>();
+    validLocations.forEach((l: any) => {
+      const city = l.address_city.trim();
+      const key = city.toLowerCase();
+      if (!cityMap.has(key)) {
+        cityMap.set(key, city);
+      }
+    });
+    const cities = Array.from(cityMap.values()).sort((a, b) => a.localeCompare(b));
+
+    // Get unique states
+    const stateMap = new Map<string, string>();
+    validLocations.forEach((l: any) => {
+      if (l.address_state && typeof l.address_state === 'string' && l.address_state.trim() !== '') {
+        const state = l.address_state.trim();
+        const key = state.toLowerCase();
+        if (!stateMap.has(key)) {
+          stateMap.set(key, state);
+        }
+      }
+    });
+    const states = Array.from(stateMap.values()).sort((a, b) => a.localeCompare(b));
+
+    return {
+      cities,
+      states,
+      locations: validLocations.map((l: any) => ({
+        city: l.address_city.trim(),
+        state: l.address_state?.trim() || ''
+      }))
+    };
+  },
+
   // Get all labs
   getAllLabs: async (params?: any) => {
     // Correct join: labs -> lab_tests -> tests

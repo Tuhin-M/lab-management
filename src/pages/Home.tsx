@@ -14,7 +14,7 @@ import { useEffect } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [selectedCity, setSelectedCity] = useState("Bengaluru");
+  const [selectedCity, setSelectedCity] = useState("All Locations");
   const [searchQuery, setSearchQuery] = useState("");
   const [doctors, setDoctors] = useState<any[]>([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
@@ -34,11 +34,21 @@ const Home = () => {
   }, []);
 
   const handleLabSearch = () => {
-    navigate("/labs", { state: { city: selectedCity, query: searchQuery } });
+    const params = new URLSearchParams();
+    if (selectedCity && selectedCity !== "All Locations") params.append("city", selectedCity);
+    if (searchQuery) params.append("search", searchQuery);
+    navigate(`/lab-tests${params.toString() ? `?${params.toString()}` : ''}`, {
+      state: { city: selectedCity, query: searchQuery }
+    });
   };
 
   const handleDoctorSearch = () => {
-    navigate("/doctors", { state: { city: selectedCity, query: searchQuery } });
+    const params = new URLSearchParams();
+    if (selectedCity && selectedCity !== "All Locations") params.append("city", selectedCity);
+    if (searchQuery) params.append("search", searchQuery);
+    navigate(`/doctors${params.toString() ? `?${params.toString()}` : ''}`, {
+      state: { city: selectedCity, query: searchQuery }
+    });
   };
 
   // Data imported from @/constants/homeData

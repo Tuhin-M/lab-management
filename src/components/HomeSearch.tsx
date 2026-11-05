@@ -18,15 +18,15 @@ interface HomeSearchProps {
 
 const HomeSearch: React.FC<HomeSearchProps> = ({ className = "" }) => {
   const navigate = useNavigate();
-  const [selectedCity, setSelectedCity] = useState("Bengaluru");
+  const [selectedCity, setSelectedCity] = useState("All Locations");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [searchType, setSearchType] = useState<"labs" | "doctors">("labs");
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (selectedCity) params.append("city", selectedCity);
-    if (searchQuery) params.append("query", searchQuery);
+    if (selectedCity && selectedCity !== "All Locations") params.append("city", selectedCity);
+    if (searchQuery) params.append("search", searchQuery);
     if (selectedDate) params.append("date", format(selectedDate, "yyyy-MM-dd"));
     
     if (searchType === "labs") {

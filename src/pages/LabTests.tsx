@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import SearchBar from "@/components/SearchBar";
 import TestResult, { Test } from "@/components/TestResult";
 import LabCard, { Lab } from "@/components/LabCard";
@@ -23,14 +23,21 @@ import { DEFAULT_LAB_IMAGE } from "@/constants/images";
 const LabTests = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const initialQuery = searchParams.get("search") || "";
+  const initialQuery = searchParams.get("search") || searchParams.get("query") || (location.state as any)?.query || "";
+  const initialCity = searchParams.get("city") || (location.state as any)?.city || "All Locations";
   
-  const [selectedCity, setSelectedCity] = useState("Bengaluru");
+  const [selectedCity, setSelectedCity] = useState(initialCity);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [searchResults, setSearchResults] = useState<Test[]>([]);
   const [allTests, setAllTests] = useState<Test[]>([]);
   const [allLabs, setAllLabs] = useState<Lab[]>([]);
+  const [availableLocations, setAvailableLocations] = useState<{
+    cities: string[];
+    states: string[];
+    locations: { city: string; state: string }[];
+  }>({ cities: [], states: [], locations: [] });
   const [loading, setLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
@@ -41,7 +48,7 @@ const LabTests = () => {
     maxDistance: 10,
     openNow: false,
     state: "",
-    city: "",
+    city: initialCity === "All Locations" ? "" : initialCity,
     facilities: {
       "Home Collection": false,
       "Digital Reports": false,
@@ -52,6 +59,15 @@ const LabTests = () => {
     },
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Fetch available locations from DB
+  useEffect(() => {
+    labsAPI.getAvailableLocations()
+      .then(res => {
+        setAvailableLocations(res);
+      })
+      .catch(err => console.error("Error fetching available locations:", err));
+  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -370,6 +386,7 @@ const LabTests = () => {
                 <CitySelection
                   selectedCity={selectedCity || "All Locations"}
                   onCityChange={handleCityChange}
+                  availableCities={availableLocations.cities}
                   className={selectedTest ? "text-foreground" : "text-white placeholder:text-white/70"}
                 />
               </div>
@@ -498,7 +515,8 @@ const LabTests = () => {
                             isMobile={true}
                             onClose={() => setIsMobileFilterOpen(false)}
                             onReset={handleResetFilters}
-                            isExternalFilterActive={!!selectedCity}
+                            isExternalFilterActive={!!selectedCity && selectedCity !== "All Locations"}
+                            availableLocations={availableLocations}
                           />
                         </div>
                       </SheetContent>
@@ -530,7 +548,8 @@ const LabTests = () => {
                       initialFilters={filters}
                       initialSortOption={sortOption}
                       onReset={handleResetFilters}
-                      isExternalFilterActive={!!selectedCity}
+                      isExternalFilterActive={!!selectedCity && selectedCity !== "All Locations"}
+                      availableLocations={availableLocations}
                     />
                   </div>
                 </div>
