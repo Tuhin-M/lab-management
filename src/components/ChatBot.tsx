@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Sparkles, Loader2, User, Bot, LogIn, Shield } f
 import { Button } from '@/components/ui/button';
 import { authAPI } from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -57,6 +57,11 @@ const ADMIN_SUGGESTIONS = [
 
 const ChatBot: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
