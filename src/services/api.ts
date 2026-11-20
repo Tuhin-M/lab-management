@@ -443,12 +443,15 @@ export const labsAPI = {
         status: testData.status || 'scheduled',
         payment_status: testData.paymentStatus || 'pending',
         // Storing test info as JSONB with rich metadata
-        tests: (testData.tests || []).map((t: any) => ({
+        tests: (testData.tests || []).map((t: any, idx: number) => ({
           id: t.id,
           name: t.name,
           price: t.price,
           category: t.category,
-          description: t.description
+          description: t.description,
+          ...(idx === 0 && testData.address ? { address: testData.address } : {}),
+          ...(idx === 0 && testData.patientAge ? { patientAge: testData.patientAge } : {}),
+          ...(idx === 0 && testData.patientGender ? { patientGender: testData.patientGender } : {}),
         }))
       })
       .select('*, labs(*)')

@@ -146,7 +146,9 @@ const BookingsManager = () => {
           <TableHeader>
             <TableRow className="bg-slate-50/80">
               <TableHead className="font-bold text-slate-700">Patient</TableHead>
+              <TableHead className="font-bold text-slate-700">Tests</TableHead>
               <TableHead className="font-bold text-slate-700">Date & Time</TableHead>
+              <TableHead className="font-bold text-slate-700">Collection</TableHead>
               <TableHead className="font-bold text-slate-700">Amount</TableHead>
               <TableHead className="font-bold text-slate-700">Status</TableHead>
               <TableHead className="font-bold text-slate-700 text-right">Actions</TableHead>
@@ -155,7 +157,7 @@ const BookingsManager = () => {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-16 text-slate-400 italic">
+                <TableCell colSpan={7} className="text-center py-16 text-slate-400 italic">
                   No bookings found.
                 </TableCell>
               </TableRow>
@@ -171,9 +173,23 @@ const BookingsManager = () => {
                         </div>
                         <div>
                           <p className="font-semibold text-slate-900 text-sm">{b.patient_name || "Unknown"}</p>
-                          <p className="text-xs text-slate-400">{b.id?.slice(0, 8)}...</p>
+                          <p className="text-xs text-slate-400">{b.patient_phone || b.id?.slice(0, 8) + "..."}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {Array.isArray(b.tests) && b.tests.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {b.tests.map((t: any, i: number) => (
+                            <p key={i} className="text-xs font-medium text-slate-700 flex items-center gap-1">
+                              <FlaskConical size={11} className="text-primary shrink-0" />
+                              {t.name || "Unknown Test"}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No test info</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm text-slate-600">
@@ -182,6 +198,24 @@ const BookingsManager = () => {
                       </div>
                       {b.booking_time && (
                         <p className="text-xs text-slate-400 ml-5">{b.booking_time}</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {b.home_collection ? (
+                        <div>
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                            Home Collection
+                          </Badge>
+                          {b.tests?.[0]?.address && (
+                            <p className="text-[11px] text-slate-500 mt-1 max-w-[160px] truncate" title={b.tests[0].address}>
+                              {b.tests[0].address}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-xs">
+                          Lab Visit
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>

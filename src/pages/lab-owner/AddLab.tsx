@@ -251,7 +251,7 @@ const AddLab = () => {
             emergencyContact: "",
           },
           facilities: [],
-          certifications: data.certifications ? [data.certifications] : [],
+          certifications: data.certifications ? data.certifications.split(',').map((c: string) => c.trim()).filter(Boolean) : [],
           workingHours: {
             weekdays: "09:00 - 18:00",
             weekends: "10:00 - 14:00",

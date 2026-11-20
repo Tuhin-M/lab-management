@@ -10,7 +10,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name ekitsa"
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name ekitsa"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.19",

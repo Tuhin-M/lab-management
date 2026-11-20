@@ -65,7 +65,7 @@ const bookingFormSchema = z.object({
   patientGender: z.enum(["male", "female", "other"], {
     required_error: "Please select a gender",
   }),
-  patientPhone: z.string().min(10, { message: "Phone number must be at least 10 digits" }),
+  patientPhone: z.string().regex(/^[6-9]\d{9}$/, { message: "Enter a valid 10-digit Indian mobile number" }),
   patientEmail: z.string().email({ message: "Invalid email address" }).optional().or(z.literal("")),
   collectionType: z.enum(["home", "lab"], {
     required_error: "Please select a collection type",
@@ -77,6 +77,14 @@ const bookingFormSchema = z.object({
   timeSlot: z.string({
     required_error: "Please select a time slot",
   }),
+}).superRefine((data, ctx) => {
+  if (data.collectionType === "home" && (!data.address || data.address.trim().length < 10)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please enter your complete home address (at least 10 characters)",
+      path: ["address"],
+    });
+  }
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -231,6 +239,11 @@ const TestBooking = () => {
   const confirmBooking = async () => {
     if (!bookingDetails) return;
 
+    if (lab.id === "lab-default" || !lab.id) {
+      toast.error("Please select a registered laboratory before finalizing your booking.");
+      return;
+    }
+
     // Check if user is logged in
     const isAuth = await authAPI.isAuthenticated();
     if (!isAuth) {
@@ -256,6 +269,10 @@ const TestBooking = () => {
         patientName: bookingDetails.patientName,
         patientPhone: bookingDetails.patientPhone,
         homeCollection: bookingDetails.collectionType === "home",
+        address: bookingDetails.collectionType === "home" ? bookingDetails.address : undefined,
+        patientAge: bookingDetails.patientAge,
+        patientGender: bookingDetails.patientGender,
+        patientEmail: bookingDetails.patientEmail,
         status: "scheduled",
         paymentStatus: "pending",
       });
