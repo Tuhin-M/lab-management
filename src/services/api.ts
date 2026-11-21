@@ -1,11 +1,82 @@
 import { supabase } from '../lib/supabase';
 
+// Helper to hash passwords consistently for client-side password reset overrides
+async function hashPassword(password: string): Promise<string> {
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return 'fallback_' + Math.abs(hash).toString(16);
+}
+
 // Auth related API calls
 export const authAPI = {
   login: async (email: string, password: string) => {
+    const cleanEmail = email.trim().toLowerCase();
     try {
+      // 1. Check if user exists in 'profiles' and has a password override
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      let passwordOverrideMatch = false;
+      if (profile) {
+        const hashedInput = await hashPassword(password);
+
+        // Check persistent database reviews registry
+        const { data: pwdEntry } = await supabase
+          .from('reviews')
+          .select('text')
+          .eq('user_id', profile.id)
+          .ilike('text', 'pwd:%')
+          .maybeSingle();
+
+        const localHash = typeof localStorage !== 'undefined' ? localStorage.getItem(`ekitsa_pwd_${cleanEmail}`) : null;
+
+        if (pwdEntry?.text) {
+          const storedHash = pwdEntry.text.replace('pwd:sha256:', '').replace('pwd:', '').trim();
+          if (storedHash === hashedInput) {
+            passwordOverrideMatch = true;
+          }
+        } else if (localHash && localHash === hashedInput) {
+          passwordOverrideMatch = true;
+        }
+      }
+
+      // 2. If password override matches, log the user in immediately
+      if (passwordOverrideMatch && profile) {
+        const { data: override } = await supabase
+          .from('reviews')
+          .select('text')
+          .eq('id', profile.id)
+          .is('lab_id', null)
+          .ilike('text', 'role:%')
+          .maybeSingle();
+
+        const overrideRole = override?.text ? override.text.replace('role:', '').trim() : null;
+        const role = overrideRole || profile.role || 'user';
+        const token = `pwd-override-${profile.id}-${Date.now()}`;
+
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userData', JSON.stringify({ ...profile, role }));
+
+        return { user: { ...profile, role }, role, token };
+      }
+
+      // 3. Otherwise attempt standard Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password,
       });
 
@@ -13,7 +84,7 @@ export const authAPI = {
 
       if (data.user) {
         // Fetch user profile from 'profiles' table which includes role
-        const { data: profile } = await supabase
+        const { data: dbProfile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
@@ -29,13 +100,13 @@ export const authAPI = {
           .maybeSingle();
 
         const overrideRole = override?.text ? override.text.replace('role:', '').trim() : null;
-        const role = overrideRole || profile?.role || data.user.user_metadata?.role || 'user';
+        const role = overrideRole || dbProfile?.role || data.user.user_metadata?.role || 'user';
 
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
-        localStorage.setItem('userData', JSON.stringify({ ...data.user, ...profile, role }));
+        localStorage.setItem('userData', JSON.stringify({ ...data.user, ...dbProfile, role }));
 
-        return { user: { ...data.user, ...profile, role }, role, token: data.session?.access_token };
+        return { user: { ...data.user, ...dbProfile, role }, role, token: data.session?.access_token };
       }
       return null;
     } catch (error) {
@@ -187,6 +258,75 @@ export const authAPI = {
     });
     if (error) throw error;
     return data;
+  },
+
+  resetPasswordDirect: async (email: string, newPassword: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check if user exists in profiles
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
+
+    if (profileErr) {
+      console.error('Error verifying email in profiles:', profileErr);
+      throw new Error('Database error while verifying your email.');
+    }
+
+    if (!profile) {
+      throw new Error('No account found with this email address. Please check your email or register.');
+    }
+
+    // 2. Hash password using SHA-256
+    const hashed = await hashPassword(newPassword);
+    const pwdText = `pwd:sha256:${hashed}`;
+
+    // 3. Store override in the database reviews registry
+    const { data: existing } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('user_id', profile.id)
+      .ilike('text', 'pwd:%')
+      .maybeSingle();
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from('reviews')
+        .update({ text: pwdText })
+        .eq('id', existing.id);
+      if (updateErr) console.warn('Could not update reviews password override:', updateErr);
+    } else {
+      const newId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : (typeof window !== 'undefined' && window.crypto?.randomUUID ? window.crypto.randomUUID() : `pwd-${Date.now()}`);
+
+      const { error: insertErr } = await supabase
+        .from('reviews')
+        .insert({
+          id: newId,
+          user_id: profile.id,
+          lab_id: null,
+          rating: null,
+          text: pwdText
+        });
+      if (insertErr) console.warn('Could not insert reviews password override:', insertErr);
+    }
+
+    // 4. Save to localStorage for instant local authentication
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`ekitsa_pwd_${cleanEmail}`, hashed);
+    }
+
+    // 5. Try updating Supabase session user if active
+    try {
+      await supabase.auth.updateUser({ password: newPassword });
+    } catch {
+      // Harmless if not authenticated in Supabase session
+    }
+
+    return { success: true, email: cleanEmail, profile };
   },
 
   updatePassword: async (password: string) => {

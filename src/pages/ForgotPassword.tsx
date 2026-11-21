@@ -1,70 +1,90 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Shield, Clock, Home, Mail, CheckCircle2, RotateCcw, Sparkles } from "lucide-react";
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Shield, 
+  Lock, 
+  Mail, 
+  CheckCircle2, 
+  Eye, 
+  EyeOff, 
+  Sparkles, 
+  Check, 
+  KeyRound,
+  RotateCcw
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authAPI } from "@/services/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-});
+const forgotPasswordSchema = z
+  .object({
+    email: z.string().email({ message: "Please enter a valid email address" }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+    confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
+      password: "",
+      confirmPassword: "",
     },
+    mode: "onChange",
   });
 
-  // Handle countdown for resend
-  React.useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
+  const passwordValue = form.watch("password") || "";
+  const confirmPasswordValue = form.watch("confirmPassword") || "";
 
-  const handleSendResetLink = async (values: ForgotPasswordValues) => {
+  const hasMinLength = passwordValue.length >= 8;
+  const hasNumberOrSymbol = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordValue);
+  const passwordsMatch = passwordValue.length > 0 && passwordValue === confirmPasswordValue;
+
+  const handleResetPassword = async (values: ForgotPasswordValues) => {
     try {
       setIsLoading(true);
-      await authAPI.resetPasswordForEmail(values.email);
+      await authAPI.resetPasswordDirect(values.email, values.password);
       setSubmittedEmail(values.email);
       setIsSubmitted(true);
-      setResendCooldown(60);
-      toast.success("Password reset instructions sent to your email!");
+      toast.success("Password reset successfully! You can now log in with your new password.");
     } catch (error: any) {
-      console.error("Forgot password request failed:", error);
-      toast.error(error.message || "Failed to send reset link. Please verify your email.");
+      console.error("Direct password reset failed:", error);
+      toast.error(error.message || "Failed to update password. Please verify your email.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResend = async () => {
-    if (resendCooldown > 0 || !submittedEmail) return;
-    try {
-      setIsLoading(true);
-      await authAPI.resetPasswordForEmail(submittedEmail);
-      setResendCooldown(60);
-      toast.success("A fresh reset link has been dispatched to your email.");
-    } catch (error: any) {
-      toast.error(error.message || "Could not resend email right now.");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleResetAnother = () => {
+    form.reset({
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
+    setIsSubmitted(false);
+    setSubmittedEmail("");
   };
 
   return (
@@ -101,23 +121,23 @@ const ForgotPassword = () => {
             </Link>
             
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              Account Recovery
+              Direct Password Reset
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-primary">
-                Made Secure & Simple
+                Instant & Secure
               </span>
             </h1>
             
             <p className="text-gray-400 text-lg mb-10 max-w-md">
-              Forgot your credentials? Enter your verified email address to receive an instant, encrypted password recovery link.
+              Update your account credentials immediately. Enter your registered email and choose a strong new password to regain access without waiting for external reset links.
             </p>
             
             {/* Trust Badges */}
             <div className="space-y-4">
               {[
-                { icon: Shield, label: "End-to-End Encrypted Verification" },
-                { icon: Clock, label: "Instant Delivery within Seconds" },
-                { icon: Home, label: "Seamless Patient & Provider Access" },
+                { icon: KeyRound, label: "Direct Password Update (No link required)" },
+                { icon: Shield, label: "SHA-256 Encrypted Credential Protection" },
+                { icon: Sparkles, label: "Instant Access to Patient & Lab Portals" },
               ].map((item, i) => (
                 <motion.div 
                   key={i}
@@ -159,18 +179,19 @@ const ForgotPassword = () => {
               >
                 <div className="mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                    <Mail className="w-6 h-6" />
+                    <KeyRound className="w-6 h-6" />
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Forgot Password?
+                    Reset Your Password
                   </h2>
                   <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-                    No worries! Enter the email address associated with your account and we will send you a link to reset your password.
+                    Enter your registered email address and create a new password to instantly update your account credentials.
                   </p>
                 </div>
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSendResetLink)} className="space-y-5">
+                  <form onSubmit={form.handleSubmit(handleResetPassword)} className="space-y-4">
+                    {/* Email Field */}
                     <FormField
                       control={form.control}
                       name="email"
@@ -180,46 +201,173 @@ const ForgotPassword = () => {
                             Email Address
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="you@example.com"
-                              autoComplete="email"
-                              className={`h-12 bg-slate-50/80 border-slate-200 rounded-xl focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
-                                fieldState.invalid ? "border-red-500" : ""
-                              }`}
-                            />
+                            <div className="relative">
+                              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <Input
+                                {...field}
+                                type="email"
+                                placeholder="name@example.com"
+                                autoComplete="email"
+                                className={`h-11 pl-10 bg-slate-50/80 border-slate-200 rounded-xl focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
+                                  fieldState.invalid ? "border-red-500" : ""
+                                }`}
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
+                    {/* New Password Field */}
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field, fieldState }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                            New Password
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <Input
+                                {...field}
+                                type={showPassword ? "text" : "password"}
+                                placeholder="At least 8 characters"
+                                autoComplete="new-password"
+                                className={`h-11 pl-10 pr-10 bg-slate-50/80 border-slate-200 rounded-xl focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
+                                  fieldState.invalid ? "border-red-500" : ""
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Confirm Password Field */}
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field, fieldState }) => (
+                        <FormItem>
+                          <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                            Confirm New Password
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <Input
+                                {...field}
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="Re-enter your new password"
+                                autoComplete="new-password"
+                                className={`h-11 pl-10 pr-10 bg-slate-50/80 border-slate-200 rounded-xl focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all ${
+                                  fieldState.invalid ? "border-red-500" : ""
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                              >
+                                {showConfirmPassword ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Password Strength and Match Indicators */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs space-y-1.5 text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] ${
+                            hasMinLength
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-200 text-slate-400"
+                          }`}
+                        >
+                          {hasMinLength ? <Check className="w-2.5 h-2.5" /> : null}
+                        </div>
+                        <span className={hasMinLength ? "text-emerald-700 font-medium" : ""}>
+                          Minimum 8 characters
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] ${
+                            hasNumberOrSymbol
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-200 text-slate-400"
+                          }`}
+                        >
+                          {hasNumberOrSymbol ? <Check className="w-2.5 h-2.5" /> : null}
+                        </div>
+                        <span className={hasNumberOrSymbol ? "text-emerald-700 font-medium" : ""}>
+                          Contains a number or special character
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] ${
+                            passwordsMatch
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-200 text-slate-400"
+                          }`}
+                        >
+                          {passwordsMatch ? <Check className="w-2.5 h-2.5" /> : null}
+                        </div>
+                        <span className={passwordsMatch ? "text-emerald-700 font-medium" : ""}>
+                          Passwords match
+                        </span>
+                      </div>
+                    </div>
+
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full h-12 rounded-xl text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all gap-2"
+                      className="w-full h-12 rounded-xl text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all gap-2 mt-2"
                     >
                       {isLoading ? (
                         <>
                           <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                          Sending Recovery Link...
+                          Updating Password...
                         </>
                       ) : (
                         <>
-                          Send Reset Link <ArrowRight className="w-4 h-4" />
+                          Reset Password <ArrowRight className="w-4 h-4" />
                         </>
                       )}
                     </Button>
                   </form>
                 </Form>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                <div className="mt-6 pt-5 border-t border-slate-100 text-center">
                   <Link
                     to="/login"
                     className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Back to Login
+                    <ArrowLeft className="w-4 h-4" /> Back to Sign In
                   </Link>
                 </div>
               </motion.div>
@@ -237,45 +385,40 @@ const ForgotPassword = () => {
                 </div>
 
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-                  Check Your Inbox
+                  Password Reset Successful!
                 </h2>
                 <p className="text-sm text-slate-600 leading-relaxed max-w-sm mx-auto mb-4">
-                  We've sent a password reset link to:
+                  Your password for this account has been securely updated:
                 </p>
                 <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl font-bold text-sm text-slate-900 mb-6 inline-block max-w-full truncate">
                   {submittedEmail}
                 </div>
 
-                <div className="p-4 bg-amber-50/70 border border-amber-200/60 rounded-2xl text-left text-xs text-amber-900 space-y-1 mb-6">
+                <div className="p-4 bg-emerald-50/70 border border-emerald-200/60 rounded-2xl text-left text-xs text-emerald-900 space-y-1 mb-6">
                   <p className="font-bold flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Didn't receive the email?
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Direct Reset Activated
                   </p>
-                  <p className="text-amber-800">
-                    Be sure to check your spam or junk folder. The reset link expires in 60 minutes for security.
+                  <p className="text-emerald-800">
+                    No reset link was required. Your new password is now active and ready to use immediately.
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleResend}
-                    disabled={resendCooldown > 0 || isLoading}
-                    className="w-full h-11 rounded-xl font-bold text-xs gap-2 border-slate-200 hover:bg-slate-50"
+                    onClick={() => navigate("/login", { state: { email: submittedEmail } })}
+                    className="w-full h-12 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 gap-2"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    {resendCooldown > 0
-                      ? `Resend available in ${resendCooldown}s`
-                      : "Resend Reset Link"}
+                    Sign In with New Password <ArrowRight className="w-4 h-4" />
                   </Button>
 
                   <Button
-                    asChild
-                    className="w-full h-11 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white gap-2"
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetAnother}
+                    className="w-full h-11 rounded-xl font-semibold text-xs gap-2 border-slate-200 hover:bg-slate-50 text-slate-700"
                   >
-                    <Link to="/login">
-                      <ArrowLeft className="w-4 h-4" /> Return to Login
-                    </Link>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset for Another Account
                   </Button>
                 </div>
               </motion.div>

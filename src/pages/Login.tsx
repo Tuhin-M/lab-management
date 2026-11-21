@@ -56,11 +56,17 @@ const Login = () => {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      email: location.state?.email || "",
       password: "",
       rememberMe: false,
     },
   });
+
+  useEffect(() => {
+    if (location.state?.email) {
+      form.setValue("email", location.state.email);
+    }
+  }, [location.state, form]);
 
   const handleLogin = async (values: LoginFormValues) => {
     try {
@@ -80,7 +86,9 @@ const Login = () => {
         }
 
         // Priority 2: Role-based default dashboard
-        if (response.role === 'lab_owner') {
+        if (response.role === 'admin') {
+          navigate('/admin');
+        } else if (response.role === 'lab_owner') {
           navigate('/lab-dashboard');
         } else if (response.role === 'doctor') {
           navigate('/doctor-dashboard');
