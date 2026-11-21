@@ -95,6 +95,8 @@ function App() {
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="/ladmin" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

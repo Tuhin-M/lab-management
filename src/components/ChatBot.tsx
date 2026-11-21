@@ -59,9 +59,6 @@ const ChatBot: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (location.pathname.startsWith('/admin')) {
-    return null;
-  }
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -122,6 +119,11 @@ const ChatBot: React.FC = () => {
       inputRef.current.focus();
     }
   }, [isOpen, isAuthenticated]);
+
+  // Hide chatbot on dedicated admin pages (called after all hooks to prevent React hook count mismatch)
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
