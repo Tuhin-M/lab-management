@@ -30,6 +30,7 @@ import TeamManagement from "@/components/lab-owner/TeamManagement";
 import { AppointmentCalendar } from "@/components/lab-owner/AppointmentCalendar";
 import BillingDashboard from "@/components/lab-owner/BillingDashboard";
 import BookingsManager from "@/components/lab-owner/BookingsManager";
+import PatientsManager from "@/components/lab-owner/PatientsManager";
 import InventoryManager from "@/components/lab-owner/InventoryManager";
 import ReportsAnalytics from "@/components/lab-owner/ReportsAnalytics";
 import SettingsPage from "@/components/lab-owner/SettingsPage";
@@ -423,6 +424,12 @@ const LabDashboard = () => {
           {activeTab === "bookings" && (
             <div className="max-w-6xl mx-auto px-4">
               <BookingsManager />
+            </div>
+          )}
+
+          {activeTab === "patients" && (
+            <div className="max-w-6xl mx-auto px-4">
+              <PatientsManager />
             </div>
           )}
 

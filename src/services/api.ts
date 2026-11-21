@@ -961,7 +961,7 @@ export const labOwnerAPI = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: [] };
 
-    let query = supabase.from('test_bookings').select('*');
+    let query = supabase.from('test_bookings').select('*, labs(id, name, address_city)');
 
     if (labId) {
       query = query.eq('lab_id', labId);

@@ -8,6 +8,7 @@ const sidebarLinks = [
   { label: "Dashboard", icon: <Home size={20} />, tab: "dashboard" },
   { label: "Labs", icon: <FlaskConical size={20} />, tab: "labs" },
   { label: "Bookings", icon: <ClipboardList size={20} />, tab: "bookings" },
+  { label: "Patients", icon: <Users size={20} />, tab: "patients" },
   { label: "Calendar", icon: <Calendar size={20} />, tab: "calendar" },
   { label: "Team", icon: <Users2 size={20} />, tab: "team" },
   { label: "Billing", icon: <CreditCard size={20} />, tab: "billing" },
