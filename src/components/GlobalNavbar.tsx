@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Stethoscope,
   Info,
+  ShieldCheck,
   X
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -190,6 +191,26 @@ const GlobalNavbar: React.FC = () => {
                           <div className="h-px bg-slate-200 dark:bg-slate-700 w-full" />
                         </div>
                         
+                        {userRole === 'admin' && (
+                          <>
+                            <SheetClose asChild>
+                              <Link to="/admin" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/admin") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                                <div className={`p-2 rounded-xl bg-red-500/10 text-red-500 transition-all duration-300 ${isActive("/admin") ? 'bg-black/10' : ''}`}>
+                                  <ShieldCheck className="h-5 w-5" />
+                                </div>
+                                <span className="text-base tracking-tight font-bold">Admin Panel</span>
+                              </Link>
+                            </SheetClose>
+                            <SheetClose asChild>
+                              <Link to="/lab-dashboard" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/lab-dashboard") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>
+                                <div className={`p-2 rounded-xl bg-teal-500/10 text-teal-600 transition-all duration-300 ${isActive("/lab-dashboard") ? 'bg-black/10' : ''}`}>
+                                  <LayoutDashboard className="h-5 w-5" />
+                                </div>
+                                <span className="text-base tracking-tight">Lab Dashboard</span>
+                              </Link>
+                            </SheetClose>
+                          </>
+                        )}
                         {userRole === 'lab_owner' && (
                           <SheetClose asChild>
                             <Link to="/lab-dashboard" className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${isActive("/lab-dashboard") ? 'bg-primary text-black font-bold shadow-lg shadow-primary/25' : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-slate-800/50 hover:text-foreground hover:translate-x-1'}`}>

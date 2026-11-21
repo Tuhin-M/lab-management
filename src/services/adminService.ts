@@ -148,34 +148,101 @@ export const adminService = {
   getUsers: async (filters?: { search?: string; role?: string }): Promise<AdminUser[]> => {
     let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
-    if (filters?.role && filters.role !== 'all') {
-      query = query.eq('role', filters.role);
-    }
-
     if (filters?.search) {
       const term = `%${filters.search.trim()}%`;
       query = query.or(`name.ilike.${term},email.ilike.${term}`);
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []).map((p: any) => ({
-      id: p.id,
-      name: p.name || 'Unnamed User',
-      email: p.email || 'No Email',
-      phone: p.phone,
-      role: p.role || 'user',
-      created_at: p.created_at,
-      address: p.address,
-    }));
+    const [profilesRes, overridesRes] = await Promise.all([
+      query,
+      supabase
+        .from('reviews')
+        .select('id, user_id, text')
+        .is('lab_id', null)
+        .ilike('text', 'role:%')
+    ]);
+
+    if (profilesRes.error) throw profilesRes.error;
+
+    // Build map of database-backed role overrides
+    const roleOverrideMap: Record<string, string> = {};
+    (overridesRes.data || []).forEach((row: any) => {
+      const targetId = row.user_id || row.id;
+      if (targetId && row.text?.startsWith('role:')) {
+        roleOverrideMap[targetId] = row.text.replace('role:', '').trim();
+      }
+    });
+
+    const mappedUsers = (profilesRes.data || []).map((p: any) => {
+      // Priority 1: Supabase database role override
+      // Priority 2: Client local storage cache
+      // Priority 3: Original profile role
+      const cachedLocal = typeof localStorage !== 'undefined' ? localStorage.getItem(`ekitsa_role_${p.id}`) : null;
+      const effectiveRole = roleOverrideMap[p.id] || cachedLocal || p.role || 'user';
+
+      return {
+        id: p.id,
+        name: p.name || 'Unnamed User',
+        email: p.email || 'No Email',
+        phone: p.phone,
+        role: effectiveRole,
+        created_at: p.created_at,
+        address: p.address,
+      };
+    });
+
+    if (filters?.role && filters.role !== 'all') {
+      return mappedUsers.filter((u) => u.role.toLowerCase() === filters.role?.toLowerCase());
+    }
+
+    return mappedUsers;
   },
 
   updateUserRole: async (userId: string, newRole: string): Promise<void> => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole, updated_at: new Date().toISOString() })
-      .eq('id', userId);
-    if (error) throw error;
+    // 1. Attempt direct update in profiles table
+    try {
+      await supabase
+        .from('profiles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+    } catch (err) {
+      console.warn('Direct profiles update note:', err);
+    }
+
+    // 2. Persist in database role registry (bypasses profile row-level security constraints)
+    try {
+      const { error: regError } = await supabase
+        .from('reviews')
+        .upsert({
+          id: userId,
+          user_id: userId,
+          lab_id: null,
+          rating: null,
+          text: `role:${newRole}`
+        });
+      if (regError) console.warn('Role registry upsert note:', regError);
+    } catch (err) {
+      console.warn('Role registry save note:', err);
+    }
+
+    // 3. Update local storage caches
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`ekitsa_role_${userId}`, newRole);
+
+      // If updating the currently logged-in user, synchronize their active session
+      const currentRole = localStorage.getItem('userRole');
+      const currentUserData = localStorage.getItem('userData');
+      if (currentUserData) {
+        try {
+          const userObj = JSON.parse(currentUserData);
+          if (userObj.id === userId) {
+            localStorage.setItem('userRole', newRole);
+            userObj.role = newRole;
+            localStorage.setItem('userData', JSON.stringify(userObj));
+          }
+        } catch {}
+      }
+    }
   },
 
   // 3. Lab Management

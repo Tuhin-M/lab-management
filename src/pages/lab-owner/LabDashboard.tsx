@@ -98,8 +98,8 @@ const LabDashboard = () => {
 
   // Initial Data Fetch
   useEffect(() => {
-    if (role !== 'lab_owner') {
-      toast.error('Access denied. Only lab owners can access this page.');
+    if (role !== 'lab_owner' && role !== 'admin') {
+      toast.error('Access denied. Only lab owners and administrators can access this page.');
       navigate('/login');
       return;
     }

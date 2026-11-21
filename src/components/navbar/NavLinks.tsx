@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutDashboard, FileText, TestTube, Stethoscope, Info } from "lucide-react";
+import { Home, LayoutDashboard, FileText, TestTube, Stethoscope, Info, ShieldCheck } from "lucide-react";
 
 interface NavLinksProps {
   isAuthenticated: boolean;
@@ -20,6 +20,16 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
     { path: "/about", label: "About", icon: <Info className="h-6 w-6" /> }
   ];
 
+  const adminLinks = [
+    { path: "/", label: "Home", icon: <Home className="h-6 w-6" /> },
+    { path: "/lab-tests", label: "Lab Tests", icon: <TestTube className="h-6 w-6" /> },
+    { path: "/doctors", label: "Doctors", icon: <Stethoscope className="h-6 w-6" /> },
+    { path: "/lab-dashboard", label: "Lab Portal", icon: <LayoutDashboard className="h-6 w-6" /> },
+    { path: "/admin", label: "Admin Panel", icon: <ShieldCheck className="h-6 w-6 text-teal-500" /> },
+    { path: "/community", label: "Community", icon: <FileText className="h-6 w-6" /> },
+    { path: "/about", label: "About", icon: <Info className="h-6 w-6" /> }
+  ];
+
   const labOwnerLinks = [
     { path: "/", label: "Home", icon: <Home className="h-6 w-6" /> },
     { path: "/lab-dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-6 w-6" /> },
@@ -33,6 +43,7 @@ const NavLinks: React.FC<NavLinksProps> = ({ isAuthenticated, userRole }) => {
   ];
 
   const getLinks = () => {
+    if (userRole === 'admin') return adminLinks;
     if (userRole === 'lab_owner') return labOwnerLinks;
     if (userRole === 'doctor') return doctorLinks;
     return commonLinks;

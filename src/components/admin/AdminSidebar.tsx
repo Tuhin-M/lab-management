@@ -144,10 +144,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => navigate('/lab-dashboard')}
+            className="w-full justify-start text-xs text-teal-400 hover:text-white hover:bg-slate-800 h-8 rounded-lg gap-2"
+          >
+            <FlaskConical size={14} /> Open Lab Dashboard
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/')}
             className="w-full justify-start text-xs text-slate-400 hover:text-white hover:bg-slate-800 h-8 rounded-lg gap-2"
           >
-            <ArrowLeft size={14} /> Back to Customer Portal
+            <ArrowLeft size={14} /> Customer Portal
           </Button>
           {onLogout && (
             <Button

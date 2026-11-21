@@ -1,5 +1,5 @@
 import React from "react";
-import { LogOut, User, Settings, LayoutDashboard, HeartPulse } from "lucide-react";
+import { LogOut, User, Settings, LayoutDashboard, HeartPulse, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -50,7 +50,75 @@ const UserMenu: React.FC<UserMenuProps> = ({ currentUser, onLogout }) => {
         <div className="h-px bg-slate-100 dark:bg-slate-800 mx-2 mb-1" />
         
         <div className="p-1 space-y-1">
-          {userRole === 'lab_owner' ? (
+          {userRole === 'admin' ? (
+            <>
+              <DropdownMenuItem 
+                className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+                asChild
+              >
+                <Link to="/admin" className="flex items-center">
+                  <div className="bg-red-50 dark:bg-red-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                    <ShieldCheck className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[15px] block">Admin Dashboard</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Platform Operations</span>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+                asChild
+              >
+                <Link to="/lab-dashboard" className="flex items-center">
+                  <div className="bg-teal-50 dark:bg-teal-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                    <LayoutDashboard className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[15px] block">Lab Dashboard</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Manage All Facilities</span>
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+                asChild
+              >
+                <Link to="/profile" className="flex items-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                    <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="font-semibold text-[15px]">My Profile</span>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+                asChild
+              >
+                <Link to="/orders" className="flex items-center">
+                  <div className="bg-rose-50 dark:bg-rose-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                    <HeartPulse className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <span className="font-semibold text-[15px]">My Orders</span>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
+                asChild
+              >
+                <Link to="/settings" className="flex items-center">
+                  <div className="bg-amber-50 dark:bg-amber-900/40 p-2.5 rounded-xl mr-4 group-hover:scale-110 transition-all duration-300">
+                    <Settings className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="font-semibold text-[15px]">Platform Settings</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+          ) : userRole === 'lab_owner' ? (
             <DropdownMenuItem 
               className="rounded-[20px] cursor-pointer p-3 focus:bg-primary/10 focus:text-primary transition-all duration-300 group" 
               asChild

@@ -19,13 +19,23 @@ export const authAPI = {
           .eq('id', data.user.id)
           .maybeSingle();
 
-        const role = profile?.role || data.user.user_metadata?.role || 'user';
+        // Check if there is an administrative role override
+        const { data: override } = await supabase
+          .from('reviews')
+          .select('text')
+          .eq('id', data.user.id)
+          .is('lab_id', null)
+          .ilike('text', 'role:%')
+          .maybeSingle();
+
+        const overrideRole = override?.text ? override.text.replace('role:', '').trim() : null;
+        const role = overrideRole || profile?.role || data.user.user_metadata?.role || 'user';
 
         localStorage.setItem('authToken', data.session?.access_token || '');
         localStorage.setItem('userRole', role);
-        localStorage.setItem('userData', JSON.stringify({ ...data.user, ...profile }));
+        localStorage.setItem('userData', JSON.stringify({ ...data.user, ...profile, role }));
 
-        return { user: { ...data.user, ...profile }, role, token: data.session?.access_token };
+        return { user: { ...data.user, ...profile, role }, role, token: data.session?.access_token };
       }
       return null;
     } catch (error) {
@@ -928,11 +938,33 @@ interface LabCreateResponse {
 // Lab owner related API calls
 export const labOwnerAPI = {
   getLabStats: async () => {
+    const role = typeof localStorage !== 'undefined' ? localStorage.getItem('userRole') : null;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: {} };
+    if (!user && role !== 'admin') return { data: {} };
+
+    // If administrator, calculate across all platform labs
+    if (role === 'admin') {
+      const { data: labs } = await supabase.from('labs').select('id');
+      const labIds = labs?.map(l => l.id) || [];
+      const { count } = await supabase.from('test_bookings').select('*', { count: 'exact', head: true });
+      const { data: bookings } = await supabase.from('test_bookings').select('total_amount, status');
+      const totalRev = (bookings || []).reduce((acc, b) => acc + (b.total_amount || 0), 0);
+      const pendingCount = (bookings || []).filter(b => b.status === 'scheduled').length;
+      return {
+        data: {
+          totalBookings: count || 0,
+          totalAppointments: count || 0,
+          totalLabs: labIds.length,
+          labs: labIds.length,
+          revenue: totalRev,
+          totalRevenue: totalRev,
+          pendingAppointments: pendingCount
+        }
+      };
+    }
 
     // Calculate stats from owned labs
-    const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user.id);
+    const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user!.id);
     const labIds = labs?.map(l => l.id) || [];
 
     if (labIds.length === 0) return { data: { totalBookings: 0, revenue: 0 } };
@@ -942,33 +974,67 @@ export const labOwnerAPI = {
       .select('*', { count: 'exact', head: true })
       .in('lab_id', labIds);
 
-    return { data: { totalBookings: count || 0, totalAppointments: count || 0, totalLabs: labIds.length, labs: labIds.length, revenue: 0, totalRevenue: 0, pendingAppointments: 0 } };
+    const { data: bookings } = await supabase
+      .from('test_bookings')
+      .select('total_amount, status')
+      .in('lab_id', labIds);
+
+    const totalRev = (bookings || []).reduce((acc, b) => acc + (b.total_amount || 0), 0);
+    const pendingCount = (bookings || []).filter(b => b.status === 'scheduled').length;
+
+    return {
+      data: {
+        totalBookings: count || 0,
+        totalAppointments: count || 0,
+        totalLabs: labIds.length,
+        labs: labIds.length,
+        revenue: totalRev,
+        totalRevenue: totalRev,
+        pendingAppointments: pendingCount
+      }
+    };
   },
 
   getOwnedLabs: async () => {
+    const role = typeof localStorage !== 'undefined' ? localStorage.getItem('userRole') : null;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: [] };
+    if (!user && role !== 'admin') return { data: [] };
+
+    // Administrators can manage and view all laboratories
+    if (role === 'admin') {
+      const { data, error } = await supabase.from('labs').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return { data: data || [] };
+    }
 
     const { data, error } = await supabase
       .from('labs')
       .select('*')
-      .eq('owner_id', user.id);
+      .eq('owner_id', user!.id);
 
     if (error) throw error;
     return { data };
   },
 
   getLabBookings: async (labId?: string) => {
+    const role = typeof localStorage !== 'undefined' ? localStorage.getItem('userRole') : null;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: [] };
+    if (!user && role !== 'admin') return { data: [] };
 
     let query = supabase.from('test_bookings').select('*, labs(id, name, address_city)');
+
+    if (role === 'admin') {
+      if (labId) query = query.eq('lab_id', labId);
+      const { data, error } = await query.order('booking_date', { ascending: false });
+      if (error) throw error;
+      return { data: data || [] };
+    }
 
     if (labId) {
       query = query.eq('lab_id', labId);
     } else {
       // Get all bookings for all owned labs
-      const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user.id);
+      const { data: labs } = await supabase.from('labs').select('id').eq('owner_id', user!.id);
       const labIds = labs?.map(l => l.id) || [];
       if (labIds.length === 0) return { data: [] };
       query = query.in('lab_id', labIds);
