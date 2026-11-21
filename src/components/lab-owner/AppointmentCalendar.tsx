@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, startOfWeek, getDay, addDays } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -7,6 +7,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TimeSlot } from './TimeSlot';
 import { AppointmentForm } from './AppointmentForm';
+import { labOwnerAPI } from '@/services/api';
 
 const locales = {
   'en-US': enUS
@@ -62,6 +63,40 @@ export const AppointmentCalendar = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{start: Date, end: Date} | null>(null);
+
+  useEffect(() => {
+    const fetchCalendarBookings = async () => {
+      try {
+        const { data } = await labOwnerAPI.getLabBookings();
+        if (data && Array.isArray(data)) {
+          const events: Appointment[] = data.map((b: any) => {
+            const dateStr = b.booking_date || b.created_at;
+            const startDate = dateStr ? new Date(dateStr) : new Date();
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            const testName = Array.isArray(b.tests) && b.tests.length > 0 ? (b.tests[0]?.name || b.tests[0]) : 'Diagnostic Test';
+
+            let status: 'pending' | 'confirmed' | 'completed' = 'pending';
+            if (b.status === 'completed') status = 'completed';
+            else if (['scheduled', 'in_progress', 'sample_collected'].includes(b.status)) status = 'confirmed';
+
+            return {
+              id: b.id,
+              title: `${b.patient_name || 'Patient'} - ${testName}`,
+              start: startDate,
+              end: endDate,
+              patient: b.patient_name || 'Patient',
+              test: testName,
+              status
+            };
+          });
+          setAppointments(events);
+        }
+      } catch (e) {
+        console.error('Error fetching calendar bookings:', e);
+      }
+    };
+    fetchCalendarBookings();
+  }, []);
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     setSelectedSlot({ start, end });
