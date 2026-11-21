@@ -180,6 +180,15 @@ export const authAPI = {
     return { data };
   },
 
+  resetPasswordForEmail: async (email: string) => {
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) throw error;
+    return data;
+  },
+
   updatePassword: async (password: string) => {
     const { data, error } = await supabase.auth.updateUser({
       password: password

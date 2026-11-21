@@ -17,6 +17,8 @@ const DoctorAppointment = lazy(() => import("./pages/DoctorAppointment"));
 const Login = lazy(() => import("./pages/Login"));
 const Profile = lazy(() => import("./pages/Profile"));
 const SignUp = lazy(() => import("./pages/SignUp"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Community = lazy(() => import("./pages/Community"));
 const LabTests = lazy(() => import("./pages/LabTests"));
 const LabDetail = lazy(() => import("./pages/LabDetail"));
@@ -56,6 +58,8 @@ function App() {
           <Route path="/doctors/:id" element={<DoctorAppointment />} />
           <Route path="/doctor-chat/:id" element={<DoctorChat />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/community" element={<Community />} />
