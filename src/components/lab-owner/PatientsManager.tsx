@@ -86,18 +86,24 @@ const PatientsManager: React.FC = () => {
       const key = (b.patient_phone || b.user_id || b.patient_name || "unknown").trim();
       const labName = b.labs?.name || "Laboratory";
       const tests = Array.isArray(b.tests) ? b.tests : [];
-      const testName = tests.length > 0 ? (tests[0].name || tests[0]) : "Diagnostic Test";
+      const firstTest = tests.length > 0 ? tests[0] : {};
+      const testName = tests.length > 0 ? (firstTest.name || firstTest) : "Diagnostic Test";
       const bookingDate = b.booking_date || (b.created_at ? b.created_at.split("T")[0] : "");
+
+      const rowEmail = b.patient_email || firstTest.patientEmail || "";
+      const rowAge = b.patient_age || firstTest.patientAge || "";
+      const rowGender = b.patient_gender || firstTest.patientGender || "";
+      const rowAddress = b.address || firstTest.address || "";
 
       if (!patientMap[key]) {
         patientMap[key] = {
           id: key,
           name: b.patient_name || "Patient",
           phone: b.patient_phone || "—",
-          email: b.patient_email || "",
-          age: b.patient_age || "",
-          gender: b.patient_gender || "",
-          address: b.address || "",
+          email: rowEmail,
+          age: rowAge,
+          gender: rowGender,
+          address: rowAddress,
           totalBookings: 0,
           completedBookings: 0,
           cancelledBookings: 0,
@@ -117,10 +123,10 @@ const PatientsManager: React.FC = () => {
       if (b.status === "completed") p.completedBookings += 1;
       if (b.status === "cancelled") p.cancelledBookings += 1;
 
-      if (!p.email && b.patient_email) p.email = b.patient_email;
-      if (!p.age && b.patient_age) p.age = b.patient_age;
-      if (!p.gender && b.patient_gender) p.gender = b.patient_gender;
-      if (!p.address && b.address) p.address = b.address;
+      if (!p.email && rowEmail) p.email = rowEmail;
+      if (!p.age && rowAge) p.age = rowAge;
+      if (!p.gender && rowGender) p.gender = rowGender;
+      if (!p.address && rowAddress) p.address = rowAddress;
 
       if (bookingDate && (!p.lastVisit || bookingDate > p.lastVisit)) {
         p.lastVisit = bookingDate;
@@ -142,7 +148,7 @@ const PatientsManager: React.FC = () => {
         status: b.status || "scheduled",
         paymentStatus: b.payment_status || "pending",
         homeCollection: b.home_collection,
-        address: b.address,
+        address: rowAddress,
         tests,
       });
     });

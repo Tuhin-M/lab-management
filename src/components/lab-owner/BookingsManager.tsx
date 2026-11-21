@@ -260,9 +260,9 @@ const BookingsManager = () => {
                           <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[11px] gap-1">
                             <Home size={10} /> Home Visit
                           </Badge>
-                          {b.address && (
-                            <p className="text-[10px] text-slate-500 mt-1 max-w-[140px] truncate" title={b.address}>
-                              {b.address}
+                          {(b.address || (Array.isArray(b.tests) && b.tests[0]?.address)) && (
+                            <p className="text-[10px] text-slate-500 mt-1 max-w-[140px] truncate" title={b.address || b.tests[0]?.address}>
+                              {b.address || b.tests[0]?.address}
                             </p>
                           )}
                         </div>
@@ -362,10 +362,10 @@ const BookingsManager = () => {
                     </span>
                   </div>
                 </div>
-                {selectedBooking.home_collection && selectedBooking.address && (
+                {selectedBooking.home_collection && (selectedBooking.address || (Array.isArray(selectedBooking.tests) && selectedBooking.tests[0]?.address)) && (
                   <div className="pt-2 border-t border-slate-200/60 text-xs">
                     <span className="text-slate-400 block font-medium">Home Delivery Address:</span>
-                    <span className="text-slate-800 mt-0.5 block">{selectedBooking.address}</span>
+                    <span className="text-slate-800 mt-0.5 block">{selectedBooking.address || selectedBooking.tests[0]?.address}</span>
                   </div>
                 )}
               </div>

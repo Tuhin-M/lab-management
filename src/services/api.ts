@@ -452,6 +452,7 @@ export const labsAPI = {
           ...(idx === 0 && testData.address ? { address: testData.address } : {}),
           ...(idx === 0 && testData.patientAge ? { patientAge: testData.patientAge } : {}),
           ...(idx === 0 && testData.patientGender ? { patientGender: testData.patientGender } : {}),
+          ...(idx === 0 && testData.patientEmail ? { patientEmail: testData.patientEmail } : {}),
         }))
       })
       .select('*, labs(*)')
