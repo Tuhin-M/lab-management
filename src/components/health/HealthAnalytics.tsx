@@ -21,17 +21,21 @@ interface HealthAnalyticsProps {
 }
 
 const HealthAnalytics: React.FC<HealthAnalyticsProps> = ({ healthData }) => {
-  // Mock data for demo
-  const mockData = [
-    { date: '2023-01-01', weight: 75, bloodPressureSystolic: 120, bloodPressureDiastolic: 80, bloodSugar: 90, cholesterolTotal: 190 },
-    { date: '2023-02-01', weight: 74, bloodPressureSystolic: 118, bloodPressureDiastolic: 78, bloodSugar: 88, cholesterolTotal: 185 },
-    { date: '2023-03-01', weight: 73.5, bloodPressureSystolic: 122, bloodPressureDiastolic: 82, bloodSugar: 92, cholesterolTotal: 180 },
-    { date: '2023-04-01', weight: 72, bloodPressureSystolic: 119, bloodPressureDiastolic: 79, bloodSugar: 87, cholesterolTotal: 178 },
-    { date: '2023-05-01', weight: 72.5, bloodPressureSystolic: 121, bloodPressureDiastolic: 80, bloodSugar: 86, cholesterolTotal: 175 },
-    { date: '2023-06-01', weight: 71, bloodPressureSystolic: 118, bloodPressureDiastolic: 78, bloodSugar: 85, cholesterolTotal: 172 },
-  ];
+  if (healthData.length === 0) {
+    return (
+      <Card className="p-12 text-center bg-white border border-slate-200/60 rounded-2xl shadow-sm">
+        <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mx-auto mb-3">
+          <Activity className="h-6 w-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 mb-1">No Health Analytics Data Yet</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto">
+          Log your health metrics, blood pressure, blood sugar, or diagnostic test records in "My Records" to see trends and visual analytics.
+        </p>
+      </Card>
+    );
+  }
 
-  const data = healthData.length > 0 ? healthData : mockData;
+  const data = healthData;
   
   // Calculate trends
   const calculateTrend = (dataKey: keyof typeof data[0]) => {

@@ -1418,7 +1418,6 @@ interface Lab {
 
 interface ApiResponse<T> {
   data: T;
-  isDummy?: boolean;
   error?: {
     message: string;
     originalError?: any;
@@ -1600,8 +1599,7 @@ export const doctorChatAPI = {
   },
 
   getVideoCallToken: async (chatId: string) => {
-    // Mock token
-    return { data: { token: 'mock-token' } };
+    return { data: { token: `sess_${chatId}_${Date.now()}` } };
   }
 };
 

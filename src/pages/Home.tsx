@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { popularTests, popularSpecialties } from "@/constants/homeData";
+import { popularSpecialties } from "@/constants/homeData";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Search, TestTube, User, Star, MapPin, Shield, Clock, Award } from "lucide-react";
 import CitySelection from "@/components/CitySelection";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { doctorsAPI } from "@/services/api";
+import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
 
 const Home = () => {
@@ -18,6 +19,7 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [doctors, setDoctors] = useState<any[]>([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+  const [popularTestsList, setPopularTestsList] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -31,6 +33,30 @@ const Home = () => {
       }
     };
     fetchDoctors();
+  }, []);
+
+  useEffect(() => {
+    const fetchPopularTests = async () => {
+      try {
+        const { data } = await supabase
+          .from('tests')
+          .select('*, lab_tests(count)')
+          .limit(6);
+        if (data && data.length > 0) {
+          setPopularTestsList(data.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            price: Math.round((t.market_price || 500) * 1.25),
+            discountPrice: t.market_price || 500,
+            labCount: t.lab_tests?.[0]?.count || 1,
+            category: t.category
+          })));
+        }
+      } catch (error) {
+        console.error("Error fetching tests:", error);
+      }
+    };
+    fetchPopularTests();
   }, []);
 
   const handleLabSearch = () => {
@@ -204,13 +230,13 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold">Popular Lab Tests</h2>
-            <Button variant="outline" onClick={() => navigate("/labs")} className="gap-2">
+            <Button variant="outline" onClick={() => navigate("/lab-tests")} className="gap-2">
               View All <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularTests.map(test => (
+            {(popularTestsList.length > 0 ? popularTestsList : []).map(test => (
               <Card key={test.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -223,9 +249,9 @@ const Home = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center text-sm text-muted-foreground">
                       <TestTube className="h-3 w-3 mr-1" />
-                      <span>Available at 14+ labs</span>
+                      <span>{test.labCount ? `Available at ${test.labCount} lab${test.labCount > 1 ? 's' : ''}` : 'Accredited Labs'}</span>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/labs?test=${test.name}`)}>
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/lab-tests?search=${encodeURIComponent(test.name)}`)}>
                       Book Now
                     </Button>
                   </div>

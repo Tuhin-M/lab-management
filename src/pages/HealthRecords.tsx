@@ -52,7 +52,7 @@ const HealthRecords = () => {
   }, []);
   
   const handleViewRecord = (id: string) => {
-    const record = (records.length > 0 ? records : demoRecords).find(r => r._id === id);
+    const record = records.find(r => r._id === id);
     if (record?.isDigital) {
       setSelectedPrescription(record);
     } else {
@@ -92,58 +92,6 @@ const HealthRecords = () => {
     setIsAddingRecord(false);
   };
 
-  // Demo data to show functionality while API is being implemented
-  const demoRecords: HealthRecord[] = [
-    {
-      _id: '1',
-      recordType: 'prescription',
-      title: 'Amoxicillin 500mg',
-      date: '2023-05-15T10:30:00Z',
-      doctorName: 'Dr. Madhu Das',
-      hospitalName: 'City Medical Center',
-      description: 'Take 1 tablet 3 times daily after meals for 7 days.',
-      tags: ['antibiotic', 'infection']
-    },
-    {
-      _id: '2',
-      recordType: 'test_result',
-      title: 'Complete Blood Count (CBC)',
-      date: '2023-06-02T14:45:00Z',
-      doctorName: 'Dr. Michael Chen',
-      hospitalName: 'HealthPlus Diagnostics',
-      description: 'Normal blood cell counts. Slight elevation in white blood cells.',
-      tags: ['blood test', 'routine checkup']
-    },
-    {
-      _id: '3',
-      recordType: 'health_metric',
-      title: 'Blood Pressure Reading',
-      date: '2023-06-20T08:15:00Z',
-      description: 'Morning reading: 120/80 mmHg',
-      tags: ['blood pressure', 'morning']
-    },
-    {
-      _id: '4',
-      recordType: 'doctor_note',
-      title: 'Annual Physical Examination',
-      date: '2023-04-10T11:00:00Z',
-      doctorName: 'Dr. Emily Williams',
-      hospitalName: 'Wellness Clinic',
-      description: 'Patient is in good health. Recommended to maintain current diet and exercise regimen.',
-      tags: ['checkup', 'annual']
-    },
-    {
-      _id: '5',
-      recordType: 'test_result',
-      title: 'Lipid Profile',
-      date: '2023-03-25T09:30:00Z',
-      doctorName: 'Dr. Robert Lee',
-      hospitalName: 'Metropolis Labs',
-      description: 'Cholesterol: 190 mg/dL, HDL: 60 mg/dL, LDL: 110 mg/dL, Triglycerides: 100 mg/dL',
-      tags: ['cholesterol', 'lipids']
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-background flex flex-col pt-16">
       
@@ -175,7 +123,7 @@ const HealthRecords = () => {
                 </CardHeader>
                 <CardContent>
                   <HealthRecordsList 
-                    records={records.length > 0 ? records : demoRecords}
+                    records={records}
                     onViewRecord={handleViewRecord}
                     onDeleteRecord={handleDeleteRecord}
                     onAddRecord={handleAddRecord}

@@ -39,24 +39,6 @@ interface LabInfo {
   homeCollectionCharges?: number;
 }
 
-// Default fallback data
-const defaultLab: LabInfo = {
-  id: "lab-default",
-  name: "HealthPlus Diagnostics",
-  address: "123 Healthcare Avenue, Koramangala, Bangalore",
-  rating: 4.7,
-  reviews: 243,
-  homeCollectionCharges: 100,
-};
-
-const defaultTest: SelectedTest = {
-  id: "test-default",
-  name: "Complete Blood Count (CBC)",
-  description: "A comprehensive blood test to evaluate overall health.",
-  category: "Blood",
-  price: 599,
-};
-
 const bookingFormSchema = z.object({
   patientName: z.string().min(2, { message: "Name must be at least 2 characters" }),
   patientAge: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number(val) < 120, {
@@ -100,33 +82,33 @@ const TestBooking = () => {
   const priceFromState = location.state?.price as number | undefined;
 
   // Sanitize lab object
-  const sanitizeLab = (rawLab: any): LabInfo => {
-    if (!rawLab) return defaultLab;
+  const sanitizeLab = (rawLab: any): LabInfo | null => {
+    if (!rawLab) return null;
     let address = rawLab.address;
     if (typeof address === 'object' || !address) {
       const parts = [
         rawLab.address_street,
         rawLab.address_city,
         rawLab.address_state,
-        rawLab.address_pincode
+        rawLab.address_pincode || rawLab.address_zip
       ].filter(Boolean);
       address = parts.length > 0 ? parts.join(', ') : 'Lab Location';
     }
     return {
-      id: rawLab.id || 'lab-default',
-      name: rawLab.name || 'Lab',
+      id: rawLab.id,
+      name: rawLab.name || 'Laboratory',
       address: address,
-      rating: rawLab.rating || rawLab.avgRating,
-      reviews: typeof rawLab.reviews === 'number' ? rawLab.reviews : 20,
+      rating: rawLab.rating || 0,
+      reviews: typeof rawLab.reviews === 'number' ? rawLab.reviews : (rawLab.review_count || 0),
       image: rawLab.image || rawLab.imageUrl,
       imageUrl: rawLab.imageUrl || rawLab.image,
       homeCollectionCharges: rawLab.homeCollectionCharges || 100,
     };
   };
 
-  const [lab, setLab] = useState<LabInfo>(() => sanitizeLab(labFromState));
+  const [lab, setLab] = useState<LabInfo | null>(() => sanitizeLab(labFromState));
   const [selectedTests, setSelectedTests] = useState<SelectedTest[]>(
-    testsFromState && testsFromState.length > 0 ? testsFromState : [defaultTest]
+    testsFromState && testsFromState.length > 0 ? testsFromState : []
   );
   const [loading, setLoading] = useState(!labFromState || !testsFromState);
 
@@ -134,10 +116,8 @@ const TestBooking = () => {
     const fetchMissingData = async () => {
       if (!labFromState && routeTestId) {
         try {
-          // In a real scenario, we might need to find which lab has this test
-          // For now, we'll try to get labs and find one containing this test ID
           const allLabs = await labsAPI.getAllLabs();
-          const targetLab = allLabs.find((l: any) => l.tests.some((t: any) => t.id === routeTestId));
+          const targetLab = allLabs.find((l: any) => l.tests && l.tests.some((t: any) => t.id === routeTestId));
           if (targetLab) {
             setLab(sanitizeLab(targetLab));
             const test = targetLab.tests.find((t: any) => t.id === routeTestId);
@@ -159,7 +139,7 @@ const TestBooking = () => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<BookingFormValues | null>(null);
 
-  const homeCollectionCharges = lab.homeCollectionCharges || 100;
+  const homeCollectionCharges = lab?.homeCollectionCharges || 100;
   const timeSlots = [
     "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM",
     "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM",
@@ -237,7 +217,7 @@ const TestBooking = () => {
   };
 
   const confirmBooking = async () => {
-    if (!bookingDetails) return;
+    if (!bookingDetails || !lab) return;
 
     if (lab.id === "lab-default" || !lab.id) {
       toast.error("Please select a registered laboratory before finalizing your booking.");
@@ -325,9 +305,23 @@ const TestBooking = () => {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] opacity-60" />
       </div>
 
-      {loading && <LoadingFallback />}
-
-      <main className="flex-grow container mx-auto py-8 px-4 relative z-10">
+      {loading ? (
+        <LoadingFallback />
+      ) : !lab || selectedTests.length === 0 ? (
+        <main className="flex-grow container mx-auto py-20 px-4 relative z-10 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
+            <TestTube className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">No Lab or Test Selected</h2>
+          <p className="text-slate-500 max-w-md mb-6">
+            Please choose a test from our accredited laboratories to schedule your booking.
+          </p>
+          <Button onClick={() => navigate('/lab-tests')} className="rounded-xl px-6 h-11">
+            Browse Lab Tests
+          </Button>
+        </main>
+      ) : (
+        <main className="flex-grow container mx-auto py-8 px-4 relative z-10">
         <div className="max-w-6xl mx-auto">
           <Link to={labFromState ? `/lab/${lab.id}` : "/lab-tests"} className="inline-flex items-center text-muted-foreground hover:text-primary mb-6 transition-colors group">
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -690,8 +684,9 @@ const TestBooking = () => {
           </div>
         </div>
       </main>
+      )}
 
-      {bookingDetails && (
+      {bookingDetails && lab && (
         <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
           <DialogContent className="sm:max-w-md rounded-2xl overflow-hidden border-0 shadow-2xl">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-cyan-500" />

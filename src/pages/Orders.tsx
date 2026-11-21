@@ -79,79 +79,6 @@ interface LabOrder extends BaseOrder {
 
 type Order = DoctorOrder | LabOrder;
 
-// Sample data for orders
-const initialAppointmentOrders: DoctorOrder[] = [
-  {
-    id: "APT-001",
-    type: "doctor",
-    status: "upcoming",
-    doctor: "Dr. Rajesh Sharma",
-    specialty: "Cardiologist",
-    hospital: "City Heart Hospital",
-    date: "2023-06-15",
-    time: "10:00 AM",
-    paymentStatus: "paid",
-    amount: 800,
-    address: "123 Hospital Road, Mumbai",
-  },
-  {
-    id: "APT-002",
-    type: "doctor",
-    status: "completed",
-    doctor: "Dr. Priya Patel",
-    specialty: "Dermatologist",
-    hospital: "Skin Care Clinic",
-    date: "2023-05-20",
-    time: "11:30 AM",
-    paymentStatus: "paid",
-    amount: 600,
-    address: "456 Health Avenue, Delhi",
-    prescriptionUrl: "#",
-  },
-];
-
-const initialLabOrders: LabOrder[] = [
-  {
-    id: "LAB-001",
-    type: "lab",
-    status: "processing",
-    lab: "HealthPlus Diagnostics",
-    tests: ["Complete Blood Count", "Lipid Profile"],
-    date: "2023-06-10",
-    time: "08:00 AM",
-    paymentStatus: "paid",
-    amount: 1200,
-    address: "789 Lab Road, Bangalore",
-    trackingSteps: [
-      { id: 1, label: "Order Placed", completed: true, date: "2023-06-08" },
-      { id: 2, label: "Sample Collection", completed: true, date: "2023-06-10" },
-      { id: 3, label: "Testing in Progress", completed: false },
-      { id: 4, label: "Results Processing", completed: false },
-      { id: 5, label: "Report Ready", completed: false },
-    ],
-  },
-  {
-    id: "LAB-002",
-    type: "lab",
-    status: "completed",
-    lab: "MediScan Labs",
-    tests: ["Thyroid Profile", "Vitamin D3"],
-    date: "2023-05-15",
-    time: "09:30 AM",
-    paymentStatus: "paid",
-    amount: 1500,
-    address: "321 Lab Complex, Chennai",
-    reportUrl: "#",
-    trackingSteps: [
-      { id: 1, label: "Order Placed", completed: true, date: "2023-05-13" },
-      { id: 2, label: "Sample Collection", completed: true, date: "2023-05-15" },
-      { id: 3, label: "Testing in Progress", completed: true, date: "2023-05-16" },
-      { id: 4, label: "Results Processing", completed: true, date: "2023-05-17" },
-      { id: 5, label: "Report Ready", completed: true, date: "2023-05-18" },
-    ],
-  },
-];
-
 const StatusBadge = ({ status }: { status: string }) => {
   let className = "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200";
   let icon = null;
@@ -403,15 +330,27 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Load orders from localStorage or use initial data
+  // Load orders from localStorage or use empty array
   const [appointmentOrders, setAppointmentOrders] = useState<DoctorOrder[]>(() => {
-    const saved = localStorage.getItem('ekitsa_appointment_orders');
-    return saved ? JSON.parse(saved) : initialAppointmentOrders;
+    try {
+      const saved = localStorage.getItem('ekitsa_appointment_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((o: any) => !['APT-001', 'APT-002'].includes(o.id)) : [];
+      }
+    } catch {}
+    return [];
   });
   
   const [labOrders, setLabOrders] = useState<LabOrder[]>(() => {
-    const saved = localStorage.getItem('ekitsa_lab_orders');
-    return saved ? JSON.parse(saved) : initialLabOrders;
+    try {
+      const saved = localStorage.getItem('ekitsa_lab_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((o: any) => !['LAB-001', 'LAB-002'].includes(o.id)) : [];
+      }
+    } catch {}
+    return [];
   });
   
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -491,13 +430,9 @@ const Orders = () => {
           };
         });
 
-        if (mappedLabOrders.length > 0) {
-          setLabOrders(prev => {
-            const dbIds = new Set(mappedLabOrders.map(o => o.id));
-            const uniqueLocal = prev.filter(o => !dbIds.has(o.id));
-            return [...mappedLabOrders, ...uniqueLocal];
-          });
-        }
+        setLabOrders(mappedLabOrders);
+      } else {
+        setLabOrders([]);
       }
 
       // 2. Fetch real doctor appointments
@@ -518,13 +453,9 @@ const Orders = () => {
           prescriptionUrl: a.status === 'completed' ? '#' : undefined
         }));
 
-        if (mappedDocOrders.length > 0) {
-          setAppointmentOrders(prev => {
-            const dbIds = new Set(mappedDocOrders.map(o => o.id));
-            const uniqueLocal = prev.filter(o => !dbIds.has(o.id));
-            return [...mappedDocOrders, ...uniqueLocal];
-          });
-        }
+        setAppointmentOrders(mappedDocOrders);
+      } else {
+        setAppointmentOrders([]);
       }
 
       if (showToast) {

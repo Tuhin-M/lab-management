@@ -34,7 +34,6 @@ const BillingDashboard = () => {
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [totalRevenue, setTotalRevenue] = useState(0);
-    const [growth, setGrowth] = useState(12.5); // Mock growth
 
     useEffect(() => {
         const fetchBookings = async () => {
@@ -58,27 +57,31 @@ const BillingDashboard = () => {
 
     if (loading) return <LoadingFallback />;
 
+    const completedBookings = bookings.filter((b: any) => (b.status || '').toLowerCase() === 'completed').length;
+    const paidBookings = bookings.filter((b: any) => (b.payment_status || '').toLowerCase() === 'paid').length;
+    const paidRate = bookings.length > 0 ? `${Math.round((paidBookings / bookings.length) * 100)}%` : "0%";
+
     const stats = [
         {
             title: "Total Revenue",
             value: `₹${totalRevenue.toLocaleString()}`,
-            change: "+₹2,400",
+            change: `${bookings.length} orders`,
             trend: "up",
             icon: <CreditCard className="h-6 w-6" />,
             color: "bg-blue-500"
         },
         {
-            title: "Active Bookings",
+            title: "Total Bookings",
             value: bookings.length.toString(),
-            change: "+3 this week",
+            change: `${completedBookings} completed`,
             trend: "up",
             icon: <Calendar className="h-6 w-6" />,
             color: "bg-emerald-500"
         },
         {
-            title: "Converson Rate",
-            value: "18.2%",
-            change: "+2.4%",
+            title: "Paid Rate",
+            value: paidRate,
+            change: `${paidBookings} paid`,
             trend: "up",
             icon: <TrendingUp className="h-6 w-6" />,
             color: "bg-purple-500"
@@ -86,8 +89,8 @@ const BillingDashboard = () => {
         {
             title: "Avg. Order Value",
             value: bookings.length > 0 ? `₹${Math.round(totalRevenue / bookings.length).toLocaleString()}` : "₹0",
-            change: "-₹120",
-            trend: "down",
+            change: "per order",
+            trend: "up",
             icon: <Users className="h-6 w-6" />,
             color: "bg-orange-500"
         }
